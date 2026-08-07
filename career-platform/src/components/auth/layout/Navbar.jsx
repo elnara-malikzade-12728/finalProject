@@ -1,0 +1,141 @@
+import { useState } from "react";
+import {
+  BriefcaseBusiness,
+  LogOut,
+  Map,
+  Menu,
+  UserRound,
+  X,
+} from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
+
+function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function closeMenu() {
+    setIsMenuOpen(false);
+  }
+
+  function handleLogout() {
+    logout();
+    closeMenu();
+    navigate("/");
+  }
+
+  function getNavLinkClass({ isActive }) {
+    return isActive ? "nav-link nav-link-active" : "nav-link";
+  }
+
+  return (
+    <header className="site-header">
+      <div className="container navbar">
+        <NavLink
+          to="/"
+          className="brand"
+          onClick={closeMenu}
+          aria-label="KaryeraYol ana səhifə"
+        >
+          <span className="brand-icon" aria-hidden="true">
+            <Map size={23} strokeWidth={2.5} />
+          </span>
+
+          <span>
+            Karyera<span className="brand-accent">Yol</span>
+          </span>
+        </NavLink>
+
+        <button
+          type="button"
+          className="mobile-menu-button"
+          onClick={() => setIsMenuOpen((current) => !current)}
+          aria-expanded={isMenuOpen}
+          aria-controls="primary-navigation"
+          aria-label={isMenuOpen ? "Menyunu bağla" : "Menyunu aç"}
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        <nav
+          id="primary-navigation"
+          className={`nav-content ${isMenuOpen ? "nav-content-open" : ""}`}
+          aria-label="Əsas naviqasiya"
+        >
+          <div className="nav-links">
+            <NavLink
+              to="/careers"
+              className={getNavLinkClass}
+              onClick={closeMenu}
+            >
+              <Map size={18} />
+              Peşələr
+            </NavLink>
+
+            <NavLink
+              to="/jobs"
+              className={getNavLinkClass}
+              onClick={closeMenu}
+            >
+              <BriefcaseBusiness size={18} />
+              Vakansiyalar
+            </NavLink>
+          </div>
+
+          <div className="nav-actions">
+            {isAuthenticated ? (
+              <>
+                <NavLink
+                  to="/profile"
+                  className="user-link"
+                  onClick={closeMenu}
+                >
+                  <span className="user-avatar" aria-hidden="true">
+                    {user?.name?.charAt(0).toUpperCase() || (
+                      <UserRound size={17} />
+                    )}
+                  </span>
+
+                  <span className="user-link-text">
+                    <small>Hesabım</small>
+                    <strong>{user?.name}</strong>
+                  </span>
+                </NavLink>
+
+                <button
+                  type="button"
+                  className="button button-ghost logout-button"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={18} />
+                  Çıxış
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/login"
+                  className="button button-ghost"
+                  onClick={closeMenu}
+                >
+                  Daxil ol
+                </NavLink>
+
+                <NavLink
+                  to="/register"
+                  className="button button-primary"
+                  onClick={closeMenu}
+                >
+                  Başla
+                </NavLink>
+              </>
+            )}
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+export default Navbar;
