@@ -391,6 +391,11 @@ Use `.env.example` to document required environment variables without including 
 
 [GitHub repository](https://github.com/elnara-malikzade-12728/finalProject)
 
+
+## Live Demo
+
+[KaryeraYol — Live Application](https://karyerayol.vercel.app)
+
 ## License
 
 This project was created for educational purposes as part of the Holberton School curriculum.
