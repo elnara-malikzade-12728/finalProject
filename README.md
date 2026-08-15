@@ -385,10 +385,10 @@ Use `.env.example` to document required environment variables without including 
 ## Team
 
 - **Elnara Malikzade** - Frontend development and project setup
-- **Nesibe ** - Backend development
+- **Nesibe Zeynalli** - Backend development
 - **Ibad Vahidov** - Frontend development
-- **Zeyneb ** - Pen tester
-- **Zehra ** - Pen tester
+- **Zeyneb Pashazade** - Pen tester
+- **Zehra Mansirova** - Pen tester
 
 ## Repository
 
