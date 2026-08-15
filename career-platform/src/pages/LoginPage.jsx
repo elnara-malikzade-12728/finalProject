@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  LoaderCircle,
   LockKeyhole,
   Mail,
   Map,
@@ -21,17 +22,29 @@ function LoginPage() {
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] =
+    useState(false);
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
+
+  const {
+    login,
+    isAuthenticated,
+    isInitializing,
+  } = useAuth();
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  const destination = location.state?.from || "/careers";
-  const redirectMessage = location.state?.message;
+  const destination =
+    location.state?.from || "/careers";
 
-  if (isAuthenticated) {
+  const redirectMessage =
+    location.state?.message;
+
+  if (!isInitializing && isAuthenticated) {
     return <Navigate to={destination} replace />;
   }
 
@@ -48,22 +61,42 @@ function LoginPage() {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!formData.email.trim() || !formData.password) {
-      setError("E-poçt və şifrə sahələrini doldurun.");
+    if (
+      !formData.email.trim() ||
+      !formData.password
+    ) {
+      setError(
+        "E-poçt və şifrə sahələrini doldurun.",
+      );
       return;
     }
 
-    const result = login(formData.email, formData.password);
+    setIsSubmitting(true);
+    setError("");
 
-    if (!result.success) {
-      setError(result.message);
-      return;
+    try {
+      const result = await login(
+        formData.email,
+        formData.password,
+      );
+
+      if (!result.success) {
+        setError(
+          result.message ||
+            "Hesaba daxil olmaq mümkün olmadı.",
+        );
+        return;
+      }
+
+      navigate(destination, {
+        replace: true,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate(destination, { replace: true });
   }
 
   function fillDemoCredentials() {
@@ -71,6 +104,7 @@ function LoginPage() {
       email: "demo@karyerayol.az",
       password: "demo123",
     });
+
     setError("");
   }
 
@@ -83,43 +117,74 @@ function LoginPage() {
             className="auth-brand"
             aria-label="KaryeraYol ana səhifə"
           >
-            <span className="brand-icon" aria-hidden="true">
-              <Map size={23} strokeWidth={2.5} />
+            <span
+              className="brand-icon"
+              aria-hidden="true"
+            >
+              <Map
+                size={23}
+                strokeWidth={2.5}
+              />
             </span>
 
             <span>
-              Karyera<span className="brand-accent">Yol</span>
+              Karyera
+              <span className="brand-accent">
+                Yol
+              </span>
             </span>
           </Link>
 
           <div className="auth-heading">
             <h1>Yenidən xoş gəldin</h1>
+
             <p>
-              Yol xəritənə və karyera imkanlarına davam etmək üçün
+              Yol xəritənə və karyera
+              imkanlarına davam etmək üçün
               hesabına daxil ol.
             </p>
           </div>
 
           {redirectMessage && (
             <div className="alert alert-info">
-              <AlertCircle size={19} aria-hidden="true" />
+              <AlertCircle
+                size={19}
+                aria-hidden="true"
+              />
+
               <span>{redirectMessage}</span>
             </div>
           )}
 
           {error && (
-            <div className="alert alert-error" role="alert">
-              <AlertCircle size={19} aria-hidden="true" />
+            <div
+              className="alert alert-error"
+              role="alert"
+            >
+              <AlertCircle
+                size={19}
+                aria-hidden="true"
+              />
+
               <span>{error}</span>
             </div>
           )}
 
-          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <form
+            className="auth-form"
+            onSubmit={handleSubmit}
+            noValidate
+          >
             <div className="form-group">
-              <label htmlFor="login-email">E-poçt ünvanı</label>
+              <label htmlFor="login-email">
+                E-poçt ünvanı
+              </label>
 
               <div className="input-wrapper">
-                <Mail size={19} aria-hidden="true" />
+                <Mail
+                  size={19}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="login-email"
@@ -129,25 +194,36 @@ function LoginPage() {
                   onChange={handleChange}
                   placeholder="name@example.com"
                   autoComplete="email"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="login-password">Şifrə</label>
+              <label htmlFor="login-password">
+                Şifrə
+              </label>
 
               <div className="input-wrapper">
-                <LockKeyhole size={19} aria-hidden="true" />
+                <LockKeyhole
+                  size={19}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="login-password"
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Şifrənizi daxil edin"
                   autoComplete="current-password"
+                  disabled={isSubmitting}
                   required
                 />
 
@@ -155,10 +231,15 @@ function LoginPage() {
                   type="button"
                   className="password-toggle"
                   onClick={() =>
-                    setShowPassword((current) => !current)
+                    setShowPassword(
+                      (current) => !current,
+                    )
                   }
+                  disabled={isSubmitting}
                   aria-label={
-                    showPassword ? "Şifrəni gizlət" : "Şifrəni göstər"
+                    showPassword
+                      ? "Şifrəni gizlət"
+                      : "Şifrəni göstər"
                   }
                 >
                   {showPassword ? (
@@ -173,22 +254,44 @@ function LoginPage() {
             <button
               type="submit"
               className="button button-primary button-large auth-submit"
+              disabled={isSubmitting}
             >
-              Daxil ol
-              <ArrowRight size={19} aria-hidden="true" />
+              {isSubmitting ? (
+                <>
+                  <LoaderCircle
+                    className="loading-spinner"
+                    size={19}
+                    aria-hidden="true"
+                  />
+                  Daxil olunur...
+                </>
+              ) : (
+                <>
+                  Daxil ol
+                  <ArrowRight
+                    size={19}
+                    aria-hidden="true"
+                  />
+                </>
+              )}
             </button>
           </form>
 
           <div className="demo-account">
             <div>
               <strong>Demo hesabı</strong>
-              <span>Platformanı sürətli test etmək üçün</span>
+
+              <span>
+                Platformanı sürətli test
+                etmək üçün
+              </span>
             </div>
 
             <button
               type="button"
               className="button button-secondary"
               onClick={fillDemoCredentials}
+              disabled={isSubmitting}
             >
               Məlumatları doldur
             </button>
@@ -196,7 +299,9 @@ function LoginPage() {
 
           <p className="auth-switch">
             Hesabın yoxdur?{" "}
-            <Link to="/register">Pulsuz qeydiyyatdan keç</Link>
+            <Link to="/register">
+              Pulsuz qeydiyyatdan keç
+            </Link>
           </p>
         </div>
       </div>

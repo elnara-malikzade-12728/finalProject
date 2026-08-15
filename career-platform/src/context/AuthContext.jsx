@@ -1,204 +1,200 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import {
+  getCurrentUser,
+  loginUser,
+  logoutUser,
+  registerUser,
+} from "../api/authApi.js";
+import {
+  getApiErrorMessage,
+  getToken,
+} from "../api/client.js";
+import {
+  getProfile,
+  updateProfile as updateProfileRequest,
+} from "../api/profileApi.js";
 
 const AuthContext = createContext(null);
 
-const STORAGE_KEYS = {
-  currentUser: "career_platform_current_user",
-  users: "career_platform_users",
-};
-
-const demoUser = {
-  id: "demo-user",
-  name: "Demo İstifadəçi",
-  email: "demo@karyerayol.az",
-  password: "demo123",
-  education: "Holberton School",
-  location: "Bakı",
-  interests: ["Texnologiya", "Dizayn"],
-  skills: ["HTML", "CSS", "JavaScript"],
-  bio: "Yeni bacarıqlar öyrənərək texnologiya sahəsində karyera qurmaq istəyirəm.",
-};
-
-function readStorage(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function createUserId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-
-  return `user-${Date.now()}`;
-}
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() =>
-    readStorage(STORAGE_KEYS.currentUser, null),
-  );
+  const [user, setUser] = useState(null);
+  const [isInitializing, setIsInitializing] =
+    useState(true);
 
-  useEffect(() => {
-    const existingUsers = readStorage(STORAGE_KEYS.users, []);
-    const demoUserExists = existingUsers.some(
-      (savedUser) => savedUser.email === demoUser.email,
-    );
+  const refreshUser = useCallback(async () => {
+    const token = getToken();
 
-    if (!demoUserExists) {
-      localStorage.setItem(
-        STORAGE_KEYS.users,
-        JSON.stringify([...existingUsers, demoUser]),
-      );
+    if (!token) {
+      setUser(null);
+      setIsInitializing(false);
+      return null;
+    }
+
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+
+      return currentUser;
+    } catch {
+      logoutUser();
+      setUser(null);
+
+      return null;
+    } finally {
+      setIsInitializing(false);
     }
   }, []);
 
-  function login(email, password) {
-    const normalizedEmail = email.trim().toLowerCase();
-    const users = readStorage(STORAGE_KEYS.users, []);
+  useEffect(() => {
+    const controller = new AbortController();
 
-    const matchingUser = users.find(
-      (savedUser) =>
-        savedUser.email.toLowerCase() === normalizedEmail &&
-        savedUser.password === password,
-    );
+    async function initializeAuthentication() {
+      const token = getToken();
 
-    if (!matchingUser) {
-      return {
-        success: false,
-        message: "E-poçt ünvanı və ya şifrə yanlışdır.",
-      };
+      if (!token) {
+        setUser(null);
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        const currentUser = await getCurrentUser({
+          signal: controller.signal,
+        });
+
+        setUser(currentUser);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          logoutUser();
+          setUser(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsInitializing(false);
+        }
+      }
     }
 
-    const { password: _password, ...safeUser } = matchingUser;
+    initializeAuthentication();
 
-    localStorage.setItem(
-      STORAGE_KEYS.currentUser,
-      JSON.stringify(safeUser),
-    );
-    setUser(safeUser);
-
-    return {
-      success: true,
-      user: safeUser,
+    return () => {
+      controller.abort();
     };
-  }
+  }, []);
 
-  function register({ name, email, password }) {
-    const normalizedEmail = email.trim().toLowerCase();
-    const users = readStorage(STORAGE_KEYS.users, []);
+  const login = useCallback(async (email, password) => {
+    try {
+      const data = await loginUser({
+        email,
+        password,
+      });
 
-    const userExists = users.some(
-      (savedUser) =>
-        savedUser.email.toLowerCase() === normalizedEmail,
-    );
+      setUser(data.user);
 
-    if (userExists) {
+      return {
+        success: true,
+        user: data.user,
+      };
+    } catch (error) {
       return {
         success: false,
-        message: "Bu e-poçt ünvanı ilə artıq hesab yaradılıb.",
+        message: getApiErrorMessage(error),
       };
     }
+  }, []);
 
-    const newUser = {
-      id: createUserId(),
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-      education: "",
-      location: "",
-      interests: [],
-      skills: [],
-      bio: "",
-    };
+  const register = useCallback(async (userData) => {
+    try {
+      const data = await registerUser(userData);
 
-    const { password: _password, ...safeUser } = newUser;
+      setUser(data.user);
 
-    localStorage.setItem(
-      STORAGE_KEYS.users,
-      JSON.stringify([...users, newUser]),
-    );
-    localStorage.setItem(
-      STORAGE_KEYS.currentUser,
-      JSON.stringify(safeUser),
-    );
+      return {
+        success: true,
+        user: data.user,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getApiErrorMessage(error),
+      };
+    }
+  }, []);
 
-    setUser(safeUser);
-
-    return {
-      success: true,
-      user: safeUser,
-    };
-  }
-
-  function logout() {
-    localStorage.removeItem(STORAGE_KEYS.currentUser);
+  const logout = useCallback(() => {
+    logoutUser();
     setUser(null);
-  }
+  }, []);
 
-  function updateProfile(profileUpdates) {
-    if (!user) {
+  const loadProfile = useCallback(async () => {
+    try {
+      const profile = await getProfile();
+      setUser(profile);
+
+      return {
+        success: true,
+        user: profile,
+      };
+    } catch (error) {
       return {
         success: false,
-        message: "Profil yeniləmək üçün giriş etməlisiniz.",
+        message: getApiErrorMessage(error),
       };
     }
+  }, []);
 
-    const users = readStorage(STORAGE_KEYS.users, []);
+  const updateProfile = useCallback(
+    async (profileUpdates) => {
+      try {
+        const updatedUser = await updateProfileRequest(
+          profileUpdates,
+        );
 
-    const updatedSafeUser = {
-      ...user,
-      ...profileUpdates,
-      id: user.id,
-      email: user.email,
-    };
+        setUser(updatedUser);
 
-    const updatedUsers = users.map((savedUser) =>
-      savedUser.id === user.id
-        ? {
-            ...savedUser,
-            ...profileUpdates,
-            id: savedUser.id,
-            email: savedUser.email,
-          }
-        : savedUser,
-    );
-
-    localStorage.setItem(
-      STORAGE_KEYS.users,
-      JSON.stringify(updatedUsers),
-    );
-    localStorage.setItem(
-      STORAGE_KEYS.currentUser,
-      JSON.stringify(updatedSafeUser),
-    );
-
-    setUser(updatedSafeUser);
-
-    return {
-      success: true,
-      user: updatedSafeUser,
-    };
-  }
+        return {
+          success: true,
+          user: updatedUser,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: getApiErrorMessage(error),
+        };
+      }
+    },
+    [],
+  );
 
   const contextValue = useMemo(
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      isInitializing,
       login,
       register,
       logout,
+      loadProfile,
       updateProfile,
+      refreshUser,
     }),
-    [user],
+    [
+      user,
+      isInitializing,
+      login,
+      register,
+      logout,
+      loadProfile,
+      updateProfile,
+      refreshUser,
+    ],
   );
 
   return (
@@ -213,7 +209,7 @@ export function useAuth() {
 
   if (!context) {
     throw new Error(
-      "useAuth funksiyası yalnız AuthProvider daxilində istifadə edilə bilər.",
+      "useAuth yalnız AuthProvider daxilində istifadə edilə bilər.",
     );
   }
 

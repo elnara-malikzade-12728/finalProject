@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
+  AlertCircle,
   CheckCircle2,
   GraduationCap,
+  LoaderCircle,
   Mail,
   MapPin,
   Save,
@@ -14,15 +16,17 @@ function ProfilePage() {
   const { user, updateProfile } = useAuth();
 
   const [formData, setFormData] = useState({
-    name: user.name || "",
-    education: user.education || "",
-    location: user.location || "",
-    interests: user.interests?.join(", ") || "",
-    skills: user.skills?.join(", ") || "",
-    bio: user.bio || "",
+    name: user?.name || "",
+    education: user?.education || "",
+    location: user?.location || "",
+    interests: user?.interests?.join(", ") || "",
+    skills: user?.skills?.join(", ") || "",
+    bio: user?.bio || "",
   });
 
-  const [message, setMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -32,9 +36,8 @@ function ProfilePage() {
       [name]: value,
     }));
 
-    if (message) {
-      setMessage("");
-    }
+    setSuccessMessage("");
+    setErrorMessage("");
   }
 
   function convertToList(value) {
@@ -44,20 +47,45 @@ function ProfilePage() {
       .filter(Boolean);
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    const result = updateProfile({
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    if (formData.name.trim().length < 2) {
+      setErrorMessage("Ad və soyad ən azı 2 simvoldan ibarət olmalıdır.");
+      return;
+    }
+
+    const profileData = {
       name: formData.name.trim(),
       education: formData.education.trim(),
       location: formData.location.trim(),
       interests: convertToList(formData.interests),
       skills: convertToList(formData.skills),
       bio: formData.bio.trim(),
-    });
+    };
 
-    if (result.success) {
-      setMessage("Profil məlumatları uğurla yeniləndi.");
+    try {
+      setIsSaving(true);
+
+      const result = await updateProfile(profileData);
+
+      if (!result.success) {
+        setErrorMessage(
+          result.message || "Profil məlumatlarını yeniləmək mümkün olmadı.",
+        );
+        return;
+      }
+
+      setSuccessMessage("Profil məlumatları uğurla yeniləndi.");
+    } catch {
+      setErrorMessage(
+        "Serverlə əlaqə yaratmaq mümkün olmadı. Yenidən cəhd edin.",
+      );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -66,14 +94,14 @@ function ProfilePage() {
       <section className="page-hero profile-hero">
         <div className="container profile-hero-content">
           <div className="profile-avatar-large" aria-hidden="true">
-            {user.name?.charAt(0).toUpperCase() || (
+            {user?.name?.charAt(0).toUpperCase() || (
               <UserRound size={34} />
             )}
           </div>
 
           <div>
             <span className="eyebrow">Şəxsi kabinet</span>
-            <h1>{user.name}</h1>
+            <h1>{user?.name}</h1>
             <p>
               Profilini yenilə və karyera məqsədlərini daha yaxşı
               müəyyənləşdir.
@@ -90,28 +118,31 @@ function ProfilePage() {
 
               <div className="profile-info-row">
                 <Mail size={19} aria-hidden="true" />
+
                 <div>
                   <span>E-poçt</span>
-                  <strong>{user.email}</strong>
+                  <strong>{user?.email}</strong>
                 </div>
               </div>
 
               <div className="profile-info-row">
                 <MapPin size={19} aria-hidden="true" />
+
                 <div>
                   <span>Məkan</span>
                   <strong>
-                    {user.location || "Hələ əlavə edilməyib"}
+                    {user?.location || "Hələ əlavə edilməyib"}
                   </strong>
                 </div>
               </div>
 
               <div className="profile-info-row">
                 <GraduationCap size={19} aria-hidden="true" />
+
                 <div>
                   <span>Təhsil</span>
                   <strong>
-                    {user.education || "Hələ əlavə edilməyib"}
+                    {user?.education || "Hələ əlavə edilməyib"}
                   </strong>
                 </div>
               </div>
@@ -119,10 +150,12 @@ function ProfilePage() {
 
             <div className="sidebar-card profile-tip">
               <Sparkles size={25} aria-hidden="true" />
+
               <h2>Profilini tamamla</h2>
+
               <p>
-                Bacarıq və maraqlarını əlavə etmək gələcəkdə daha
-                uyğun karyera tövsiyələri almağa kömək edəcək.
+                Bacarıq və maraqlarını əlavə etmək gələcəkdə daha uyğun
+                karyera tövsiyələri almağa kömək edəcək.
               </p>
             </div>
           </aside>
@@ -133,23 +166,28 @@ function ProfilePage() {
 
               <div>
                 <h2>Profil məlumatları</h2>
+
                 <p>
                   Şəxsi və peşəkar məlumatlarını burada idarə et.
                 </p>
               </div>
             </div>
 
-            {message && (
+            {successMessage && (
               <div className="alert alert-success" role="status">
                 <CheckCircle2 size={19} aria-hidden="true" />
-                <span>{message}</span>
+                <span>{successMessage}</span>
               </div>
             )}
 
-            <form
-              className="profile-form"
-              onSubmit={handleSubmit}
-            >
+            {errorMessage && (
+              <div className="alert alert-error" role="alert">
+                <AlertCircle size={19} aria-hidden="true" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <form className="profile-form" onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="profile-name">Ad və soyad</label>
@@ -161,6 +199,8 @@ function ProfilePage() {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    minLength="2"
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -172,7 +212,7 @@ function ProfilePage() {
                   <input
                     id="profile-email"
                     type="email"
-                    value={user.email}
+                    value={user?.email || ""}
                     disabled
                   />
 
@@ -184,9 +224,7 @@ function ProfilePage() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="profile-education">
-                    Təhsil
-                  </label>
+                  <label htmlFor="profile-education">Təhsil</label>
 
                   <input
                     id="profile-education"
@@ -195,6 +233,7 @@ function ProfilePage() {
                     value={formData.education}
                     onChange={handleChange}
                     placeholder="Məsələn: Holberton School"
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -210,6 +249,7 @@ function ProfilePage() {
                     value={formData.location}
                     onChange={handleChange}
                     placeholder="Məsələn: Bakı"
+                    disabled={isSaving}
                   />
                 </div>
               </div>
@@ -226,6 +266,7 @@ function ProfilePage() {
                   value={formData.interests}
                   onChange={handleChange}
                   placeholder="Texnologiya, dizayn, marketinq"
+                  disabled={isSaving}
                 />
 
                 <small className="form-help">
@@ -245,6 +286,7 @@ function ProfilePage() {
                   value={formData.skills}
                   onChange={handleChange}
                   placeholder="HTML, CSS, JavaScript"
+                  disabled={isSaving}
                 />
 
                 <small className="form-help">
@@ -263,6 +305,7 @@ function ProfilePage() {
                   rows="5"
                   maxLength="500"
                   placeholder="Karyera məqsədlərin haqqında qısa məlumat yaz..."
+                  disabled={isSaving}
                 />
 
                 <small className="form-help">
@@ -273,9 +316,23 @@ function ProfilePage() {
               <button
                 type="submit"
                 className="button button-primary button-large"
+                disabled={isSaving}
               >
-                <Save size={19} aria-hidden="true" />
-                Dəyişiklikləri yadda saxla
+                {isSaving ? (
+                  <>
+                    <LoaderCircle
+                      className="loading-spinner"
+                      size={19}
+                      aria-hidden="true"
+                    />
+                    Yadda saxlanılır...
+                  </>
+                ) : (
+                  <>
+                    <Save size={19} aria-hidden="true" />
+                    Dəyişiklikləri yadda saxla
+                  </>
+                )}
               </button>
             </form>
           </div>
