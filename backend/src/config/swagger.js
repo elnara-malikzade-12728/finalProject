@@ -13,6 +13,10 @@ const options = {
 
     servers: [
       {
+        url: "https://karyerayol-api.vercel.app",
+        description: "Production server",
+      },
+      {
         url: "http://localhost:4000",
         description: "Local development server",
       },
