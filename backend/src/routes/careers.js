@@ -12,11 +12,11 @@ const {
  *   get:
  *     tags:
  *       - Careers
- *     summary: List all careers
- *     description: Returns the available career paths.
+ *     summary: Bütün peşələri göstər
+ *     description: Mövcud peşə istiqamətlərinin siyahısını qaytarır.
  *     responses:
  *       200:
- *         description: Career list
+ *         description: Peşələrin siyahısı uğurla qaytarıldı
  *         content:
  *           application/json:
  *             schema:
@@ -24,7 +24,7 @@ const {
  *               items:
  *                 $ref: '#/components/schemas/Career'
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:
@@ -38,20 +38,20 @@ router.get("/", listCareers);
  *   get:
  *     tags:
  *       - Careers
- *     summary: Get one career
- *     description: Returns a career with its roadmap steps and related jobs.
+ *     summary: Bir peşə haqqında məlumat əldə et
+ *     description: Peşəni, onun inkişaf addımlarını və əlaqəli vakansiyaları qaytarır.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: Career identifier
+ *         description: Peşənin identifikatoru
  *         schema:
  *           type: integer
  *           minimum: 1
  *         example: 1
  *     responses:
  *       200:
- *         description: Career details
+ *         description: Peşə məlumatları uğurla qaytarıldı
  *         content:
  *           application/json:
  *             schema:
@@ -80,13 +80,15 @@ router.get("/", listCareers);
  *                       items:
  *                         $ref: '#/components/schemas/Job'
  *       404:
- *         description: Career not found
+ *         description: Peşə tapılmadı
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: Peşə tapılmadı.
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:
@@ -100,20 +102,20 @@ router.get("/:id", getCareer);
  *   get:
  *     tags:
  *       - Careers
- *     summary: Get a career roadmap
- *     description: Returns the ordered roadmap steps for a career.
+ *     summary: Peşənin inkişaf xəritəsini əldə et
+ *     description: Seçilmiş peşə üçün sıralanmış inkişaf addımlarını qaytarır.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: Career identifier
+ *         description: Peşənin identifikatoru
  *         schema:
  *           type: integer
  *           minimum: 1
  *         example: 1
  *     responses:
  *       200:
- *         description: Ordered roadmap steps
+ *         description: İnkişaf addımları uğurla qaytarıldı
  *         content:
  *           application/json:
  *             schema:
@@ -126,7 +128,7 @@ router.get("/:id", getCareer);
  *                     example: 1
  *                   title:
  *                     type: string
- *                     example: Learn HTML fundamentals
+ *                     example: HTML əsaslarını öyrən
  *                   description:
  *                     type: string
  *                     nullable: true
@@ -137,7 +139,7 @@ router.get("/:id", getCareer);
  *                     type: integer
  *                     example: 1
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:

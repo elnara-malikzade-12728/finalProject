@@ -11,8 +11,8 @@ const {
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Register a new user
- *     description: Creates an account and returns a JWT access token.
+ *     summary: Yeni istifadəçi qeydiyyatı
+ *     description: Yeni hesab yaradır və JWT giriş tokeni qaytarır.
  *     requestBody:
  *       required: true
  *       content:
@@ -26,7 +26,7 @@ const {
  *             properties:
  *               name:
  *                 type: string
- *                 example: Demo User
+ *                 example: Demo İstifadəçi
  *               email:
  *                 type: string
  *                 format: email
@@ -36,8 +36,8 @@ const {
  *                 format: password
  *                 example: demo123
  *     responses:
- *       200:
- *         description: User registered successfully
+ *       201:
+ *         description: İstifadəçi uğurla qeydiyyatdan keçdi
  *         content:
  *           application/json:
  *             schema:
@@ -45,17 +45,27 @@ const {
  *               properties:
  *                 token:
  *                   type: string
- *                   description: JWT access token
+ *                   description: JWT giriş tokeni
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Missing data or email already in use
+ *         description: Ad, e-poçt ünvanı və şifrə daxil edilməyib
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: Ad, e-poçt ünvanı və şifrə mütləq daxil edilməlidir.
+ *       409:
+ *         description: E-poçt ünvanı artıq istifadə olunur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: Bu e-poçt ünvanı artıq qeydiyyatdan keçib.
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:
@@ -69,8 +79,8 @@ router.post("/register", register);
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Log in
- *     description: Verifies user credentials and returns a JWT access token.
+ *     summary: Sistemə giriş
+ *     description: İstifadəçi məlumatlarını yoxlayır və JWT giriş tokeni qaytarır.
  *     requestBody:
  *       required: true
  *       content:
@@ -91,7 +101,7 @@ router.post("/register", register);
  *                 example: demo123
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Giriş uğurla tamamlandı
  *         content:
  *           application/json:
  *             schema:
@@ -99,17 +109,27 @@ router.post("/register", register);
  *               properties:
  *                 token:
  *                   type: string
- *                   description: JWT access token
+ *                   description: JWT giriş tokeni
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Missing or invalid credentials
+ *         description: E-poçt ünvanı və ya şifrə daxil edilməyib
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: E-poçt ünvanı və şifrə mütləq daxil edilməlidir.
+ *       401:
+ *         description: E-poçt ünvanı və ya şifrə yanlışdır
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: E-poçt ünvanı və ya şifrə yanlışdır.
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:

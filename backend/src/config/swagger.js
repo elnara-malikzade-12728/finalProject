@@ -56,7 +56,7 @@ const options = {
           properties: {
             error: {
               type: "string",
-              example: "Server error",
+              example: "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.",
             },
           },
         },

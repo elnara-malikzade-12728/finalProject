@@ -6,7 +6,7 @@ async function listJobs(req, res) {
     res.json(jobs);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.' });
   }
 }
 

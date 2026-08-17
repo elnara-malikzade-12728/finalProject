@@ -92,7 +92,7 @@ export async function apiRequest(
     }
 
     throw new ApiError(
-      responseBody?.message || "Sorğu yerinə yetirilə bilmədi.",
+      responseBody?.message || responseBody?.error || "Sorğu yerinə yetirilə bilmədi.",
       response.status,
       responseBody?.code || "API_ERROR",
       responseBody?.errors || [],

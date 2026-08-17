@@ -12,31 +12,33 @@ const {
  *   get:
  *     tags:
  *       - Users
- *     summary: Get the current user profile
- *     description: Returns the authenticated user's profile.
+ *     summary: Cari istifadəçinin profilini əldə et
+ *     description: Daxil olmuş istifadəçinin profil məlumatlarını qaytarır.
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Current user profile
+ *         description: Cari istifadəçinin profil məlumatları
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: User not found
+ *         description: İstifadəçi tapılmadı
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: İstifadəçi tapılmadı.
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:
@@ -50,8 +52,8 @@ router.get("/me", auth, getProfile);
  *   patch:
  *     tags:
  *       - Users
- *     summary: Update the current user profile
- *     description: Updates one or more fields belonging to the authenticated user.
+ *     summary: Cari istifadəçinin profilini yenilə
+ *     description: Daxil olmuş istifadəçiyə aid bir və ya bir neçə profil sahəsini yeniləyir.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -63,7 +65,7 @@ router.get("/me", auth, getProfile);
  *             properties:
  *               name:
  *                 type: string
- *                 example: Demo User
+ *                 example: Demo İstifadəçi
  *               email:
  *                 type: string
  *                 format: email
@@ -71,22 +73,22 @@ router.get("/me", auth, getProfile);
  *               password:
  *                 type: string
  *                 format: password
- *                 example: newDemo123
+ *                 example: yeniDemo123
  *     responses:
  *       200:
- *         description: Updated user profile
+ *         description: İstifadəçi profili uğurla yeniləndi
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:
