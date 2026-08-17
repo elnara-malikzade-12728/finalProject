@@ -2,11 +2,11 @@
 
 KaryeraYol is a youth employment and career-development platform created as a Holberton School final project. It helps users explore career paths, follow structured learning roadmaps, track progress, and discover relevant jobs and internships.
 
-## Live Demo
+## Live Deployment
 
-[https://karyerayol.vercel.app](https://karyerayol.vercel.app)
-
-The current Vercel deployment uses mock API mode until the Express API and PostgreSQL database are publicly deployed.
+- Frontend: https://karyerayol.vercel.app
+- Backend API: https://karyerayol-api.vercel.app
+- Swagger Documentation: https://karyerayol-api.vercel.app/api/docs
 
 ## Current Status
 
