@@ -37,9 +37,13 @@ app.use(
   }),
 );
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-  console.log(
-    `Swagger documentation: http://localhost:${port}/api/docs`,
-  );
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+    console.log(
+      `Swagger documentation: http://localhost:${port}/api/docs`,
+    );
+  });
+}
+
+module.exports = app;
