@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./src/config/swagger");
 
 const app = express();
@@ -24,18 +23,54 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/docs.json", (req, res) => {
-  res.setHeader("Content-Type", "application/json");
-  res.send(swaggerSpec);
+  res.status(200).json(swaggerSpec);
 });
 
-app.use(
-  "/api/docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    customSiteTitle: "KaryeraYol API Documentation",
-  }),
-);
+app.get("/api/docs", (req, res) => {
+  res.type("html").send(`
+    <!DOCTYPE html>
+    <html lang="az">
+      <head>
+        <meta charset="UTF-8" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1"
+        />
+
+        <title>KaryeraYol API Documentation</title>
+
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"
+        />
+      </head>
+
+      <body>
+        <div id="swagger-ui"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+
+        <script>
+          window.onload = function () {
+            SwaggerUIBundle({
+              url: "/api/docs.json",
+              dom_id: "#swagger-ui",
+              deepLinking: true,
+              displayRequestDuration: true,
+              persistAuthorization: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+              ],
+              layout: "StandaloneLayout"
+            });
+          };
+        </script>
+      </body>
+    </html>
+  `);
+});
 
 if (require.main === module) {
   app.listen(port, () => {
