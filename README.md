@@ -384,8 +384,11 @@ Use `.env.example` to document required environment variables without including 
 
 ## Team
 
-- **Elnara Malikzade** — Frontend development and project setup
-- Add other team members and responsibilities here.
+- **Elnara Malikzade** - Frontend development and project setup
+- **Nesibe Zeynalli** - Backend development
+- **Ibad Vahidov** - Frontend development
+- **Zeyneb Pashazade** - Pen tester
+- **Zehra Mansirova** - Pen tester
 
 ## Repository
 

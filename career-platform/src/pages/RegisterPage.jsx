@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  LoaderCircle,
   LockKeyhole,
   Mail,
   Map,
@@ -24,13 +25,23 @@ function RegisterPage() {
     confirmPassword: "",
   });
 
+  const [acceptedTerms, setAcceptedTerms] =
+    useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
 
-  const { register, isAuthenticated } = useAuth();
+  const {
+    register,
+    isAuthenticated,
+    isInitializing,
+  } = useAuth();
+
   const navigate = useNavigate();
 
-  if (isAuthenticated) {
+  if (!isInitializing && isAuthenticated) {
     return <Navigate to="/careers" replace />;
   }
 
@@ -61,7 +72,10 @@ function RegisterPage() {
       return "Ad və soyad ən azı 2 simvoldan ibarət olmalıdır.";
     }
 
-    if (!formData.email.includes("@")) {
+    const emailPattern =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(formData.email.trim())) {
       return "Düzgün e-poçt ünvanı daxil edin.";
     }
 
@@ -69,14 +83,21 @@ function RegisterPage() {
       return "Şifrə ən azı 6 simvoldan ibarət olmalıdır.";
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (
+      formData.password !==
+      formData.confirmPassword
+    ) {
       return "Şifrələr uyğun gəlmir.";
+    }
+
+    if (!acceptedTerms) {
+      return "İstifadə qaydalarını qəbul etməlisiniz.";
     }
 
     return "";
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const validationError = validateForm();
@@ -86,18 +107,30 @@ function RegisterPage() {
       return;
     }
 
-    const result = register({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-    });
+    setIsSubmitting(true);
+    setError("");
 
-    if (!result.success) {
-      setError(result.message);
-      return;
+    try {
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (!result.success) {
+        setError(
+          result.message ||
+            "Hesab yaratmaq mümkün olmadı.",
+        );
+        return;
+      }
+
+      navigate("/careers", {
+        replace: true,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate("/careers", { replace: true });
   }
 
   return (
@@ -109,36 +142,61 @@ function RegisterPage() {
             className="auth-brand"
             aria-label="KaryeraYol ana səhifə"
           >
-            <span className="brand-icon" aria-hidden="true">
-              <Map size={23} strokeWidth={2.5} />
+            <span
+              className="brand-icon"
+              aria-hidden="true"
+            >
+              <Map
+                size={23}
+                strokeWidth={2.5}
+              />
             </span>
 
             <span>
-              Karyera<span className="brand-accent">Yol</span>
+              Karyera
+              <span className="brand-accent">
+                Yol
+              </span>
             </span>
           </Link>
 
           <div className="auth-heading">
             <h1>Karyera yoluna başla</h1>
+
             <p>
-              Pulsuz hesab yarat, peşə seç və inkişaf addımlarını
-              izləməyə başla.
+              Pulsuz hesab yarat, peşə seç və
+              inkişaf addımlarını izləməyə başla.
             </p>
           </div>
 
           {error && (
-            <div className="alert alert-error" role="alert">
-              <AlertCircle size={19} aria-hidden="true" />
+            <div
+              className="alert alert-error"
+              role="alert"
+            >
+              <AlertCircle
+                size={19}
+                aria-hidden="true"
+              />
               <span>{error}</span>
             </div>
           )}
 
-          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <form
+            className="auth-form"
+            onSubmit={handleSubmit}
+            noValidate
+          >
             <div className="form-group">
-              <label htmlFor="register-name">Ad və soyad</label>
+              <label htmlFor="register-name">
+                Ad və soyad
+              </label>
 
               <div className="input-wrapper">
-                <UserRound size={19} aria-hidden="true" />
+                <UserRound
+                  size={19}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="register-name"
@@ -148,16 +206,22 @@ function RegisterPage() {
                   onChange={handleChange}
                   placeholder="Adınızı və soyadınızı daxil edin"
                   autoComplete="name"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="register-email">E-poçt ünvanı</label>
+              <label htmlFor="register-email">
+                E-poçt ünvanı
+              </label>
 
               <div className="input-wrapper">
-                <Mail size={19} aria-hidden="true" />
+                <Mail
+                  size={19}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="register-email"
@@ -167,25 +231,36 @@ function RegisterPage() {
                   onChange={handleChange}
                   placeholder="name@example.com"
                   autoComplete="email"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="register-password">Şifrə</label>
+              <label htmlFor="register-password">
+                Şifrə
+              </label>
 
               <div className="input-wrapper">
-                <LockKeyhole size={19} aria-hidden="true" />
+                <LockKeyhole
+                  size={19}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="register-password"
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Ən azı 6 simvol"
                   autoComplete="new-password"
+                  disabled={isSubmitting}
                   required
                 />
 
@@ -193,10 +268,15 @@ function RegisterPage() {
                   type="button"
                   className="password-toggle"
                   onClick={() =>
-                    setShowPassword((current) => !current)
+                    setShowPassword(
+                      (current) => !current,
+                    )
                   }
+                  disabled={isSubmitting}
                   aria-label={
-                    showPassword ? "Şifrəni gizlət" : "Şifrəni göstər"
+                    showPassword
+                      ? "Şifrəni gizlət"
+                      : "Şifrəni göstər"
                   }
                 >
                   {showPassword ? (
@@ -214,41 +294,82 @@ function RegisterPage() {
               </label>
 
               <div className="input-wrapper">
-                <LockKeyhole size={19} aria-hidden="true" />
+                <LockKeyhole
+                  size={19}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="register-confirm-password"
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Şifrəni yenidən daxil edin"
                   autoComplete="new-password"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
             </div>
 
             <label className="checkbox-label">
-              <input type="checkbox" required />
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(event) => {
+                  setAcceptedTerms(
+                    event.target.checked,
+                  );
+
+                  if (error) {
+                    setError("");
+                  }
+                }}
+                disabled={isSubmitting}
+              />
+
               <span>
-                İstifadə qaydaları və məxfilik şərtləri ilə
-                razıyam.
+                İstifadə qaydaları və məxfilik
+                şərtləri ilə razıyam.
               </span>
             </label>
 
             <button
               type="submit"
               className="button button-primary button-large auth-submit"
+              disabled={isSubmitting}
             >
-              Hesab yarat
-              <ArrowRight size={19} aria-hidden="true" />
+              {isSubmitting ? (
+                <>
+                  <LoaderCircle
+                    className="loading-spinner"
+                    size={19}
+                    aria-hidden="true"
+                  />
+                  Hesab yaradılır...
+                </>
+              ) : (
+                <>
+                  Hesab yarat
+                  <ArrowRight
+                    size={19}
+                    aria-hidden="true"
+                  />
+                </>
+              )}
             </button>
           </form>
 
           <p className="auth-switch">
             Artıq hesabın var?{" "}
-            <Link to="/login">Hesabına daxil ol</Link>
+            <Link to="/login">
+              Hesabına daxil ol
+            </Link>
           </p>
         </div>
       </div>
