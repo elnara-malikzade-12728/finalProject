@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  progress  Progress[]
+}
+
+model Career {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+  steps       Step[]
+  jobs        Job[]
+}
+
+model Step {
+  id        Int      @id @default(autoincrement())
+  title     String
+  description String?
+  order     Int
+  career    Career   @relation(fields: [careerId], references: [id])
+  careerId  Int
+  progress  Progress[]
+}
+
+model Progress {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  step      Step     @relation(fields: [stepId], references: [id])
+  stepId    Int
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model Job {
+  id        Int     @id @default(autoincrement())
+  title     String
+  company   String?
+  location  String?
+  description String?
+  url       String?
+  career    Career  @relation(fields: [careerId], references: [id])
+  careerId  Int
+}
