@@ -10,11 +10,11 @@ const {
  *   get:
  *     tags:
  *       - Jobs
- *     summary: List all jobs and internships
- *     description: Returns all vacancies with their related career.
+ *     summary: Bütün vakansiya və təcrübə proqramlarını göstər
+ *     description: Bütün vakansiyaları əlaqəli peşə məlumatları ilə birlikdə qaytarır.
  *     responses:
  *       200:
- *         description: Job and internship list
+ *         description: Vakansiya və təcrübə proqramlarının siyahısı
  *         content:
  *           application/json:
  *             schema:
@@ -34,7 +34,7 @@ const {
  *                             type: string
  *                             example: Frontend Developer
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:

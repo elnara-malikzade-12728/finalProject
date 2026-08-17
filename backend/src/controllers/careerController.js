@@ -6,7 +6,7 @@ async function listCareers(req, res) {
     res.json(careers);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.' });
   }
 }
 
@@ -17,11 +17,11 @@ async function getCareer(req, res) {
       where: { id },
       include: { steps: { orderBy: { order: 'asc' } }, jobs: true }
     });
-    if (!career) return res.status(404).json({ error: 'Career not found' });
+    if (!career) return res.status(404).json({ error: 'Peşə tapılmadı' });
     res.json(career);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.' });
   }
 }
 
@@ -32,7 +32,7 @@ async function getRoadmap(req, res) {
     res.json(steps);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.' });
   }
 }
 

@@ -11,15 +11,15 @@ const {
  *   put:
  *     tags:
  *       - Progress
- *     summary: Create or update roadmap progress
- *     description: Marks a roadmap step as completed or incomplete for the authenticated user.
+ *     summary: İnkişaf addımının vəziyyətini yarat və ya yenilə
+ *     description: Daxil olmuş istifadəçi üçün inkişaf addımını tamamlanmış və ya tamamlanmamış kimi qeyd edir.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: stepId
  *         required: true
- *         description: Roadmap step identifier
+ *         description: İnkişaf addımının identifikatoru
  *         schema:
  *           type: integer
  *           minimum: 1
@@ -38,7 +38,7 @@ const {
  *                 example: true
  *     responses:
  *       200:
- *         description: Progress saved successfully
+ *         description: İrəliləyiş uğurla yadda saxlanıldı
  *         content:
  *           application/json:
  *             schema:
@@ -60,19 +60,19 @@ const {
  *                   type: string
  *                   format: date-time
  *       400:
- *         description: The completed field is missing or is not boolean
+ *         description: completed sahəsi daxil edilməyib və ya boolean tipində deyil
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server or database error
+ *         description: Server və ya verilənlər bazası xətası
  *         content:
  *           application/json:
  *             schema:
