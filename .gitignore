@@ -1,9 +1,50 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
 # Local environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
 
 # Vercel metadata
 .vercel/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Prisma local database
+prisma/dev.db
+prisma/dev.db-journal
+
+# Logs
+logs/
+*.log
+
+# Build output
+dist/
+build/
+
+# Package manager runtime
+.pnp
+.pnp.js
+
+# Cache
+.cache/
+.turbo/
