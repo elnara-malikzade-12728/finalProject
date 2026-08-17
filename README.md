@@ -1,151 +1,94 @@
 ﻿# KaryeraYol
 
-KaryeraYol is a youth employment and career development platform designed to help young people discover career paths, develop relevant skills, follow structured learning roadmaps, and explore suitable job and internship opportunities.
+KaryeraYol is a youth employment and career-development platform created as a Holberton School final project. It helps users explore career paths, follow structured learning roadmaps, track progress, and discover relevant jobs and internships.
 
-This project was developed as a Holberton School final project.
+## Live Demo
 
-## Project Objective
+[https://karyerayol.vercel.app](https://karyerayol.vercel.app)
 
-Many young people experience difficulty choosing a profession and understanding which skills they need to enter the job market.
+The current Vercel deployment uses mock API mode until the Express API and PostgreSQL database are publicly deployed.
 
-KaryeraYol addresses this problem by providing:
+## Current Status
 
-- Career information
-- Structured career roadmaps
-- Skill-development steps
-- Progress tracking
-- Job and internship listings
-- User profile management
+Sprint 2 introduces the backend foundation and frontend API integration:
 
-## MVP Features
+- Responsive React frontend
+- Express REST API
+- PostgreSQL database through Prisma ORM
+- JWT authentication
+- Password hashing with bcrypt
+- User profile endpoints
+- Career and roadmap endpoints
+- Job listing endpoint
+- Authenticated progress tracking
+- Swagger/OpenAPI documentation for all current API endpoints
+- Frontend loading, validation, success, error, and empty states
+- Mock API fallback for frontend-only demonstrations
 
-The Sprint 1 frontend MVP includes:
-
-- Responsive landing page
-- User registration
-- User login and logout
-- Demo user account
-- Persistent browser sessions
-- Editable user profile
-- Career catalogue
-- Career search and category filtering
-- Detailed career information
-- Interactive career roadmaps
-- User-specific progress tracking
-- Job and internship listings
-- Vacancy search and filtering
-- Protected profile and roadmap routes
-- Responsive desktop and mobile design
-- Empty, validation, and error states
-- Custom 404 page
-
-## Current MVP Scope
-
-The current version is a frontend MVP.
-
-User accounts, profile information, and roadmap progress are stored in the browser using `localStorage`. Career and vacancy information is currently provided through local mock data.
-
-The current version does not include:
-
-- A production authentication system
-- A backend API
-- A shared database
-- Real employer accounts
-- Real job applications
-- Mentor communication
-- AI-generated career recommendations
-
-These features are planned for future development.
-
-## Demo Account
-
-Use the following credentials to explore the application:
-
-```text
-Email: demo@karyerayol.az
-Password: demo123
-```
-
-You can also register a new account. Accounts created in the MVP are stored only in the current browser.
-
-## Pilot Career Paths
-
-The MVP currently includes the following career paths:
-
-1. Frontend Developer
-2. Data Analyst
-3. Digital Marketing Specialist
-4. Graphic Designer
-5. Electrician
-
-Each career contains:
-
-- Career description
-- Estimated learning duration
-- Difficulty level
-- Labour-market demand
-- Required skills
-- Six structured roadmap steps
-- Related jobs and internships
-
-## Technologies
+## Technology Stack
 
 ### Frontend
 
-- React
-- Vite
+- React 19
+- Vite 7
 - React Router
 - Lucide React
 - JavaScript
-- HTML5
-- CSS3
-- Browser Local Storage
+- HTML5 and CSS3
+- Browser Local Storage for mock sessions and tokens
 
-### Planned Backend
+### Backend
 
 - Node.js
-- Express
+- Express 5
 - PostgreSQL
 - Prisma ORM
 - JSON Web Tokens
 - bcrypt
-- Swagger/OpenAPI
+- CORS
+- Swagger UI Express
+- swagger-jsdoc
 
 ## Project Structure
 
 ```text
 finalProject/
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── seed.js
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── lib/
+│   │   ├── middleware/
+│   │   └── routes/
+│   ├── .env.example
+│   ├── package.json
+│   └── server.js
 ├── career-platform/
 │   ├── src/
+│   │   ├── api/
 │   │   ├── components/
-│   │   │   ├── auth/
-│   │   │   ├── common/
-│   │   │   └── layout/
+│   │   ├── config/
 │   │   ├── context/
 │   │   ├── data/
 │   │   ├── pages/
-│   │   ├── styles/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── .gitignore
-│   ├── index.html
+│   │   └── styles/
+│   ├── .env.example
 │   ├── package.json
-│   ├── package-lock.json
+│   ├── vercel.json
 │   └── vite.config.js
 └── README.md
 ```
 
-## Installation
-
-### Prerequisites
-
-Install the following before running the project:
+## Prerequisites
 
 - Node.js 20 or newer
 - npm
 - Git
+- A reachable PostgreSQL database
 
-Confirm the installations:
+Check the installed tools:
 
 ```bash
 node --version
@@ -153,252 +96,259 @@ npm --version
 git --version
 ```
 
-### Clone the Repository
+## Installation
+
+Clone the repository and switch to the integration branch:
 
 ```bash
 git clone https://github.com/elnara-malikzade-12728/finalProject.git
 cd finalProject
+git switch dev
 ```
 
-### Switch to the Frontend Branch
-
-If the frontend has not yet been merged into `main`:
-
-```bash
-git switch frontend
-```
-
-### Install Dependencies
+Install frontend dependencies:
 
 ```bash
 cd career-platform
 npm install
+cd ..
 ```
 
-## Running the Application
-
-Start the Vite development server:
+Install backend dependencies:
 
 ```bash
+cd backend
+npm install
+cd ..
+```
+
+## Environment Configuration
+
+### Backend
+
+Copy the example file:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+On PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Configure `backend/.env` with real private values:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
+JWT_SECRET="replace_with_a_long_random_secret"
+PORT=4000
+```
+
+Never commit `backend/.env` or share its credentials publicly.
+
+### Frontend
+
+Copy `career-platform/.env.example` to `career-platform/.env.local` and configure:
+
+```env
+VITE_API_URL=http://localhost:4000/api
+VITE_USE_MOCK_API=false
+```
+
+Use `VITE_USE_MOCK_API=true` when demonstrating the frontend without a reachable backend and database. Restart Vite after changing environment variables.
+
+## Database Setup
+
+Generate the Prisma client:
+
+```bash
+cd backend
+npx prisma generate
+```
+
+For a new development database, synchronize the schema and add sample data:
+
+```bash
+npx prisma db push
+npm run seed
+```
+
+Do not run `db push` or `seed` against a shared database without team confirmation.
+
+The current schema contains `User`, `Career`, `Step`, `Progress`, and `Job` models.
+
+## Running Locally
+
+Run the backend in the first terminal:
+
+```bash
+cd backend
 npm run dev
 ```
 
-Open the address shown in the terminal. The default address is:
+The API runs at `http://localhost:4000/api`. A basic server check is available at `http://localhost:4000/`.
 
-```text
-http://localhost:5173
-```
-
-The application automatically refreshes after saved code changes.
-
-## Production Build
-
-Create an optimized production build:
+Run the frontend in a second terminal:
 
 ```bash
-npm run build
+cd career-platform
+npm run dev
 ```
 
-Preview the production build locally:
+The frontend normally runs at `http://localhost:5173/`.
 
-```bash
-npm run preview
+## API Endpoints
+
+| Method | Endpoint | Authentication | Description |
+|---|---|---:|---|
+| `POST` | `/api/auth/register` | No | Register a user |
+| `POST` | `/api/auth/login` | No | Log in and receive a token |
+| `GET` | `/api/users/me` | Yes | Get the current profile |
+| `PATCH` | `/api/users/me` | Yes | Update the current profile |
+| `GET` | `/api/careers` | No | List careers |
+| `GET` | `/api/careers/:id` | No | Get one career |
+| `GET` | `/api/careers/:id/roadmap` | No | Get career roadmap steps |
+| `GET` | `/api/jobs` | No | List jobs and internships |
+| `PUT` | `/api/progress/:stepId` | Yes | Create or update step progress |
+
+Authenticated requests use:
+
+```http
+Authorization: Bearer <token>
 ```
 
-The generated production files are placed in:
+## Swagger/OpenAPI Documentation
+
+Start the backend and open the interactive Swagger UI:
 
 ```text
-career-platform/dist/
+http://localhost:4000/api/docs
 ```
 
-## Available Commands
+The raw OpenAPI 3.0 specification is available at:
+
+```text
+http://localhost:4000/api/docs.json
+```
+
+The specification currently contains eight API paths and nine operations covering authentication, user profiles, careers, roadmaps, jobs, and progress tracking.
+
+To test a protected endpoint:
+
+1. Register or log in through the Authentication section.
+2. Copy the returned JWT token.
+3. Click **Authorize** in Swagger UI.
+4. Enter the token and confirm authorization.
+5. Execute a protected Users or Progress request.
+
+Swagger UI loads without a database connection, but executing database-backed requests requires a reachable PostgreSQL database.
+
+## Frontend Routes
+
+| Route | Access | Description |
+|---|---:|---|
+| `/` | Public | Landing page |
+| `/login` | Public | User login |
+| `/register` | Public | User registration |
+| `/careers` | Public | Career catalogue |
+| `/careers/:careerId` | Public | Career details |
+| `/roadmap/:careerId` | Authenticated | Interactive roadmap |
+| `/jobs` | Public | Jobs and internships |
+| `/profile` | Authenticated | User profile |
+
+## Commands
+
+### Frontend
 
 | Command | Description |
 |---|---|
-| `npm install` | Installs project dependencies |
-| `npm run dev` | Starts the development server |
-| `npm run build` | Creates the production build |
-| `npm run preview` | Previews the production build |
-| `npm run lint` | Runs the configured lint checks |
+| `npm run dev` | Start Vite development server |
+| `npm run build` | Create a production build |
+| `npm run preview` | Preview the production build |
+| `npm run lint` | Run lint checks |
 
-## Application Routes
+### Backend
 
-| Route | Description | Access |
-|---|---|---|
-| `/` | Landing page | Public |
-| `/login` | User login | Public |
-| `/register` | User registration | Public |
-| `/careers` | Career catalogue | Public |
-| `/careers/:careerId` | Career details | Public |
-| `/roadmap/:careerId` | Interactive roadmap | Authenticated |
-| `/jobs` | Jobs and internships | Public |
-| `/profile` | User profile | Authenticated |
-| `/404` | Not-found page | Public |
-
-## Data Persistence
-
-The frontend MVP uses browser `localStorage` for:
-
-- Registered users
-- Current user session
-- Profile information
-- Completed roadmap steps
-- Progress percentages
-
-Because the data is stored locally:
-
-- Data is not shared between browsers or devices.
-- Clearing browser storage removes saved accounts and progress.
-- This mechanism is intended only for MVP demonstration.
-- Passwords must not be stored this way in production.
-
-Production authentication will be managed by a backend using password hashing, secure tokens, validation, and a database.
-
-## Planned API
-
-The future backend will provide endpoints similar to:
-
-```text
-POST   /api/auth/register
-POST   /api/auth/login
-GET    /api/users/me
-PATCH  /api/users/me
-GET    /api/careers
-GET    /api/careers/:id
-GET    /api/careers/:id/roadmap
-GET    /api/jobs
-PUT    /api/progress/:stepId
-POST   /api/applications
-```
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Express with Nodemon |
+| `npm start` | Start Express with Node.js |
+| `npm run seed` | Seed the configured database |
+| `npx prisma generate` | Generate Prisma Client |
+| `npx prisma db push` | Synchronize schema to a development database |
 
 ## Git Workflow
 
-The repository uses the following permanent branches:
-
-- `main` — stable and presentation-ready code
+- `main` — stable presentation-ready releases
+- `dev` — frontend/backend integration
 - `frontend` — frontend integration
 - `backend` — backend integration
+- `feature/...` — individual feature work
 
-Developers work in feature branches created from the appropriate integration branch.
-
-Example frontend workflow:
-
-```bash
-git switch frontend
-git pull origin frontend
-git switch -c feature/frontend-roadmap
-```
-
-After completing the work:
-
-```bash
-git add .
-git commit -m "feat: add interactive career roadmap"
-git push -u origin feature/frontend-roadmap
-```
-
-Then create a pull request:
-
-```text
-feature/frontend-roadmap → frontend
-```
-
-Stable frontend and backend changes are eventually merged into `main` through reviewed pull requests.
-
-## Commit Convention
-
-Examples:
-
-```text
-feat: add career search
-feat: implement roadmap progress
-fix: preserve user session after refresh
-docs: update installation instructions
-style: improve mobile navigation
-chore: configure Vite project
-```
+Feature branches are merged into their relevant integration branch. Tested frontend and backend changes are combined in `dev`; only verified releases should be merged into `main`.
 
 ## Testing Checklist
 
-Before merging changes, verify:
+- Frontend production build completes with `npm run build`.
+- Backend starts on port `4000`.
+- PostgreSQL is reachable from Prisma.
+- Registration, login, and logout work.
+- Protected endpoints reject missing or invalid tokens.
+- Careers, roadmap steps, and jobs load from the API.
+- Profile updates persist in the database.
+- Progress updates persist after refresh.
+- Loading, empty, validation, and error states display correctly.
+- Responsive navigation and pages work on mobile and desktop.
 
-- The application starts with `npm run dev`.
-- `npm run build` completes successfully.
-- Registration works.
-- Login and logout work.
-- Protected routes redirect unauthenticated users.
-- Career search and filtering work.
-- Roadmap progress is saved after refresh.
-- Job search and filtering work.
-- Profile changes persist after refresh.
-- Navigation works on desktop and mobile.
-- Unknown URLs display the 404 page.
-- The browser console contains no errors.
+## Deployment
 
-## MVP User Flow
+The frontend is deployed on Vercel from the `dev` branch. The Vercel project root directory is `career-platform`.
 
-The primary demonstration flow is:
+For the current frontend-only deployment:
 
-1. Register a new account or use the demo account.
-2. Browse available career paths.
-3. Open a career and review its required skills.
-4. Start the career roadmap.
-5. Complete roadmap steps.
-6. Observe the updated progress percentage.
-7. Open related job and internship listings.
-8. Update and save profile information.
+```env
+VITE_USE_MOCK_API=true
+```
 
-## Future Improvements
+After deploying the backend and PostgreSQL publicly, configure Vercel with:
 
-Future versions may include:
+```env
+VITE_USE_MOCK_API=false
+VITE_API_URL=https://YOUR-BACKEND-DOMAIN/api
+```
 
-- Express REST API
-- PostgreSQL database
-- Secure authentication and authorization
-- Employer accounts and dashboards
-- Vacancy creation and management
-- Real job applications
-- CV upload and profile documents
-- Mentor matching and communication
-- Automated career assessment
-- Personalized career recommendations
-- Gamification, points, and badges
-- Notifications
-- Admin dashboard
-- Analytics and labour-market insights
-- Automated testing and CI/CD
+`localhost` must never be used as the API URL for a public deployment.
 
-## Security Notice
+## Known Limitations and Sprint 2 Follow-up
 
-This repository currently contains a demonstration frontend. Its browser-based authentication is not appropriate for production use.
+- The Express backend and PostgreSQL database are not yet publicly deployed.
+- The production frontend currently uses mock API mode.
+- Automated backend tests and end-to-end tests are not yet configured.
+- Employer accounts, applications, CV uploads, mentoring, and AI recommendations remain future work.
 
-Never commit:
+## Security
 
-- `.env` files
-- Database credentials
-- JWT secrets
-- API keys
-- Real user passwords
-
-Use `.env.example` to document required environment variables without including sensitive values.
+- Never commit `.env`, `.env.local`, database credentials, JWT secrets, or API keys.
+- Passwords are hashed by the backend with bcrypt.
+- Protected API routes require JWT authentication.
+- Use a strong JWT secret and restricted production database credentials.
+- Review CORS restrictions and token storage before a production launch.
 
 ## Team
 
-- **Elnara Malikzade** - Frontend development and project setup
-- **Nesibe Zeynalli** - Backend development
-- **Ibad Vahidov** - Frontend development
-- **Zeyneb Pashazade** - Pen tester
-- **Zehra Mansirova** - Pen tester
+- **Elnara Malikzade** — Frontend development and project setup
+- **Nesibe Zeynalli** — Backend development
+- **Ibad Vahidov** — Frontend development
+- **Zeyneb Pashazade** — Penetration testing
+- **Zehra Mansirova** — Penetration testing
 
 ## Repository
 
 [GitHub repository](https://github.com/elnara-malikzade-12728/finalProject)
 
-
-## Live Demo
-
-[KaryeraYol — Live Application](https://karyerayol.vercel.app)
-
 ## License
 
-This project was created for educational purposes as part of the Holberton School curriculum.
+Created for educational purposes as part of the Holberton School curriculum.
