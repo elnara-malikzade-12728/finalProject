@@ -207,7 +207,7 @@ export async function getCurrentUser({ signal } = {}) {
     return readStorage(CURRENT_USER_KEY, null);
   }
 
-  return apiRequest("/auth/me", {
+  return apiRequest("/users/me", {
     signal,
   });
 }
