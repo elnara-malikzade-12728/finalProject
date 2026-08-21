@@ -2,6 +2,8 @@ import {
   BriefcaseBusiness,
   ClipboardList,
   FilePlus2,
+  LayoutDashboard,
+  Video,
 } from "lucide-react";
 import {
   NavLink,
@@ -9,6 +11,18 @@ import {
 } from "react-router-dom";
 
 const adminLinks = [
+  {
+    to: "/admin",
+    label: "İcmal",
+    icon: LayoutDashboard,
+    end: true,
+  },
+  {
+    to: "/admin/videos",
+    label: "Video dərslər",
+    icon: Video,
+    end: false,
+  },
   {
     to: "/admin/jobs",
     label: "Vakansiyalar",
@@ -42,8 +56,9 @@ function AdminLayout() {
             <h1>Administrator paneli</h1>
 
             <p>
-              Vakansiyaları və istifadəçi müraciətlərini
-              idarə edin.
+              Təlimləri, videoları,
+              vakansiyaları və istifadəçi
+              müraciətlərini idarə edin.
             </p>
           </div>
         </header>
@@ -66,7 +81,11 @@ function AdminLayout() {
                     : "admin-navigation-link"
                 }
               >
-                <Icon size={19} aria-hidden="true" />
+                <Icon
+                  size={19}
+                  aria-hidden="true"
+                />
+
                 {link.label}
               </NavLink>
             );

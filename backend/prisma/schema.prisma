@@ -5,14 +5,22 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  name      String
-  email     String    @unique
-  password  String
-  progress  Progress[]
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String
+  role        UserRole     @default(USER)
+  progress    Progress[]
+  enrollments Enrollment[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
 
 model Career {
@@ -24,13 +32,13 @@ model Career {
 }
 
 model Step {
-  id        Int      @id @default(autoincrement())
-  title     String
+  id          Int        @id @default(autoincrement())
+  title       String
   description String?
-  order     Int
-  career    Career   @relation(fields: [careerId], references: [id])
-  careerId  Int
-  progress  Progress[]
+  order       Int
+  career      Career     @relation(fields: [careerId], references: [id])
+  careerId    Int
+  progress    Progress[]
 }
 
 model Progress {
@@ -44,12 +52,74 @@ model Progress {
 }
 
 model Job {
-  id        Int     @id @default(autoincrement())
-  title     String
-  company   String?
-  location  String?
+  id          Int     @id @default(autoincrement())
+  title       String
+  company     String?
+  location    String?
   description String?
-  url       String?
-  career    Career  @relation(fields: [careerId], references: [id])
-  careerId  Int
+  url         String?
+  career      Career  @relation(fields: [careerId], references: [id])
+  careerId    Int
+}
+
+model Course {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  published   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  modules     CourseModule[]
+  enrollments Enrollment[]
+}
+
+model CourseModule {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId Int
+  lessons  Lesson[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+}
+
+model Lesson {
+  id              Int      @id @default(autoincrement())
+  title           String
+  description     String?
+  order           Int
+  published       Boolean  @default(false)
+  videoPath       String?  @unique
+  videoMimeType   String?
+  videoSizeBytes  Int?
+  durationSeconds Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  module   CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId Int
+
+  @@unique([moduleId, order])
+  @@index([moduleId])
+}
+
+model Enrollment {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId Int
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
 }
