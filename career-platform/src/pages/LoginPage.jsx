@@ -30,6 +30,7 @@ function LoginPage() {
     useState(false);
 
   const {
+    user,
     login,
     isAuthenticated,
     isInitializing,
@@ -38,14 +39,34 @@ function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const destination =
+  const requestedDestination =
     location.state?.from || "/careers";
 
   const redirectMessage =
     location.state?.message;
 
+function getDestinationForRole(role) {
+  if (role === "ADMIN") {
+    return "/admin";
+  }
+
+  const isAdminDestination =
+    requestedDestination.startsWith("/admin");
+
+  if (isAdminDestination) {
+    return "/careers";
+  }
+
+  return requestedDestination;
+}
+
   if (!isInitializing && isAuthenticated) {
-    return <Navigate to={destination} replace />;
+    return (
+      <Navigate
+        to={getDestinationForRole(user?.role)}
+        replace
+      />
+    );
   }
 
   function handleChange(event) {
@@ -91,9 +112,14 @@ function LoginPage() {
         return;
       }
 
-      navigate(destination, {
-        replace: true,
-      });
+      navigate(
+        getDestinationForRole(
+          result.user?.role,
+        ),
+        {
+          replace: true,
+        },
+      );
     } finally {
       setIsSubmitting(false);
     }

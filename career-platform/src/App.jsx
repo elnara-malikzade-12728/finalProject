@@ -54,6 +54,13 @@ const AdminLayout = lazy(
     ),
 );
 
+const AdminDashboardPage = lazy(
+  () =>
+    import(
+      "./pages/AdminDashboardPage.jsx"
+    ),
+);
+
 const AdminJobsPage = lazy(
   () => import("./pages/AdminJobsPage.jsx"),
 );
@@ -67,6 +74,9 @@ const AdminApplicationsPage = lazy(
     import(
       "./pages/AdminApplicationsPage.jsx"
     ),
+);
+const AdminVideoPage = lazy(
+  () => import("./pages/AdminVideoPage.jsx"),
 );
 
 function App() {
@@ -128,11 +138,12 @@ function App() {
                   <Route
                     index
                     element={
-                      <Navigate
-                        to="jobs"
-                        replace
-                      />
+                      <AdminDashboardPage />
                     }
+                  />
+                  <Route
+                    path="videos"
+                    element={<AdminVideoPage />}
                   />
 
                   <Route
