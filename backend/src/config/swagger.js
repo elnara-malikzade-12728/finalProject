@@ -8,7 +8,7 @@ const options = {
       title: "KaryeraYol API",
       version: "1.0.0",
       description:
-        "KaryeraYol authentication, careers, jobs, user profiles and progress API.",
+        "KaryeraYol authentication, careers, jobs, user profiles, progress and secure lesson video API.",
     },
 
     servers: [
@@ -42,6 +42,11 @@ const options = {
       {
         name: "Progress",
         description: "User roadmap progress",
+      },
+      {
+        name: "Videos",
+        description:
+          "Private lesson video upload, playback and deletion",
       },
     ],
 
@@ -80,6 +85,104 @@ const options = {
               type: "string",
               format: "email",
               example: "demo@example.com",
+            },
+            role: {
+              type: "string",
+              enum: ["USER", "ADMIN"],
+              example: "USER",
+            },
+          },
+        },
+
+        LessonVideo: {
+          type: "object",
+          properties: {
+            id: {
+              type: "integer",
+              example: 1,
+            },
+            title: {
+              type: "string",
+              example: "HTML ilə ilk addım",
+            },
+            videoPath: {
+              type: "string",
+              nullable: true,
+              example:
+                "courses/1/modules/1/lessons/1/550e8400-e29b-41d4-a716-446655440000.mp4",
+            },
+            videoMimeType: {
+              type: "string",
+              nullable: true,
+              example: "video/mp4",
+            },
+            videoSizeBytes: {
+              type: "integer",
+              nullable: true,
+              example: 4938271,
+            },
+            durationSeconds: {
+              type: "integer",
+              nullable: true,
+              example: 185,
+            },
+          },
+        },
+
+        VideoUploadCredentials: {
+          type: "object",
+          properties: {
+            bucket: {
+              type: "string",
+              example: "course-videos",
+            },
+            path: {
+              type: "string",
+              example:
+                "courses/1/modules/1/lessons/1/550e8400-e29b-41d4-a716-446655440000.mp4",
+            },
+            token: {
+              type: "string",
+              description: "Short-lived Supabase signed-upload token",
+            },
+            signedUrl: {
+              type: "string",
+              format: "uri",
+            },
+            expiresIn: {
+              type: "integer",
+              example: 7200,
+            },
+            contentType: {
+              type: "string",
+              example: "video/mp4",
+            },
+            sizeBytes: {
+              type: "integer",
+              example: 4938271,
+            },
+          },
+        },
+
+        VideoAccess: {
+          type: "object",
+          properties: {
+            url: {
+              type: "string",
+              format: "uri",
+              description: "Temporary signed playback URL",
+            },
+            expiresIn: {
+              type: "integer",
+              example: 600,
+            },
+            lessonId: {
+              type: "integer",
+              example: 1,
+            },
+            title: {
+              type: "string",
+              example: "HTML ilə ilk addım",
             },
           },
         },
