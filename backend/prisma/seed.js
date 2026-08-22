@@ -104,7 +104,8 @@ async function main() {
   // Create a demo user
   const bcrypt = require('bcrypt');
   const hashed = await bcrypt.hash('password', 10);
-  await prisma.user.create({ data: { name: 'Demo User', email: 'demo@karyerayol.local', password: hashed } });
+  await prisma.user.create({ data: { name: 'Demo User', email: 'demo@karyerayol.local', password: hashed, role: 'USER' } });
+  await prisma.user.create({ data: { name: 'Demo Admin', email: 'admin@karyerayol.local', password: hashed, role: 'ADMIN' } });
 
   console.log('Seeding finished.');
 }

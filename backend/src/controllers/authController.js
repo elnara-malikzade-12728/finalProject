@@ -34,10 +34,10 @@ async function register(req, res) {
       .toLowerCase();
     const { password } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || typeof password !== "string" || password.length < 8) {
       return res.status(400).json({
         error:
-          "Ad, e-poçt ünvanı və şifrə mütləq daxil edilməlidir.",
+          "Ad, düzgün e-poçt ünvanı və ən azı 8 simvolluq şifrə mütləq daxil edilməlidir.",
       });
     }
 
@@ -91,7 +91,7 @@ async function login(req, res) {
       .toLowerCase();
     const { password } = req.body;
 
-    if (!email || !password) {
+    if (!email || typeof password !== "string" || !password) {
       return res.status(400).json({
         error:
           "E-poçt ünvanı və şifrə mütləq daxil edilməlidir.",
