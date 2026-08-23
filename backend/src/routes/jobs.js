@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
+const requireAdmin = require("../middleware/requireAdmin");
 const {
   listJobs,
   getJobById,
+  createJob,
+  updateJob,
+  deleteJob,
 } = require("../controllers/jobController");
 const {
   applyToJob,
@@ -46,6 +50,42 @@ const {
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", listJobs);
+
+/**
+ * @openapi
+ * /api/jobs:
+ *   post:
+ *     tags:
+ *       - Jobs
+ *     summary: Yeni vakansiya yarat
+ *     description: Administrator yeni vakansiya yaradır.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/JobInput'
+ *     responses:
+ *       201:
+ *         description: Vakansiya uğurla yaradıldı
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Job'
+ *       400:
+ *         description: Daxil edilmiş məlumatlar yanlışdır
+ *       401:
+ *         description: Autentifikasiya tələb olunur
+ *       403:
+ *         description: Administrator icazəsi tələb olunur
+ *       404:
+ *         description: Seçilmiş peşə tapılmadı
+ *       500:
+ *         description: Server və ya verilənlər bazası xətası
+ */
+router.post("/", auth, requireAdmin, createJob);
 
 /**
  * @openapi
@@ -98,6 +138,99 @@ router.get("/", listJobs);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/:id/apply", auth, applyToJob);
+
+/**
+ * @openapi
+ * /api/jobs/{id}:
+ *   get:
+ *     tags:
+ *       - Jobs
+ *     summary: Vakansiyanın məlumatlarını göstər
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       200:
+ *         description: Vakansiya məlumatları
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Job'
+ *       404:
+ *         description: Vakansiya tapılmadı
+ *       500:
+ *         description: Server və ya verilənlər bazası xətası
+ *   patch:
+ *     tags:
+ *       - Jobs
+ *     summary: Vakansiyanı yenilə
+ *     description: Administrator vakansiyanın bir və ya bir neçə sahəsini yeniləyir.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             allOf:
+ *               - $ref: '#/components/schemas/JobInput'
+ *             description: Bütün sahələr istəyə bağlıdır, lakin ən azı bir sahə göndərilməlidir.
+ *     responses:
+ *       200:
+ *         description: Vakansiya uğurla yeniləndi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Job'
+ *       400:
+ *         description: Daxil edilmiş məlumatlar yanlışdır
+ *       401:
+ *         description: Autentifikasiya tələb olunur
+ *       403:
+ *         description: Administrator icazəsi tələb olunur
+ *       404:
+ *         description: Vakansiya və ya peşə tapılmadı
+ *       500:
+ *         description: Server və ya verilənlər bazası xətası
+ *   delete:
+ *     tags:
+ *       - Jobs
+ *     summary: Vakansiyanı sil
+ *     description: Administrator vakansiyanı və ona aid müraciətləri silir.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       204:
+ *         description: Vakansiya uğurla silindi
+ *       401:
+ *         description: Autentifikasiya tələb olunur
+ *       403:
+ *         description: Administrator icazəsi tələb olunur
+ *       404:
+ *         description: Vakansiya tapılmadı
+ *       500:
+ *         description: Server və ya verilənlər bazası xətası
+ */
 router.get("/:id", getJobById);
+router.patch("/:id", auth, requireAdmin, updateJob);
+router.delete("/:id", auth, requireAdmin, deleteJob);
 
 module.exports = router;
