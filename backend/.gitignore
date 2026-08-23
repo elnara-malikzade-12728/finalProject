@@ -1,2 +1,9 @@
+# Vercel local metadata
 .vercel/
+
+# Private environment files
 .env
+.env.*
+
+# Keep the public template
+!.env.example
