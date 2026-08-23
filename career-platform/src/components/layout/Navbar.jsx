@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   BriefcaseBusiness,
+  FileText,
   LogOut,
   Map,
   Menu,
@@ -81,6 +82,17 @@ function Navbar() {
               <BriefcaseBusiness size={18} />
               Vakansiyalar
             </NavLink>
+
+            {isAuthenticated && (
+              <NavLink
+                to="/applications/me"
+                className={getNavLinkClass}
+                onClick={closeMenu}
+              >
+                <FileText size={18} />
+                Müraciətlərim
+              </NavLink>
+            )}
           </div>
 
           <div className="nav-actions">
