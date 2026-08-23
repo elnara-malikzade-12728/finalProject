@@ -6,7 +6,27 @@ const publicUserFields = {
   name: true,
   email: true,
   role: true,
+  education: true,
+  location: true,
+  bio: true,
+  interests: true,
+  skills: true,
 };
+
+function normalizeStringList(value) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return [
+    ...new Set(
+      value
+        .filter((item) => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
 
 async function getProfile(req, res) {
   try {
@@ -43,12 +63,51 @@ async function updateProfile(req, res) {
       name,
       email,
       password,
+      education,
+      location,
+      bio,
+      interests,
+      skills,
     } = req.body;
 
     const updates = {};
 
     if (typeof name === "string" && name.trim()) {
       updates.name = name.trim();
+    }
+
+    for (const [field, value] of Object.entries({
+      education,
+      location,
+      bio,
+    })) {
+      if (typeof value === "string") {
+        updates[field] = value.trim() || null;
+      }
+    }
+
+    if (interests !== undefined) {
+      const normalizedInterests = normalizeStringList(interests);
+
+      if (!normalizedInterests) {
+        return res.status(400).json({
+          error: "Maraq sahələri siyahı formatında olmalıdır.",
+        });
+      }
+
+      updates.interests = normalizedInterests;
+    }
+
+    if (skills !== undefined) {
+      const normalizedSkills = normalizeStringList(skills);
+
+      if (!normalizedSkills) {
+        return res.status(400).json({
+          error: "Bacarıqlar siyahı formatında olmalıdır.",
+        });
+      }
+
+      updates.skills = normalizedSkills;
     }
 
     if (

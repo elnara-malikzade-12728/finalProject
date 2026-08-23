@@ -22,6 +22,11 @@ function createAuthenticationResponse(user) {
       name: user.name,
       email: user.email,
       role: user.role,
+      education: user.education,
+      location: user.location,
+      bio: user.bio,
+      interests: user.interests,
+      skills: user.skills,
     },
   };
 }
