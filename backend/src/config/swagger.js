@@ -40,6 +40,10 @@ const options = {
         description: "Job and internship operations",
       },
       {
+        name: "Applications",
+        description: "User job applications and administrator application management",
+      },
+      {
         name: "Progress",
         description: "User roadmap progress",
       },
@@ -265,6 +269,43 @@ const options = {
             careerId: {
               type: "integer",
               example: 1,
+            },
+          },
+        },
+
+        Application: {
+          type: "object",
+          properties: {
+            id: {
+              type: "integer",
+              example: 1,
+            },
+            status: {
+              type: "string",
+              enum: ["PENDING", "REVIEWED", "ACCEPTED", "REJECTED"],
+              example: "PENDING",
+            },
+            userId: {
+              type: "integer",
+              example: 1,
+            },
+            jobId: {
+              type: "integer",
+              example: 1,
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+            job: {
+              $ref: "#/components/schemas/Job",
+            },
+            user: {
+              $ref: "#/components/schemas/User",
             },
           },
         },

@@ -269,6 +269,11 @@ The frontend normally runs at `http://localhost:5173/`.
 | `GET` | `/api/careers/:id` | No | Get one career |
 | `GET` | `/api/careers/:id/roadmap` | No | Get career roadmap steps |
 | `GET` | `/api/jobs` | No | List jobs and internships |
+| `POST` | `/api/jobs/:id/apply` | Yes | Apply to a job |
+| `GET` | `/api/applications/me` | Yes | List the current user's applications |
+| `GET` | `/api/applications` | Admin | List and filter all applications |
+| `PATCH` | `/api/applications/:id/status` | Admin | Update an application status |
+| `DELETE` | `/api/applications/:id` | Admin | Delete an application |
 | `PUT` | `/api/progress/:stepId` | Yes | Create or update step progress |
 | `POST` | `/api/lessons/:lessonId/video/upload-url` | Admin | Create signed video-upload credentials |
 | `POST` | `/api/lessons/:lessonId/video/complete` | Admin | Verify the upload and save lesson metadata |

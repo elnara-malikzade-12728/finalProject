@@ -46,6 +46,57 @@ const {
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", listJobs);
+
+/**
+ * @openapi
+ * /api/jobs/{id}/apply:
+ *   post:
+ *     tags:
+ *       - Applications
+ *     summary: Vakansiyaya müraciət et
+ *     description: Giriş etmiş istifadəçi üçün yeni vakansiya müraciəti yaradır.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: Vakansiya identifikatoru
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       201:
+ *         description: Müraciət uğurla yaradıldı
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Application'
+ *       401:
+ *         description: Autentifikasiya tələb olunur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Vakansiya tapılmadı
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: İstifadəçi bu vakansiyaya artıq müraciət edib
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server və ya verilənlər bazası xətası
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post("/:id/apply", auth, applyToJob);
 router.get("/:id", getJobById);
 
