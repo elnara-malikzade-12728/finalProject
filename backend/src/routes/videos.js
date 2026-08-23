@@ -17,8 +17,8 @@ const router = express.Router();
  * /api/lessons/{lessonId}/video/upload-url:
  *   post:
  *     tags: [Videos]
- *     summary: Create a signed video upload URL
- *     description: Creates short-lived Supabase upload credentials. Administrator access is required.
+ *     summary: İmzalanmış video yükləmə URL-i yarat
+ *     description: Qısa müddətli Supabase yükləmə məlumatları yaradır. Administrator icazəsi tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -48,27 +48,27 @@ const router = express.Router();
  *                 example: 4938271
  *     responses:
  *       201:
- *         description: Signed upload credentials created
+ *         description: İmzalanmış yükləmə məlumatları yaradıldı
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/VideoUploadCredentials'
  *       400:
- *         description: Invalid lesson identifier, MIME type or file size
+ *         description: Dərs identifikatoru, MIME növü və ya fayl ölçüsü yanlışdır
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *       403:
- *         description: Administrator access required
+ *         description: Administrator icazəsi tələb olunur
  *       404:
- *         description: Lesson not found
+ *         description: Dərs tapılmadı
  *       413:
- *         description: Video exceeds the configured size limit
+ *         description: Video təyin edilmiş ölçü limitini keçir
  *       500:
- *         description: Database or storage error
+ *         description: Verilənlər bazası və ya fayl yaddaşı xətası
  */
 router.post(
   "/:lessonId/video/upload-url",
@@ -82,8 +82,8 @@ router.post(
  * /api/lessons/{lessonId}/video/complete:
  *   post:
  *     tags: [Videos]
- *     summary: Complete a lesson video upload
- *     description: Confirms that the uploaded object exists and stores its metadata on the lesson. Administrator access is required.
+ *     summary: Dərs videosunun yüklənməsini tamamla
+ *     description: Yüklənmiş obyektin mövcudluğunu təsdiqləyir və metadata məlumatlarını dərsdə saxlayır. Administrator icazəsi tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -117,21 +117,21 @@ router.post(
  *                 example: 185
  *     responses:
  *       200:
- *         description: Video metadata saved on the lesson
+ *         description: Video metadata məlumatları dərsdə saxlanıldı
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/LessonVideo'
  *       400:
- *         description: Invalid metadata, mismatched path or object not found
+ *         description: Metadata yanlışdır, fayl yolu uyğun deyil və ya obyekt tapılmadı
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *       403:
- *         description: Administrator access required
+ *         description: Administrator icazəsi tələb olunur
  *       404:
- *         description: Lesson not found
+ *         description: Dərs tapılmadı
  *       500:
- *         description: Database or storage error
+ *         description: Verilənlər bazası və ya fayl yaddaşı xətası
  */
 router.post(
   "/:lessonId/video/complete",
@@ -145,8 +145,8 @@ router.post(
  * /api/lessons/{lessonId}/video:
  *   get:
  *     tags: [Videos]
- *     summary: Get a signed lesson video URL
- *     description: Administrators may view every lesson video. Regular users must be enrolled in the related course, and the lesson must be published.
+ *     summary: Dərs videosu üçün imzalanmış URL əldə et
+ *     description: Administratorlar bütün dərs videolarına baxa bilər. Adi istifadəçi əlaqəli kursa qeydiyyatdan keçməli, dərs isə yayımlanmış olmalıdır.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -159,23 +159,23 @@ router.post(
  *         example: 1
  *     responses:
  *       200:
- *         description: Temporary signed playback URL
+ *         description: Müvəqqəti imzalanmış video izləmə URL-i
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/VideoAccess'
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *       403:
- *         description: Course enrollment required or lesson not published
+ *         description: Kurs qeydiyyatı tələb olunur və ya dərs yayımlanmayıb
  *       404:
- *         description: Lesson or video not found
+ *         description: Dərs və ya video tapılmadı
  *       500:
- *         description: Database or storage error
+ *         description: Verilənlər bazası və ya fayl yaddaşı xətası
  *   delete:
  *     tags: [Videos]
- *     summary: Delete a lesson video
- *     description: Removes the object from private storage and clears the lesson video metadata. Administrator access is required.
+ *     summary: Dərs videosunu sil
+ *     description: Videonu şəxsi fayl yaddaşından silir və dərsin video metadata məlumatlarını təmizləyir. Administrator icazəsi tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -188,15 +188,15 @@ router.post(
  *         example: 1
  *     responses:
  *       204:
- *         description: Video deleted successfully
+ *         description: Video uğurla silindi
  *       401:
- *         description: Missing or invalid authentication token
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *       403:
- *         description: Administrator access required
+ *         description: Administrator icazəsi tələb olunur
  *       404:
- *         description: Lesson or video not found
+ *         description: Dərs və ya video tapılmadı
  *       500:
- *         description: Database or storage error
+ *         description: Verilənlər bazası və ya fayl yaddaşı xətası
  */
 router.get(
   "/:lessonId/video",

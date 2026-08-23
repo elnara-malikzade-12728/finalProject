@@ -50,7 +50,7 @@ const options = {
       {
         name: "Videos",
         description:
-          "Private lesson video upload, playback and deletion",
+          "Şəxsi dərs videolarının yüklənməsi, izlənməsi və silinməsi",
       },
     ],
 
