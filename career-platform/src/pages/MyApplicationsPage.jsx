@@ -29,11 +29,20 @@ function formatApplicationDate(date) {
     return "Tarix yoxdur";
   }
 
-  return new Intl.DateTimeFormat("az-AZ", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(date));
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Tarix yoxdur";
+  }
+
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+  const month = String(parsedDate.getMonth() + 1).padStart(
+    2,
+    "0",
+  );
+  const year = parsedDate.getFullYear();
+
+  return `${day}.${month}.${year}`;
 }
 
 function MyApplicationsPage() {
