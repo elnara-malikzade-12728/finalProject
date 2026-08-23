@@ -39,26 +39,16 @@ function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const requestedDestination =
-    location.state?.from || "/careers";
-
   const redirectMessage =
     location.state?.message;
 
-function getDestinationForRole(role) {
-  if (role === "ADMIN") {
-    return "/admin";
-  }
+  function getDestinationForRole(role) {
+    if (role === "ADMIN") {
+      return "/admin";
+    }
 
-  const isAdminDestination =
-    requestedDestination.startsWith("/admin");
-
-  if (isAdminDestination) {
     return "/careers";
   }
-
-  return requestedDestination;
-}
 
   if (!isInitializing && isAuthenticated) {
     return (
@@ -123,15 +113,6 @@ function getDestinationForRole(role) {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  function fillDemoCredentials() {
-    setFormData({
-      email: "demo@karyerayol.az",
-      password: "demo123",
-    });
-
-    setError("");
   }
 
   return (
@@ -302,26 +283,6 @@ function getDestinationForRole(role) {
               )}
             </button>
           </form>
-
-          <div className="demo-account">
-            <div>
-              <strong>Demo hesabı</strong>
-
-              <span>
-                Platformanı sürətli test
-                etmək üçün
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="button button-secondary"
-              onClick={fillDemoCredentials}
-              disabled={isSubmitting}
-            >
-              Məlumatları doldur
-            </button>
-          </div>
 
           <p className="auth-switch">
             Hesabın yoxdur?{" "}

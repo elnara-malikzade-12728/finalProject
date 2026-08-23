@@ -9,18 +9,6 @@ const CURRENT_USER_KEY = "career_platform_current_user";
 const USERS_KEY = "career_platform_users";
 const MOCK_TOKEN = "mock-authentication-token";
 
-const demoUser = {
-  id: "demo-user",
-  name: "Demo İstifadəçi",
-  email: "demo@karyerayol.az",
-  password: "demo123",
-  education: "Holberton School",
-  location: "Bakı",
-  interests: ["Texnologiya", "Dizayn"],
-  skills: ["HTML", "CSS", "JavaScript"],
-  bio: "Texnologiya sahəsində karyera qurmaq istəyirəm.",
-};
-
 function readStorage(key, fallback) {
   try {
     const value = localStorage.getItem(key);
@@ -58,26 +46,7 @@ function saveCurrentUser(user) {
   return safeUser;
 }
 
-function ensureDemoUser() {
-  const users = readStorage(USERS_KEY, []);
-
-  const demoExists = users.some(
-    (user) =>
-      user.email.toLowerCase() ===
-      demoUser.email.toLowerCase(),
-  );
-
-  if (!demoExists) {
-    localStorage.setItem(
-      USERS_KEY,
-      JSON.stringify([...users, demoUser]),
-    );
-  }
-}
-
 function mockRegister(userData) {
-  ensureDemoUser();
-
   const users = readStorage(USERS_KEY, []);
   const normalizedEmail = userData.email
     .trim()
@@ -121,8 +90,6 @@ function mockRegister(userData) {
 }
 
 function mockLogin(credentials) {
-  ensureDemoUser();
-
   const users = readStorage(USERS_KEY, []);
   const normalizedEmail = credentials.email
     .trim()
@@ -202,8 +169,6 @@ export async function loginUser(credentials) {
 
 export async function getCurrentUser({ signal } = {}) {
   if (USE_MOCK_API) {
-    ensureDemoUser();
-
     return readStorage(CURRENT_USER_KEY, null);
   }
 

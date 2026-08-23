@@ -1425,28 +1425,6 @@ ol {
   color: #166534;
 }
 
-.demo-account {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  margin-top: 20px;
-  border-radius: var(--radius-sm);
-  padding: 14px;
-  background: var(--surface-muted);
-}
-
-.demo-account div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.demo-account span {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
 .auth-switch {
   margin: 24px 0 0;
   color: var(--muted);
@@ -1827,11 +1805,6 @@ ol {
 
   .auth-card {
     padding: 25px 20px;
-  }
-
-  .demo-account {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .profile-hero-content {
