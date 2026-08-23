@@ -45,6 +45,9 @@ function Footer() {
               <Link to="/jobs">Vakansiyalar</Link>
             </li>
             <li>
+              <Link to="/applications/me">Müraciətlərim</Link>
+            </li>
+            <li>
               <Link to="/profile">Profilim</Link>
             </li>
           </ul>

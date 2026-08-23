@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const auth = require("../middleware/auth");
 const {
   listJobs,
+  getJobById,
 } = require("../controllers/jobController");
+const {
+  applyToJob,
+} = require("../controllers/applicationController");
 
 /**
  * @openapi
@@ -41,5 +46,7 @@ const {
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", listJobs);
+router.post("/:id/apply", auth, applyToJob);
+router.get("/:id", getJobById);
 
 module.exports = router;

@@ -39,6 +39,14 @@ const JobsPage = lazy(
   () => import("./pages/JobsPage.jsx"),
 );
 
+const JobDetailsPage = lazy(
+  () => import("./pages/JobDetailsPage.jsx"),
+);
+
+const MyApplicationsPage = lazy(
+  () => import("./pages/MyApplicationsPage.jsx"),
+);
+
 const ProfilePage = lazy(
   () => import("./pages/ProfilePage.jsx"),
 );
@@ -119,6 +127,11 @@ function App() {
               element={<JobsPage />}
             />
 
+            <Route
+              path="jobs/:id"
+              element={<JobDetailsPage />}
+            />
+
             <Route element={<ProtectedRoute />}>
               <Route
                 path="roadmap/:careerId"
@@ -128,6 +141,11 @@ function App() {
               <Route
                 path="profile"
                 element={<ProfilePage />}
+              />
+
+              <Route
+                path="applications/me"
+                element={<MyApplicationsPage />}
               />
 
               <Route element={<AdminRoute />}>
