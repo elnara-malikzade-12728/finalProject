@@ -1,4 +1,5 @@
 import { USE_MOCK_API } from "../config/env.js";
+import { careers as mockCareers } from "../data/careers.js";
 import {
   jobCategories,
   jobs as mockJobs,
@@ -10,22 +11,31 @@ function filterMockJobs(filters = {}) {
     search = "",
     careerId = "",
     category = "",
-    type = "",
     location = "",
   } = filters;
 
   const normalizedSearch = search
     .trim()
     .toLocaleLowerCase("az");
+  const normalizedLocation = location
+    .trim()
+    .toLocaleLowerCase("az");
+  const normalizedCareerId = careerId
+    ? String(careerId)
+    : "";
 
   return mockJobs.filter((job) => {
+    const careerTitle = mockCareers.find(
+      (career) => career.id === job.careerId,
+    )?.title;
+
     const matchesSearch =
       !normalizedSearch ||
       [
         job.title,
         job.company,
         job.location,
-        job.category,
+        careerTitle,
         job.description,
       ]
         .join(" ")
@@ -33,31 +43,24 @@ function filterMockJobs(filters = {}) {
         .includes(normalizedSearch);
 
     const matchesCareer =
-      !careerId || job.careerId === careerId;
+      !normalizedCareerId ||
+      String(job.careerId) === normalizedCareerId;
 
     const matchesCategory =
       !category ||
       category === "Hamısı" ||
-      job.category === category;
-
-    const matchesType =
-      !type ||
-      type === "Hamısı" ||
-      (type === "INTERNSHIP"
-        ? job.isInternship
-        : !job.isInternship);
+      careerTitle === category;
 
     const matchesLocation =
-      !location ||
+      !normalizedLocation ||
       job.location
         .toLocaleLowerCase("az")
-        .includes(location.toLocaleLowerCase("az"));
+        .includes(normalizedLocation);
 
     return (
       matchesSearch &&
       matchesCareer &&
       matchesCategory &&
-      matchesType &&
       matchesLocation
     );
   });
@@ -103,7 +106,9 @@ export async function getJobById(
   { signal } = {},
 ) {
   if (USE_MOCK_API) {
-    const job = mockJobs.find((item) => item.id === jobId);
+    const job = mockJobs.find(
+      (item) => String(item.id) === String(jobId),
+    );
 
     if (!job) {
       throw new Error("Vakansiya tapılmadı.");

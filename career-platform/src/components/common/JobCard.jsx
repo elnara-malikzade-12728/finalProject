@@ -1,133 +1,99 @@
-import { useState } from "react";
 import {
-  Banknote,
   BriefcaseBusiness,
   Building2,
-  CalendarDays,
-  ChevronDown,
-  ChevronUp,
-  Clock3,
   MapPin,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+function getCompanyInitials(company) {
+  if (!company) {
+    return "—";
+  }
+
+  const initials = company
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+
+  return initials || "—";
+}
+
 function JobCard({ job }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const companyName = job.company || "Şirkət göstərilməyib";
+  const careerTitle = job.career?.title;
+  const careerId = job.careerId || job.career?.id;
 
   return (
     <article className="job-card">
       <div className="job-card-main">
         <div
           className="company-logo"
-          aria-label={`${job.company} şirkətinin loqosu`}
+          aria-label={`${companyName} şirkətinin loqosu`}
         >
-          {job.companyInitials}
+          {getCompanyInitials(job.company)}
         </div>
 
         <div className="job-card-content">
           <div className="job-card-heading">
             <div>
-              <div className="job-tags">
-                <span className="tag">{job.category}</span>
+              {careerTitle && (
+                <div className="job-tags">
+                  <span className="tag">{careerTitle}</span>
+                </div>
+              )}
 
-                {job.isInternship && (
-                  <span className="tag tag-success">
-                    Təcrübə proqramı
-                  </span>
-                )}
-              </div>
-
-              <h3>{job.title}</h3>
+              <h3>
+                <Link to={`/jobs/${job.id}`}>{job.title}</Link>
+              </h3>
 
               <p className="company-name">
                 <Building2 size={17} aria-hidden="true" />
-                {job.company}
+                {companyName}
               </p>
             </div>
-
-            <span className="job-posted-date">
-              <CalendarDays size={16} aria-hidden="true" />
-              {job.postedAt}
-            </span>
           </div>
 
           <div className="job-meta">
-            <span>
-              <MapPin size={17} aria-hidden="true" />
-              {job.location} · {job.workMode}
-            </span>
+            {job.location && (
+              <span>
+                <MapPin size={17} aria-hidden="true" />
+                {job.location}
+              </span>
+            )}
 
-            <span>
-              <BriefcaseBusiness size={17} aria-hidden="true" />
-              {job.employmentType}
-            </span>
-
-            <span>
-              <Clock3 size={17} aria-hidden="true" />
-              {job.experience}
-            </span>
-
-            <span>
-              <Banknote size={17} aria-hidden="true" />
-              {job.salary}
-            </span>
+            {careerTitle && (
+              <span>
+                <BriefcaseBusiness size={17} aria-hidden="true" />
+                {careerTitle}
+              </span>
+            )}
           </div>
 
-          <p className="job-description">{job.description}</p>
+          {job.description && (
+            <p className="job-description">{job.description}</p>
+          )}
 
           <div className="job-card-actions">
-            <button
-              type="button"
-              className="button button-secondary"
-              onClick={() => setIsExpanded((current) => !current)}
-              aria-expanded={isExpanded}
-            >
-              {isExpanded ? (
-                <>
-                  Tələbləri gizlət
-                  <ChevronUp size={18} />
-                </>
-              ) : (
-                <>
-                  Tələblərə bax
-                  <ChevronDown size={18} />
-                </>
-              )}
-            </button>
-
             <Link
-              to={`/careers/${job.careerId}`}
-              className="button button-ghost"
+              to={`/jobs/${job.id}`}
+              className="button button-secondary"
             >
-              Uyğun yol xəritəsi
+              Ətraflı bax
             </Link>
+
+            {careerId && (
+              <Link
+                to={`/careers/${careerId}`}
+                className="button button-ghost"
+              >
+                Uyğun yol xəritəsi
+              </Link>
+            )}
           </div>
         </div>
       </div>
-
-      {isExpanded && (
-        <div className="job-requirements">
-          <h4>Namizədə tələblər</h4>
-
-          <ul>
-            {job.requirements.map((requirement) => (
-              <li key={requirement}>{requirement}</li>
-            ))}
-          </ul>
-
-          <button
-            type="button"
-            className="button button-primary"
-            onClick={() =>
-              window.alert(
-                "Müraciət funksiyası növbəti sprintdə backend API ilə əlavə ediləcək.",
-              )
-            }
-          >
-            Müraciət et
-          </button>
-        </div>
-      )}
     </article>
   );
 }

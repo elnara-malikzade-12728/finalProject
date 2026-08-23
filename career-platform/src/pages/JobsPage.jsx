@@ -1,77 +1,121 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
   Search,
   SlidersHorizontal,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { getCareers } from "../api/careersApi.js";
+import { getApiErrorMessage } from "../api/client.js";
+import { getJobs } from "../api/jobsApi.js";
+import EmptyState from "../components/common/EmptyState.jsx";
+import ErrorState from "../components/common/ErrorState.jsx";
 import JobCard from "../components/common/JobCard.jsx";
-import { careers } from "../data/careers.js";
-import { jobCategories, jobs } from "../data/jobs.js";
+import PageLoader from "../components/common/PageLoader.jsx";
 
 function JobsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const initialCareerId = searchParams.get("career") || "";
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] =
-    useState("Hamısı");
-  const [selectedType, setSelectedType] = useState("Hamısı");
-  const [selectedCareerId, setSelectedCareerId] =
-    useState(initialCareerId);
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("search") || "",
+  );
+  const [location, setLocation] = useState(
+    searchParams.get("location") || "",
+  );
+  const [selectedCategory, setSelectedCategory] = useState(
+    searchParams.get("category") || "Hamısı",
+  );
+  const [selectedCareerId, setSelectedCareerId] = useState(
+    searchParams.get("career") || "",
+  );
+  const [careers, setCareers] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredJobs = useMemo(() => {
-    const normalizedSearch = searchTerm
-      .trim()
-      .toLocaleLowerCase("az");
+  const categoryOptions = useMemo(() => {
+    const careerTitles = [
+      ...new Set(
+        careers
+          .map((career) => career.title)
+          .filter(Boolean),
+      ),
+    ];
 
-    return jobs.filter((job) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        [
-          job.title,
-          job.company,
-          job.location,
-          job.category,
-          job.description,
-        ]
-          .join(" ")
-          .toLocaleLowerCase("az")
-          .includes(normalizedSearch);
+    return ["Hamısı", ...careerTitles];
+  }, [careers]);
 
-      const matchesCategory =
-        selectedCategory === "Hamısı" ||
-        job.category === selectedCategory;
+  useEffect(() => {
+    const controller = new AbortController();
 
-      const matchesType =
-        selectedType === "Hamısı" ||
-        (selectedType === "Təcrübə"
-          ? job.isInternship
-          : !job.isInternship);
+    async function loadCareers() {
+      try {
+        const response = await getCareers({
+          signal: controller.signal,
+        });
 
-      const matchesCareer =
-        !selectedCareerId ||
-        job.careerId === selectedCareerId;
+        setCareers(Array.isArray(response) ? response : []);
+      } catch (requestError) {
+        if (requestError.name !== "AbortError") {
+          setCareers([]);
+        }
+      }
+    }
 
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesType &&
-        matchesCareer
-      );
-    });
-  }, [
-    searchTerm,
-    selectedCategory,
-    selectedType,
-    selectedCareerId,
-  ]);
+    loadCareers();
 
-  function handleCareerChange(event) {
-    const careerId = event.target.value;
+    return () => controller.abort();
+  }, []);
 
-    setSelectedCareerId(careerId);
+  const loadJobs = useCallback(
+    async (signal) => {
+      setIsLoading(true);
+      setError("");
 
+      try {
+        const response = await getJobs(
+          {
+            search: searchTerm.trim(),
+            location: location.trim(),
+            category: selectedCategory,
+            careerId: selectedCareerId,
+          },
+          { signal },
+        );
+
+        setJobs(Array.isArray(response) ? response : []);
+      } catch (requestError) {
+        if (requestError.name !== "AbortError") {
+          setError(getApiErrorMessage(requestError));
+          setJobs([]);
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [
+      searchTerm,
+      location,
+      selectedCategory,
+      selectedCareerId,
+    ],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      loadJobs(controller.signal);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [loadJobs]);
+
+  function updateCareerSearchParam(careerId) {
     if (careerId) {
       setSearchParams({ career: careerId });
     } else {
@@ -79,18 +123,25 @@ function JobsPage() {
     }
   }
 
+  function handleCareerChange(event) {
+    const careerId = event.target.value;
+
+    setSelectedCareerId(careerId);
+    updateCareerSearchParam(careerId);
+  }
+
   function clearFilters() {
     setSearchTerm("");
+    setLocation("");
     setSelectedCategory("Hamısı");
-    setSelectedType("Hamısı");
     setSelectedCareerId("");
     setSearchParams({});
   }
 
   const hasActiveFilters =
     searchTerm ||
+    location ||
     selectedCategory !== "Hamısı" ||
-    selectedType !== "Hamısı" ||
     selectedCareerId;
 
   return (
@@ -147,31 +198,32 @@ function JobsPage() {
             </div>
 
             <div className="select-field">
-              <label htmlFor="type-filter">Elan növü</label>
+              <label htmlFor="location-filter">Məkan</label>
 
-              <select
-                id="type-filter"
-                value={selectedType}
-                onChange={(event) =>
-                  setSelectedType(event.target.value)
-                }
-              >
-                <option value="Hamısı">Bütün elanlar</option>
-                <option value="İş">Vakansiyalar</option>
-                <option value="Təcrübə">
-                  Təcrübə proqramları
-                </option>
-              </select>
+              <div className="search-field">
+                <Search size={20} aria-hidden="true" />
+
+                <input
+                  id="location-filter"
+                  type="search"
+                  value={location}
+                  onChange={(event) =>
+                    setLocation(event.target.value)
+                  }
+                  placeholder="Şəhər və ya məkan"
+                  aria-label="Məkan axtar"
+                />
+              </div>
             </div>
           </div>
 
           <div
             className="category-filters job-category-filters"
-            aria-label="Vakansiya kateqoriyaları"
+            aria-label="Peşə kateqoriyaları"
           >
             <SlidersHorizontal size={19} aria-hidden="true" />
 
-            {jobCategories.map((category) => (
+            {categoryOptions.map((category) => (
               <button
                 key={category}
                 type="button"
@@ -190,7 +242,11 @@ function JobsPage() {
           <div className="results-heading">
             <div>
               <h2>Mövcud imkanlar</h2>
-              <p>{filteredJobs.length} elan tapıldı</p>
+              <p>
+                {isLoading
+                  ? "Elanlar yüklənir..."
+                  : `${jobs.length} elan tapıldı`}
+              </p>
             </div>
 
             {hasActiveFilters && (
@@ -204,29 +260,32 @@ function JobsPage() {
             )}
           </div>
 
-          {filteredJobs.length > 0 ? (
+          {isLoading ? (
+            <PageLoader message="Vakansiyalar yüklənir..." />
+          ) : error ? (
+            <ErrorState
+              title="Vakansiyaları yükləmək mümkün olmadı"
+              message={error}
+              onRetry={() => loadJobs()}
+            />
+          ) : jobs.length > 0 ? (
             <div className="jobs-list">
-              {filteredJobs.map((job) => (
+              {jobs.map((job) => (
                 <JobCard key={job.id} job={job} />
               ))}
             </div>
           ) : (
-            <div className="empty-state">
-              <BriefcaseBusiness size={44} aria-hidden="true" />
-              <h2>Uyğun elan tapılmadı</h2>
-              <p>
-                Axtarış və filtr seçimlərini dəyişərək yenidən
-                yoxlayın.
-              </p>
-
-              <button
-                type="button"
-                className="button button-primary"
-                onClick={clearFilters}
-              >
-                Filtrləri təmizlə
-              </button>
-            </div>
+            <EmptyState
+              icon={BriefcaseBusiness}
+              title="Uyğun elan tapılmadı"
+              message="Axtarış və filtr seçimlərini dəyişərək yenidən yoxlayın."
+              actionLabel={
+                hasActiveFilters ? "Filtrləri təmizlə" : undefined
+              }
+              onAction={
+                hasActiveFilters ? clearFilters : undefined
+              }
+            />
           )}
         </div>
       </section>

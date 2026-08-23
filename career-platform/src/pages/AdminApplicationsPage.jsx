@@ -26,7 +26,7 @@ const applicationStatuses = [
     label: "Gözləyir",
   },
   {
-    value: "REVIEWING",
+    value: "REVIEWED",
     label: "Yoxlanılır",
   },
   {
