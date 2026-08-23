@@ -87,6 +87,103 @@ function buildJobFilters(query = {}) {
   return where;
 }
 
+function normalizeOptionalString(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized || null;
+}
+
+function isValidHttpUrl(value) {
+  if (!value) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function validateJobPayload(body = {}, { partial = false } = {}) {
+  const allowedFields = [
+    'title',
+    'company',
+    'location',
+    'description',
+    'url',
+    'careerId',
+  ];
+  const hasField = (field) =>
+    Object.prototype.hasOwnProperty.call(body, field);
+  const data = {};
+
+  if (!partial || hasField('title')) {
+    const title =
+      typeof body.title === 'string' ? body.title.trim() : '';
+
+    if (!title) {
+      return { error: 'Vakansiya adı daxil edilməlidir.' };
+    }
+
+    data.title = title;
+  }
+
+  if (!partial || hasField('careerId')) {
+    const careerId = parsePositiveInteger(body.careerId);
+
+    if (!careerId) {
+      return { error: 'Düzgün peşə seçilməlidir.' };
+    }
+
+    data.careerId = careerId;
+  }
+
+  for (const field of [
+    'company',
+    'location',
+    'description',
+    'url',
+  ]) {
+    if (!partial || hasField(field)) {
+      data[field] = normalizeOptionalString(body[field]);
+    }
+  }
+
+  if (!isValidHttpUrl(data.url)) {
+    return {
+      error: 'Müraciət keçidi http:// və ya https:// ilə başlamalıdır.',
+    };
+  }
+
+  if (partial && !allowedFields.some(hasField)) {
+    return { error: 'Yenilənəcək məlumat daxil edilməlidir.' };
+  }
+
+  return { data };
+}
+
+async function careerExists(careerId) {
+  if (careerId === undefined) {
+    return true;
+  }
+
+  const career = await prisma.career.findUnique({
+    where: { id: careerId },
+    select: { id: true },
+  });
+
+  return Boolean(career);
+}
+
 async function listJobs(req, res) {
   try {
     const jobs = await prisma.job.findMany({
@@ -124,4 +221,119 @@ async function getJobById(req, res) {
   }
 }
 
-module.exports = { listJobs, getJobById };
+async function createJob(req, res) {
+  try {
+    const validation = validateJobPayload(req.body);
+
+    if (validation.error) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    if (!(await careerExists(validation.data.careerId))) {
+      return res.status(404).json({ error: 'Peşə tapılmadı.' });
+    }
+
+    const job = await prisma.job.create({
+      data: validation.data,
+      include: { career: { select: jobCareerSelect } },
+    });
+
+    return res.status(201).json(job);
+  } catch (err) {
+    console.error('Vakansiya yaradılarkən xəta:', err);
+    return res.status(500).json({
+      error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.',
+    });
+  }
+}
+
+async function updateJob(req, res) {
+  try {
+    const id = parsePositiveInteger(req.params.id);
+
+    if (!id) {
+      return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
+    }
+
+    const validation = validateJobPayload(req.body, { partial: true });
+
+    if (validation.error) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    const existingJob = await prisma.job.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existingJob) {
+      return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
+    }
+
+    if (!(await careerExists(validation.data.careerId))) {
+      return res.status(404).json({ error: 'Peşə tapılmadı.' });
+    }
+
+    const job = await prisma.job.update({
+      where: { id },
+      data: validation.data,
+      include: { career: { select: jobCareerSelect } },
+    });
+
+    return res.status(200).json(job);
+  } catch (err) {
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
+    }
+
+    console.error('Vakansiya yenilənərkən xəta:', err);
+    return res.status(500).json({
+      error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.',
+    });
+  }
+}
+
+async function deleteJob(req, res) {
+  try {
+    const id = parsePositiveInteger(req.params.id);
+
+    if (!id) {
+      return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
+    }
+
+    const existingJob = await prisma.job.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existingJob) {
+      return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
+    }
+
+    await prisma.$transaction(async (transaction) => {
+      await transaction.application.deleteMany({
+        where: { jobId: id },
+      });
+      await transaction.job.delete({ where: { id } });
+    });
+
+    return res.status(204).send();
+  } catch (err) {
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
+    }
+
+    console.error('Vakansiya silinərkən xəta:', err);
+    return res.status(500).json({
+      error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.',
+    });
+  }
+}
+
+module.exports = {
+  listJobs,
+  getJobById,
+  createJob,
+  updateJob,
+  deleteJob,
+};

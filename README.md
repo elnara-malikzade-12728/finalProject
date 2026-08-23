@@ -269,6 +269,10 @@ The frontend normally runs at `http://localhost:5173/`.
 | `GET` | `/api/careers/:id` | No | Get one career |
 | `GET` | `/api/careers/:id/roadmap` | No | Get career roadmap steps |
 | `GET` | `/api/jobs` | No | List jobs and internships |
+| `POST` | `/api/jobs` | Admin | Create a job |
+| `GET` | `/api/jobs/:id` | No | Get job details |
+| `PATCH` | `/api/jobs/:id` | Admin | Update a job |
+| `DELETE` | `/api/jobs/:id` | Admin | Delete a job and its applications |
 | `POST` | `/api/jobs/:id/apply` | Yes | Apply to a job |
 | `GET` | `/api/applications/me` | Yes | List the current user's applications |
 | `GET` | `/api/applications` | Admin | List and filter all applications |

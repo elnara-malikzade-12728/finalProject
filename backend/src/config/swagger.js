@@ -273,6 +273,43 @@ const options = {
           },
         },
 
+        JobInput: {
+          type: "object",
+          required: ["title", "careerId"],
+          properties: {
+            title: {
+              type: "string",
+              example: "Junior Frontend Developer",
+            },
+            company: {
+              type: "string",
+              nullable: true,
+              example: "KaryeraYol",
+            },
+            location: {
+              type: "string",
+              nullable: true,
+              example: "Bakı",
+            },
+            description: {
+              type: "string",
+              nullable: true,
+              example: "Frontend komandamıza yeni əməkdaş axtarırıq.",
+            },
+            url: {
+              type: "string",
+              format: "uri",
+              nullable: true,
+              example: "https://example.com/apply",
+            },
+            careerId: {
+              type: "integer",
+              minimum: 1,
+              example: 1,
+            },
+          },
+        },
+
         Application: {
           type: "object",
           properties: {
