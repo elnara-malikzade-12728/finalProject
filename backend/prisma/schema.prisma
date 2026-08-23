@@ -13,12 +13,12 @@ model User {
   name        String
   email       String       @unique
   password    String
-  role        Role         @default(USER)
+  role        UserRole     @default(USER)
   progress    Progress[]
   enrollments Enrollment[]
 }
 
-enum Role {
+enum UserRole {
   USER
   ADMIN
 }

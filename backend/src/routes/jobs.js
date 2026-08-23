@@ -2,13 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   listJobs,
-  getJob,
-  createJob,
-  updateJob,
-  deleteJob,
 } = require("../controllers/jobController");
-const requireAuth = require("../middleware/auth");
-const requireRole = require("../middleware/requireRole");
 
 /**
  * @openapi
@@ -47,9 +41,5 @@ const requireRole = require("../middleware/requireRole");
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", listJobs);
-router.get("/:id", getJob);
-router.post("/", requireAuth, requireRole("ADMIN"), createJob);
-router.patch("/:id", requireAuth, requireRole("ADMIN"), updateJob);
-router.delete("/:id", requireAuth, requireRole("ADMIN"), deleteJob);
 
 module.exports = router;
