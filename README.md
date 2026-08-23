@@ -31,6 +31,36 @@ Sprint 3 expands the integrated application toward 75% completion:
 - Frontend loading, validation, success, error, and empty states
 - Mock API fallback for frontend-only demonstrations
 
+## Sprint Progress
+
+### Sprint 1 – MVP Foundation and Project Setup
+
+- Established the React/Vite frontend and Express backend structure.
+- Designed the initial PostgreSQL schema and integrated Prisma ORM.
+- Implemented user registration, login, JWT authentication, and password hashing.
+- Added the first career, roadmap, job, progress, and profile endpoints.
+- Created the initial responsive pages and reusable UI components.
+
+### Sprint 2 – Core Integration and API Documentation
+
+- Connected the frontend to the real backend API and retained an optional mock fallback.
+- Integrated the Supabase-hosted PostgreSQL database and sample career/job data.
+- Added protected routes, authenticated progress tracking, and profile management.
+- Improved validation and localized API error messages in Azerbaijani.
+- Added Swagger/OpenAPI documentation and deployed the frontend and backend to Vercel.
+
+### Sprint 3 – Feature Completion and Deployment
+
+- Introduced `USER` and `ADMIN` roles with protected administrator routes.
+- Added the administrator dashboard and job/application management interfaces.
+- Implemented job applications, application history, and administrator status management.
+- Added persistent extended profile fields, including location, education, biography, interests, and skills.
+- Added course, module, lesson, and enrollment models.
+- Implemented secure lesson-video upload, playback, and deletion using private Supabase Storage and signed URLs.
+- Added lazy-loaded frontend routes and consistent loading, empty, success, and error states.
+- Improved Prisma resilience when Supabase closes idle pooled connections.
+- Updated production deployment configuration and API documentation.
+
 ## Technology Stack
 
 ### Frontend
