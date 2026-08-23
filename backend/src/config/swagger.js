@@ -91,6 +91,35 @@ const options = {
               enum: ["USER", "ADMIN"],
               example: "USER",
             },
+            education: {
+              type: "string",
+              nullable: true,
+              example: "Bakı Dövlət Universiteti",
+            },
+            location: {
+              type: "string",
+              nullable: true,
+              example: "Bakı",
+            },
+            bio: {
+              type: "string",
+              nullable: true,
+              example: "Frontend proqramlaşdırma ilə maraqlanıram.",
+            },
+            interests: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              example: ["Frontend", "UI/UX"],
+            },
+            skills: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              example: ["HTML", "CSS", "JavaScript"],
+            },
           },
         },
 
