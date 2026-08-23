@@ -143,7 +143,66 @@ async function getMyApplications(req, res) {
 
 async function getApplications(req, res) {
   try {
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
+    const status =
+      typeof req.query.status === "string"
+        ? req.query.status.trim().toUpperCase()
+        : "";
+
+    if (status && !APPLICATION_STATUSES.includes(status)) {
+      return res.status(400).json({
+        error:
+          "Status yalnız PENDING, REVIEWED, ACCEPTED və ya REJECTED ola bilər.",
+      });
+    }
+
+    const where = {
+      ...(status ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              {
+                user: {
+                  name: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+              {
+                user: {
+                  email: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+              {
+                job: {
+                  title: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+              {
+                job: {
+                  company: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
     const applications = await prisma.application.findMany({
+      where,
       include: applicationInclude(),
       orderBy: {
         createdAt: "desc",
@@ -153,6 +212,39 @@ async function getApplications(req, res) {
     return res.status(200).json(applications);
   } catch (error) {
     console.error("Müraciətlər alınarkən xəta:", error);
+
+    return res.status(500).json({
+      error:
+        "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.",
+    });
+  }
+}
+
+async function deleteApplication(req, res) {
+  try {
+    const applicationId = parsePositiveInteger(req.params.id);
+
+    if (!applicationId) {
+      return res.status(404).json({
+        error: "Müraciət tapılmadı.",
+      });
+    }
+
+    await prisma.application.delete({
+      where: {
+        id: applicationId,
+      },
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        error: "Müraciət tapılmadı.",
+      });
+    }
+
+    console.error("Müraciət silinərkən xəta:", error);
 
     return res.status(500).json({
       error:
@@ -227,4 +319,5 @@ module.exports = {
   getMyApplications,
   getApplications,
   updateApplicationStatus,
+  deleteApplication,
 };

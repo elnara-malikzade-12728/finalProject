@@ -5,6 +5,7 @@ const {
   getMyApplications,
   getApplications,
   updateApplicationStatus,
+  deleteApplication,
 } = require("../controllers/applicationController");
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.patch(
   requireAdmin,
   updateApplicationStatus,
 );
+router.delete("/:id", auth, requireAdmin, deleteApplication);
 
 module.exports = router;
