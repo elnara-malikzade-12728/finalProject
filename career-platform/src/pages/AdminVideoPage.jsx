@@ -15,6 +15,9 @@ function AdminVideoPage() {
   const [activeLessonId, setActiveLessonId] =
     useState(1);
 
+  const [lessonReloadKey, setLessonReloadKey] =
+    useState(0);
+
   function handleLessonSelect(event) {
     event.preventDefault();
 
@@ -25,6 +28,9 @@ function AdminVideoPage() {
       lessonId > 0
     ) {
       setActiveLessonId(lessonId);
+      setLessonReloadKey(
+        (currentKey) => currentKey + 1,
+      );
     }
   }
 
@@ -100,7 +106,7 @@ function AdminVideoPage() {
       </div>
 
       <VideoUploader
-        key={activeLessonId}
+        key={`${activeLessonId}-${lessonReloadKey}`}
         lessonId={activeLessonId}
       />
     </section>
