@@ -68,8 +68,11 @@ function RegisterPage() {
       return "Bütün sahələri doldurun.";
     }
 
-    if (formData.name.trim().length < 2) {
-      return "Ad və soyad ən azı 2 simvoldan ibarət olmalıdır.";
+    if (
+      formData.name.trim().length < 2 ||
+      formData.name.trim().length > 100
+    ) {
+      return "Ad və soyad 2–100 simvoldan ibarət olmalıdır.";
     }
 
     const emailPattern =
@@ -79,8 +82,23 @@ function RegisterPage() {
       return "Düzgün e-poçt ünvanı daxil edin.";
     }
 
-    if (formData.password.length < 6) {
-      return "Şifrə ən azı 6 simvoldan ibarət olmalıdır.";
+    if (formData.password.length < 8) {
+      return "Şifrə ən azı 8 simvoldan ibarət olmalıdır.";
+    }
+
+    if (
+      !/[a-z]/.test(formData.password) ||
+      !/[A-Z]/.test(formData.password) ||
+      !/\d/.test(formData.password)
+    ) {
+      return "Şifrədə böyük hərf, kiçik hərf və rəqəm olmalıdır.";
+    }
+
+    if (
+      new TextEncoder().encode(formData.password)
+        .length > 72
+    ) {
+      return "Şifrə 72 baytdan uzun olmamalıdır.";
     }
 
     if (
@@ -258,7 +276,8 @@ function RegisterPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Ən azı 6 simvol"
+                  placeholder="Ən azı 8 simvol, böyük/kiçik hərf və rəqəm"
+                  maxLength={72}
                   autoComplete="new-password"
                   disabled={isSubmitting}
                   required

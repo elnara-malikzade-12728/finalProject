@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma");
+const logger = require("../utils/logger");
 
 async function requireAdmin(req, res, next) {
   if (!req.user?.id) {
@@ -9,34 +9,16 @@ async function requireAdmin(req, res, next) {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: req.user.id,
-      },
-      select: {
-        id: true,
-        role: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        error: "İstifadəçi tapılmadı.",
-      });
-    }
-
-    if (user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN") {
       return res.status(403).json({
         error:
           "Bu əməliyyat yalnız administratorlar üçün nəzərdə tutulub.",
       });
     }
 
-    req.user.role = user.role;
-
     return next();
   } catch (error) {
-    console.error(
+    logger.error(
       "Administrator icazəsi yoxlanılarkən xəta:",
       error,
     );

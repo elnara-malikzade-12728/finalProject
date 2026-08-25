@@ -1,5 +1,11 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
+const logger = require("../utils/logger");
+const {
+  getPasswordValidationError,
+  isValidEmail,
+  normalizeEmail,
+} = require("../utils/validation");
 
 const publicUserFields = {
   id: true,
@@ -45,7 +51,7 @@ async function getProfile(req, res) {
 
     return res.status(200).json(user);
   } catch (error) {
-    console.error(
+    logger.error(
       "Profil məlumatları alınarkən xəta:",
       error,
     );
@@ -63,6 +69,7 @@ async function updateProfile(req, res) {
       name,
       email,
       password,
+      currentPassword,
       education,
       location,
       bio,
@@ -73,6 +80,12 @@ async function updateProfile(req, res) {
     const updates = {};
 
     if (typeof name === "string" && name.trim()) {
+      if (name.trim().length > 100) {
+        return res.status(400).json({
+          error: "Ad 100 simvoldan uzun olmamalıdır.",
+        });
+      }
+
       updates.name = name.trim();
     }
 
@@ -114,19 +127,54 @@ async function updateProfile(req, res) {
       typeof email === "string" &&
       email.trim()
     ) {
-      updates.email = email
-        .trim()
-        .toLowerCase();
+      const normalizedEmail = normalizeEmail(email);
+
+      if (!isValidEmail(normalizedEmail)) {
+        return res.status(400).json({
+          error: "Düzgün e-poçt ünvanı daxil edin.",
+        });
+      }
+
+      updates.email = normalizedEmail;
     }
 
     if (
       typeof password === "string" &&
       password
     ) {
-      if (password.length < 6) {
+      const passwordError =
+        getPasswordValidationError(password);
+
+      if (passwordError) {
+        return res.status(400).json({
+          error: passwordError,
+        });
+      }
+
+      if (
+        typeof currentPassword !== "string" ||
+        !currentPassword
+      ) {
         return res.status(400).json({
           error:
-            "Şifrə ən azı 6 simvoldan ibarət olmalıdır.",
+            "Şifrəni dəyişmək üçün cari şifrəni daxil edin.",
+        });
+      }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { password: true },
+      });
+
+      if (
+        !existingUser ||
+        !(await bcrypt.compare(
+          currentPassword,
+          existingUser.password,
+        ))
+      ) {
+        return res.status(401).json({
+          error: "Cari şifrə yanlışdır.",
         });
       }
 
@@ -134,6 +182,7 @@ async function updateProfile(req, res) {
         password,
         10,
       );
+      updates.tokenVersion = { increment: 1 };
     }
 
     if (Object.keys(updates).length === 0) {
@@ -166,7 +215,7 @@ async function updateProfile(req, res) {
       });
     }
 
-    console.error(
+    logger.error(
       "Profil yenilənərkən xəta:",
       error,
     );

@@ -73,7 +73,14 @@ router.get("/me", auth, getProfile);
  *               password:
  *                 type: string
  *                 format: password
- *                 example: yeniDemo123
+ *                 minLength: 8
+ *                 maxLength: 72
+ *                 example: YeniDemo123
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Şifrə dəyişdirilərkən cari şifrə mütləq təqdim edilməlidir.
+ *                 example: Demo1234
  *               education:
  *                 type: string
  *                 nullable: true

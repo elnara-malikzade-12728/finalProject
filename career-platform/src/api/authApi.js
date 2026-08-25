@@ -177,7 +177,17 @@ export async function getCurrentUser({ signal } = {}) {
   });
 }
 
-export function logoutUser() {
+export async function logoutUser() {
+  if (!USE_MOCK_API) {
+    try {
+      await apiRequest("/auth/logout", {
+        method: "POST",
+      });
+    } catch {
+      // Local logout must still complete if the token is already invalid.
+    }
+  }
+
   removeToken();
 
   if (USE_MOCK_API) {

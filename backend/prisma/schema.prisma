@@ -14,6 +14,10 @@ model User {
   email        String        @unique
   password     String
   role         UserRole      @default(USER)
+  isActive     Boolean       @default(true)
+  tokenVersion Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   education    String?
   location     String?
   bio          String?
@@ -42,19 +46,21 @@ model Step {
   title       String
   description String?
   order       Int
-  career      Career     @relation(fields: [careerId], references: [id])
+  career      Career     @relation(fields: [careerId], references: [id], onDelete: Cascade)
   careerId    Int
   progress    Progress[]
 }
 
 model Progress {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  step      Step     @relation(fields: [stepId], references: [id])
+  step      Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
   stepId    Int
   completed Boolean  @default(false)
   updatedAt DateTime @updatedAt
+
+  @@unique([userId, stepId])
 }
 
 model Job {
@@ -64,7 +70,7 @@ model Job {
   location     String?
   description  String?
   url          String?
-  career       Career        @relation(fields: [careerId], references: [id])
+  career       Career        @relation(fields: [careerId], references: [id], onDelete: Cascade)
   careerId     Int
   applications Application[]
 }
@@ -78,9 +84,9 @@ enum ApplicationStatus {
 
 model Application {
   id        Int               @id @default(autoincrement())
-  user      User              @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  job       Job               @relation(fields: [jobId], references: [id])
+  job       Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
   jobId     Int
   status    ApplicationStatus @default(PENDING)
   createdAt DateTime          @default(now())

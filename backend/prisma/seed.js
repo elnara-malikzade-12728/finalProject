@@ -1,14 +1,30 @@
 require('dotenv').config();
 const prisma = require('../src/lib/prisma');
+const logger = require('../src/utils/logger');
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('Production verilənlər bazasında seed əməliyyatı qadağandır.');
+  process.exit(1);
+}
+
+if (process.env.ALLOW_DATABASE_RESET !== 'true') {
+  console.error('Seed üçün ALLOW_DATABASE_RESET=true açıq şəkildə təyin edilməlidir.');
+  process.exit(1);
+}
 
 async function main() {
   console.log('Seeding database...');
 
-  // Remove existing data (careful in prod)
+  // Development-only reset. Guards above prevent accidental production use.
+  await prisma.application.deleteMany();
   await prisma.progress.deleteMany();
+  await prisma.enrollment.deleteMany();
   await prisma.job.deleteMany();
   await prisma.step.deleteMany();
   await prisma.career.deleteMany();
+  await prisma.lesson.deleteMany();
+  await prisma.courseModule.deleteMany();
+  await prisma.course.deleteMany();
   await prisma.user.deleteMany();
 
   const careers = [
@@ -101,17 +117,24 @@ async function main() {
     });
   }
 
-  // Create a demo user
-  const bcrypt = require('bcrypt');
-  const hashed = await bcrypt.hash('password', 10);
-  await prisma.user.create({ data: { name: 'Demo User', email: 'demo@karyerayol.local', password: hashed } });
+  if (process.env.SEED_DEMO_PASSWORD) {
+    const bcrypt = require('bcrypt');
+    const hashed = await bcrypt.hash(process.env.SEED_DEMO_PASSWORD, 10);
+    await prisma.user.create({
+      data: {
+        name: 'Demo User',
+        email: 'demo@synex-academy.local',
+        password: hashed,
+      },
+    });
+  }
 
   console.log('Seeding finished.');
 }
 
 main()
   .catch(e => {
-    console.error(e);
+    logger.error('Seed əməliyyatı zamanı xəta', e);
     process.exit(1);
   })
   .finally(async () => {

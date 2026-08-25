@@ -20,7 +20,7 @@ const {
  *     tags:
  *       - Jobs
  *     summary: Bütün vakansiya və təcrübə proqramlarını göstər
- *     description: Bütün vakansiyaları əlaqəli peşə məlumatları ilə birlikdə qaytarır.
+ *     description: İctimai endpoint-dir. Vakansiyaları əlaqəli kurs məlumatları ilə birlikdə səhifələnmiş şəkildə qaytarır.
  *     responses:
  *       200:
  *         description: Vakansiya və təcrübə proqramlarının siyahısı
