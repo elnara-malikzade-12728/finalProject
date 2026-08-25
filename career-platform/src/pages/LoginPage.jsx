@@ -122,7 +122,7 @@ function LoginPage() {
           <Link
             to="/"
             className="auth-brand"
-            aria-label="KaryeraYol ana səhifə"
+            aria-label="Synex Academy ana səhifə"
           >
             <span
               className="brand-icon"
@@ -135,9 +135,9 @@ function LoginPage() {
             </span>
 
             <span>
-              Karyera
+              Synex{" "}
               <span className="brand-accent">
-                Yol
+                Academy
               </span>
             </span>
           </Link>

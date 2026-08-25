@@ -1,6 +1,6 @@
-﻿# KaryeraYol
+﻿# Synex Academy
 
-KaryeraYol is a youth employment and career-development platform created as a Holberton School final project. It helps users explore career paths, follow structured learning roadmaps, track progress, and discover relevant jobs and internships.
+Synex Academy is a youth employment and career-development platform created as a Holberton School final project. It helps users explore career paths, follow structured learning roadmaps, track progress, and discover relevant jobs and internships.
 
 ## Live Deployment
 

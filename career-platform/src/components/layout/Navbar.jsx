@@ -37,14 +37,14 @@ function Navbar() {
           to="/"
           className="brand"
           onClick={closeMenu}
-          aria-label="KaryeraYol ana səhifə"
+          aria-label="Synex Academy ana səhifə"
         >
           <span className="brand-icon" aria-hidden="true">
             <Map size={23} strokeWidth={2.5} />
           </span>
 
           <span>
-            Karyera<span className="brand-accent">Yol</span>
+            Synex <span className="brand-accent">Academy</span>
           </span>
         </NavLink>
 

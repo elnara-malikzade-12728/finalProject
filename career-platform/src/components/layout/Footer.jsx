@@ -16,14 +16,14 @@ function Footer() {
           <Link
             to="/"
             className="brand footer-brand"
-            aria-label="KaryeraYol ana səhifə"
+            aria-label="Synex Academy ana səhifə"
           >
             <span className="brand-icon" aria-hidden="true">
               <Map size={23} strokeWidth={2.5} />
             </span>
 
             <span>
-              Karyera<span className="brand-accent">Yol</span>
+              Synex <span className="brand-accent">Academy</span>
             </span>
           </Link>
 
@@ -79,7 +79,7 @@ function Footer() {
       </div>
 
       <div className="container footer-bottom">
-        <p>© {currentYear} KaryeraYol. Bütün hüquqlar qorunur.</p>
+        <p>© {currentYear} Synex Academy. Bütün hüquqlar qorunur.</p>
 
         <p className="footer-project-note">
           <Heart size={16} fill="currentColor" aria-hidden="true" />

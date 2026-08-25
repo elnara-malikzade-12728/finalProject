@@ -17,7 +17,7 @@ app.use("/api", apiRoutes);
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
-    message: "KaryeraYol backend running",
+    message: "Synex Academy backend running",
     documentation: "/api/docs",
   });
 });
@@ -37,7 +37,7 @@ app.get("/api/docs", (req, res) => {
           content="width=device-width, initial-scale=1"
         />
 
-        <title>KaryeraYol API Documentation</title>
+        <title>Synex Academy API Documentation</title>
 
         <link
           rel="stylesheet"

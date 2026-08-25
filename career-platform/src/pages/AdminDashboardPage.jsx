@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   FileText,
   GraduationCap,
-  Plus,
   Route,
   Users,
   Video,
@@ -132,13 +131,6 @@ function AdminDashboardPage() {
           </p>
         </div>
 
-        <Link
-          className="button button-primary"
-          to="/admin/jobs/new"
-        >
-          <Plus size={18} aria-hidden="true" />
-          Yeni vakansiya
-        </Link>
       </div>
 
       <div className="admin-statistics-grid">
