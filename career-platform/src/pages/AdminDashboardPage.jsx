@@ -5,8 +5,6 @@ import {
 import {
   BriefcaseBusiness,
   FileText,
-  GraduationCap,
-  Plus,
   Route,
   Users,
   Video,
@@ -132,13 +130,6 @@ function AdminDashboardPage() {
           </p>
         </div>
 
-        <Link
-          className="button button-primary"
-          to="/admin/jobs/new"
-        >
-          <Plus size={18} aria-hidden="true" />
-          Yeni vakansiya
-        </Link>
       </div>
 
       <div className="admin-statistics-grid">
@@ -148,7 +139,7 @@ function AdminDashboardPage() {
           </span>
 
           <div>
-            <span>Peşələr</span>
+            <span>Kurslar</span>
             <strong>
               {statistics.careers ?? "—"}
             </strong>
@@ -187,19 +178,6 @@ function AdminDashboardPage() {
           </div>
         </article>
 
-        <article className="admin-statistic-card">
-          <span className="admin-statistic-icon">
-            <GraduationCap
-              size={22}
-              aria-hidden="true"
-            />
-          </span>
-
-          <div>
-            <span>Təlim modulu</span>
-            <strong>Yeni</strong>
-          </div>
-        </article>
       </div>
 
       <div className="admin-dashboard-content">
@@ -278,22 +256,6 @@ function AdminDashboardPage() {
           </div>
         </section>
 
-        <aside className="admin-dashboard-note">
-          <GraduationCap
-            size={25}
-            aria-hidden="true"
-          />
-
-          <div>
-            <h2>Sprint 3 inkişafı</h2>
-
-            <p>
-              Kurs, modul və təhlükəsiz video
-              yükləmə funksionallığı yeni
-              mərhələdə hazırlanır.
-            </p>
-          </div>
-        </aside>
       </div>
     </section>
   );

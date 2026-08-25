@@ -269,7 +269,7 @@ function JobDetailsPage() {
               <div className="career-overview-item">
                 <BriefcaseBusiness size={22} aria-hidden="true" />
                 <div>
-                  <span>Peşə istiqaməti</span>
+                  <span>Kurs istiqaməti</span>
                   <strong>{careerTitle}</strong>
                 </div>
               </div>
@@ -295,7 +295,7 @@ function JobDetailsPage() {
               <div className="content-card-heading">
                 <Building2 size={25} aria-hidden="true" />
                 <div>
-                  <h2>Peşə məlumatı</h2>
+                  <h2>Kurs məlumatı</h2>
                   <p>Bu vakansiyanın bağlı olduğu karyera istiqaməti.</p>
                 </div>
               </div>

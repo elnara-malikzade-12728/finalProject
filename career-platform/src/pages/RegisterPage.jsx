@@ -140,7 +140,7 @@ function RegisterPage() {
           <Link
             to="/"
             className="auth-brand"
-            aria-label="KaryeraYol ana səhifə"
+            aria-label="Synex Academy ana səhifə"
           >
             <span
               className="brand-icon"
@@ -153,9 +153,9 @@ function RegisterPage() {
             </span>
 
             <span>
-              Karyera
+              Synex{" "}
               <span className="brand-accent">
-                Yol
+                Academy
               </span>
             </span>
           </Link>
@@ -164,7 +164,7 @@ function RegisterPage() {
             <h1>Karyera yoluna başla</h1>
 
             <p>
-              Pulsuz hesab yarat, peşə seç və
+              Pulsuz hesab yarat, kurs seç və
               inkişaf addımlarını izləməyə başla.
             </p>
           </div>

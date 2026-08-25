@@ -47,10 +47,10 @@ function CareersPage() {
     <>
       <section className="page-hero">
         <div className="container page-hero-content">
-          <span className="eyebrow">Karyera istiqamətləri</span>
-          <h1>Gələcəyinə uyğun peşəni tap</h1>
+          <span className="eyebrow">Kurs istiqamətləri</span>
+          <h1>Gələcəyinə uyğun kursu tap</h1>
           <p>
-            Peşələri araşdır, tələb olunan bacarıqları öyrən və
+            Kursları araşdır, tələb olunan bacarıqları öyrən və
             addım-addım inkişaf yoluna başla.
           </p>
         </div>
@@ -68,14 +68,14 @@ function CareersPage() {
                 onChange={(event) =>
                   setSearchTerm(event.target.value)
                 }
-                placeholder="Peşə və ya bacarıq axtar..."
-                aria-label="Peşə və ya bacarıq axtar"
+                placeholder="Kurs və ya bacarıq axtar..."
+                aria-label="Kurs və ya bacarıq axtar"
               />
             </div>
 
             <div
               className="category-filters"
-              aria-label="Peşə kateqoriyaları"
+              aria-label="Kurs kateqoriyaları"
             >
               <SlidersHorizontal size={19} aria-hidden="true" />
 
@@ -98,7 +98,7 @@ function CareersPage() {
 
           <div className="results-heading">
             <div>
-              <h2>Peşələr</h2>
+              <h2>Kurslar</h2>
               <p>
                 {filteredCareers.length} istiqamət tapıldı
               </p>

@@ -1,7 +1,6 @@
 import {
   BriefcaseBusiness,
   ClipboardList,
-  FilePlus2,
   LayoutDashboard,
   Video,
 } from "lucide-react";
@@ -28,12 +27,6 @@ const adminLinks = [
     label: "Vakansiyalar",
     icon: BriefcaseBusiness,
     end: true,
-  },
-  {
-    to: "/admin/jobs/new",
-    label: "Yeni vakansiya",
-    icon: FilePlus2,
-    end: false,
   },
   {
     to: "/admin/applications",

@@ -5,10 +5,10 @@ const options = {
     openapi: "3.0.3",
 
     info: {
-      title: "KaryeraYol API",
+      title: "Synex Academy API",
       version: "1.0.0",
       description:
-        "KaryeraYol authentication, careers, jobs, user profiles, progress and secure lesson video API.",
+        "Synex Academy authentication, careers, jobs, user profiles, progress and secure lesson video API.",
     },
 
     servers: [
@@ -284,7 +284,7 @@ const options = {
             company: {
               type: "string",
               nullable: true,
-              example: "KaryeraYol",
+              example: "Synex Academy",
             },
             location: {
               type: "string",

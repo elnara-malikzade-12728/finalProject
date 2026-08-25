@@ -156,7 +156,7 @@ function JobsPage() {
           <h1>İş və təcrübə imkanlarını kəşf et</h1>
 
           <p>
-            Bacarıqlarına və seçdiyin peşə istiqamətinə uyğun
+            Bacarıqlarına və seçdiyin kurs istiqamətinə uyğun
             elanları araşdır.
           </p>
         </div>
@@ -180,14 +180,14 @@ function JobsPage() {
             </div>
 
             <div className="select-field">
-              <label htmlFor="career-filter">Peşə</label>
+              <label htmlFor="career-filter">Kurs</label>
 
               <select
                 id="career-filter"
                 value={selectedCareerId}
                 onChange={handleCareerChange}
               >
-                <option value="">Bütün peşələr</option>
+                <option value="">Bütün kurslar</option>
 
                 {careers.map((career) => (
                   <option key={career.id} value={career.id}>
@@ -219,7 +219,7 @@ function JobsPage() {
 
           <div
             className="category-filters job-category-filters"
-            aria-label="Peşə kateqoriyaları"
+            aria-label="Kurs kateqoriyaları"
           >
             <SlidersHorizontal size={19} aria-hidden="true" />
 
