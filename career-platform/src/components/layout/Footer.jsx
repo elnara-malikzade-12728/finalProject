@@ -28,7 +28,7 @@ function Footer() {
           </Link>
 
           <p>
-            Gənclərə uyğun peşə seçmək, bacarıqlarını inkişaf
+            Gənclərə uyğun kurs seçmək, bacarıqlarını inkişaf
             etdirmək və karyera imkanları tapmaq üçün yaradılmış
             platforma.
           </p>
@@ -39,7 +39,7 @@ function Footer() {
 
           <ul>
             <li>
-              <Link to="/careers">Peşələr</Link>
+              <Link to="/careers">Kurslar</Link>
             </li>
             <li>
               <Link to="/jobs">Vakansiyalar</Link>

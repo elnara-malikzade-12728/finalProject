@@ -71,7 +71,7 @@ function RoadmapPage() {
 
           <Link to="/careers" className="button button-primary">
             <ArrowLeft size={18} />
-            Peşələrə qayıt
+            Kurslara qayıt
           </Link>
         </div>
       </section>

@@ -129,7 +129,7 @@ function AdminJobFormPage() {
     }
 
     if (!form.careerId) {
-      errors.careerId = "Peşə seçilməlidir.";
+      errors.careerId = "Kurs seçilməlidir.";
     }
 
     if (
@@ -299,7 +299,7 @@ function AdminJobFormPage() {
 
           <div className="form-group">
             <label htmlFor="job-career">
-              Peşə *
+              Kurs *
             </label>
 
             <select
@@ -312,7 +312,7 @@ function AdminJobFormPage() {
               )}
             >
               <option value="">
-                Peşə seçin
+                Kurs seçin
               </option>
 
               {careers.map((career) => (

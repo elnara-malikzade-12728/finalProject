@@ -22,7 +22,7 @@ function CareerDetailsPage() {
       <section className="section">
         <div className="container empty-state">
           <Route size={44} aria-hidden="true" />
-          <h1>Peşə tapılmadı</h1>
+          <h1>Kurs tapılmadı</h1>
           <p>
             Axtardığınız karyera istiqaməti mövcud deyil və ya
             silinib.
@@ -30,7 +30,7 @@ function CareerDetailsPage() {
 
           <Link to="/careers" className="button button-primary">
             <ArrowLeft size={18} />
-            Peşələrə qayıt
+            Kurslara qayıt
           </Link>
         </div>
       </section>
@@ -47,7 +47,7 @@ function CareerDetailsPage() {
         <div className="container">
           <Link to="/careers" className="back-link">
             <ArrowLeft size={18} aria-hidden="true" />
-            Bütün peşələr
+            Bütün kurslar
           </Link>
 
           <div className="career-detail-heading">

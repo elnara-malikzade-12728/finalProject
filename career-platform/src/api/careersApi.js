@@ -23,7 +23,7 @@ export async function getCareerById(
     );
 
     if (!career) {
-      throw new Error("Peşə istiqaməti tapılmadı.");
+      throw new Error("Kurs istiqaməti tapılmadı.");
     }
 
     return career;

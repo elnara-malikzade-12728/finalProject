@@ -164,7 +164,7 @@ function RegisterPage() {
             <h1>Karyera yoluna başla</h1>
 
             <p>
-              Pulsuz hesab yarat, peşə seç və
+              Pulsuz hesab yarat, kurs seç və
               inkişaf addımlarını izləməyə başla.
             </p>
           </div>

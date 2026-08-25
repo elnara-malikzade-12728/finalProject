@@ -29,14 +29,14 @@ function HomePage() {
             </h1>
 
             <p className="hero-description">
-              Bacarıqlarına və maraqlarına uyğun peşəni kəşf et,
+              Bacarıqlarına və maraqlarına uyğun kursu kəşf et,
               addım-addım inkişaf planı əldə et və uyğun iş
               imkanlarına daha hazırlıqlı ol.
             </p>
 
             <div className="hero-actions">
               <Link to="/careers" className="button button-primary button-large">
-                Peşələri kəşf et
+                Kursları kəşf et
                 <ArrowRight size={19} aria-hidden="true" />
               </Link>
 
@@ -127,7 +127,7 @@ function HomePage() {
             <Map size={28} aria-hidden="true" />
             <div>
               <strong>5+</strong>
-              <span>Peşə istiqaməti</span>
+              <span>Kurs istiqaməti</span>
             </div>
           </div>
 
@@ -162,7 +162,7 @@ function HomePage() {
           <div className="section-heading">
             <div>
               <span className="eyebrow">Populyar istiqamətlər</span>
-              <h2>Özünə uyğun peşəni kəşf et</h2>
+              <h2>Özünə uyğun kursu kəşf et</h2>
               <p>
                 Maraqlarına uyğun istiqaməti seç və tələb olunan
                 bacarıqları addım-addım öyrən.
@@ -170,7 +170,7 @@ function HomePage() {
             </div>
 
             <Link to="/careers" className="text-link">
-              Bütün peşələr
+              Bütün kurslar
               <ArrowRight size={18} aria-hidden="true" />
             </Link>
           </div>
@@ -198,7 +198,7 @@ function HomePage() {
             <article className="process-card">
               <span className="process-number">01</span>
               <Target size={30} aria-hidden="true" />
-              <h3>Peşəni seç</h3>
+              <h3>Kursu seç</h3>
               <p>
                 Maraqlarına və məqsədlərinə uyğun karyera istiqamətini
                 müəyyən et.
@@ -237,7 +237,7 @@ function HomePage() {
               </span>
               <h2>Karyera yolunu qurmağa hazırsan?</h2>
               <p>
-                Pulsuz hesab yarat, peşəni seç və inkişafını izləməyə
+                Pulsuz hesab yarat, kursu seç və inkişafını izləməyə
                 başla.
               </p>
             </div>

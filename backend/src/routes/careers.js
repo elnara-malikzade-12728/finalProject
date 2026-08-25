@@ -12,11 +12,11 @@ const {
  *   get:
  *     tags:
  *       - Careers
- *     summary: Bütün peşələri göstər
+ *     summary: Bütün kursları göstər
  *     description: Mövcud peşə istiqamətlərinin siyahısını qaytarır.
  *     responses:
  *       200:
- *         description: Peşələrin siyahısı uğurla qaytarıldı
+ *         description: Kursların siyahısı uğurla qaytarıldı
  *         content:
  *           application/json:
  *             schema:

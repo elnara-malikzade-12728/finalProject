@@ -71,7 +71,7 @@ function Navbar() {
               onClick={closeMenu}
             >
               <Map size={18} />
-              Peşələr
+              Kurslar
             </NavLink>
 
             <NavLink
