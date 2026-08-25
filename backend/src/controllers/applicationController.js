@@ -1,4 +1,5 @@
 const prisma = require("../lib/prisma");
+const logger = require("../utils/logger");
 
 const APPLICATION_STATUSES = [
   "PENDING",
@@ -102,7 +103,7 @@ async function applyToJob(req, res) {
       });
     }
 
-    console.error("Vakansiyaya müraciət zamanı xəta:", error);
+    logger.error("Vakansiyaya müraciət zamanı xəta", error);
 
     return res.status(500).json({
       error:
@@ -129,7 +130,7 @@ async function getMyApplications(req, res) {
 
     return res.status(200).json(applications);
   } catch (error) {
-    console.error(
+    logger.error(
       "İstifadəçi müraciətləri alınarkən xəta:",
       error,
     );
@@ -211,7 +212,7 @@ async function getApplications(req, res) {
 
     return res.status(200).json(applications);
   } catch (error) {
-    console.error("Müraciətlər alınarkən xəta:", error);
+    logger.error("Müraciətlər alınarkən xəta", error);
 
     return res.status(500).json({
       error:
@@ -244,7 +245,7 @@ async function deleteApplication(req, res) {
       });
     }
 
-    console.error("Müraciət silinərkən xəta:", error);
+    logger.error("Müraciət silinərkən xəta", error);
 
     return res.status(500).json({
       error:
@@ -305,7 +306,7 @@ async function updateApplicationStatus(req, res) {
       });
     }
 
-    console.error("Müraciət statusu yenilənərkən xəta:", error);
+    logger.error("Müraciət statusu yenilənərkən xəta", error);
 
     return res.status(500).json({
       error:

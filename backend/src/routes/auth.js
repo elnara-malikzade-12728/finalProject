@@ -3,7 +3,13 @@ const router = express.Router();
 const {
   register,
   login,
+  logout,
 } = require("../controllers/authController");
+const auth = require("../middleware/auth");
+const {
+  loginLimiter,
+  registerLimiter,
+} = require("../middleware/rateLimiters");
 
 /**
  * @openapi
@@ -34,7 +40,9 @@ const {
  *               password:
  *                 type: string
  *                 format: password
- *                 example: demo123
+ *                 minLength: 8
+ *                 maxLength: 72
+ *                 example: Demo1234
  *     responses:
  *       201:
  *         description: İstifadəçi uğurla qeydiyyatdan keçdi
@@ -71,7 +79,7 @@ const {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/register", register);
+router.post("/register", registerLimiter, register);
 
 /**
  * @openapi
@@ -98,7 +106,8 @@ router.post("/register", register);
  *               password:
  *                 type: string
  *                 format: password
- *                 example: demo123
+ *                 maxLength: 72
+ *                 example: Demo1234
  *     responses:
  *       200:
  *         description: Giriş uğurla tamamlandı
@@ -135,6 +144,26 @@ router.post("/register", register);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/login", login);
+router.post("/login", loginLimiter, login);
+
+/**
+ * @openapi
+ * /api/auth/logout:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Sistemdən təhlükəsiz çıxış
+ *     description: Cari istifadəçinin mövcud JWT tokenlərini etibarsız edir.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: Çıxış uğurla tamamlandı
+ *       401:
+ *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
+ *       500:
+ *         description: Server və ya verilənlər bazası xətası
+ */
+router.post("/logout", auth, logout);
 
 module.exports = router;

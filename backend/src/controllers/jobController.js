@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const logger = require('../utils/logger');
 
 const jobCareerSelect = {
   id: true,
@@ -186,13 +187,21 @@ async function careerExists(careerId) {
 
 async function listJobs(req, res) {
   try {
+    const page = parsePositiveInteger(req.query.page) || 1;
+    const limit = Math.min(
+      parsePositiveInteger(req.query.limit) || 50,
+      100,
+    );
     const jobs = await prisma.job.findMany({
       where: buildJobFilters(req.query),
       include: { career: { select: jobCareerSelect } },
+      orderBy: { id: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
     res.json(jobs);
   } catch (err) {
-    console.error(err);
+    logger.error('Vakansiya siyahısı alınarkən xəta', err);
     res.status(500).json({ error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.' });
   }
 }
@@ -216,7 +225,7 @@ async function getJobById(req, res) {
 
     res.json(job);
   } catch (err) {
-    console.error(err);
+    logger.error('Vakansiya məlumatı alınarkən xəta', err);
     res.status(500).json({ error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.' });
   }
 }
@@ -240,7 +249,7 @@ async function createJob(req, res) {
 
     return res.status(201).json(job);
   } catch (err) {
-    console.error('Vakansiya yaradılarkən xəta:', err);
+    logger.error('Vakansiya yaradılarkən xəta', err);
     return res.status(500).json({
       error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.',
     });
@@ -286,7 +295,7 @@ async function updateJob(req, res) {
       return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
     }
 
-    console.error('Vakansiya yenilənərkən xəta:', err);
+    logger.error('Vakansiya yenilənərkən xəta', err);
     return res.status(500).json({
       error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.',
     });
@@ -323,7 +332,7 @@ async function deleteJob(req, res) {
       return res.status(404).json({ error: 'Vakansiya tapılmadı.' });
     }
 
-    console.error('Vakansiya silinərkən xəta:', err);
+    logger.error('Vakansiya silinərkən xəta', err);
     return res.status(500).json({
       error: 'Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.',
     });

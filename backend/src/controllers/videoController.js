@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const prisma = require("../lib/prisma");
+const logger = require("../utils/logger");
 const {
   getSupabaseAdmin,
   getVideoBucket,
@@ -143,7 +144,7 @@ async function createLessonUploadUrl(req, res) {
       sizeBytes: normalizedSize,
     });
   } catch (error) {
-    console.error(
+    logger.error(
       "Video yükləmə keçidi yaradılarkən xəta:",
       error,
     );
@@ -300,7 +301,7 @@ async function completeLessonVideoUpload(req, res) {
         .remove([lesson.videoPath]);
 
       if (removeError) {
-        console.error(
+        logger.error(
           "Köhnə video silinərkən xəta:",
           removeError,
         );
@@ -322,7 +323,7 @@ async function completeLessonVideoUpload(req, res) {
 
     return res.status(200).json(updatedLesson);
   } catch (error) {
-    console.error(
+    logger.error(
       "Video yüklənməsi tamamlanarkən xəta:",
       error,
     );
@@ -441,7 +442,7 @@ async function getLessonVideoUrl(req, res) {
       title: lesson.title,
     });
   } catch (error) {
-    console.error(
+    logger.error(
       "Video izləmə keçidi yaradılarkən xəta:",
       error,
     );
@@ -509,7 +510,7 @@ async function deleteLessonVideo(req, res) {
 
     return res.status(204).send();
   } catch (error) {
-    console.error(
+    logger.error(
       "Video silinərkən xəta:",
       error,
     );

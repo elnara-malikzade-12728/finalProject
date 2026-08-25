@@ -13,7 +13,21 @@ const {
  *     tags:
  *       - Careers
  *     summary: Bütün kursları göstər
- *     description: Mövcud peşə istiqamətlərinin siyahısını qaytarır.
+ *     description: İctimai endpoint-dir. Mövcud kurs istiqamətlərinin səhifələnmiş siyahısını qaytarır.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
  *     responses:
  *       200:
  *         description: Kursların siyahısı uğurla qaytarıldı
