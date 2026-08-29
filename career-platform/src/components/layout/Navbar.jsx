@@ -8,13 +8,21 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import {
+  NavLink,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const shouldShowPublicNavigation =
+    !isAdminRoute && user?.role !== "ADMIN";
 
   function closeMenu() {
     setIsMenuOpen(false);
@@ -64,36 +72,38 @@ function Navbar() {
           className={`nav-content ${isMenuOpen ? "nav-content-open" : ""}`}
           aria-label="Əsas naviqasiya"
         >
-          <div className="nav-links">
-            <NavLink
-              to="/courses"
-              className={getNavLinkClass}
-              onClick={closeMenu}
-            >
-              <Map size={18} />
-              Kurslar
-            </NavLink>
-
-            <NavLink
-              to="/jobs"
-              className={getNavLinkClass}
-              onClick={closeMenu}
-            >
-              <BriefcaseBusiness size={18} />
-              Vakansiyalar
-            </NavLink>
-
-            {isAuthenticated && (
+          {shouldShowPublicNavigation && (
+            <div className="nav-links">
               <NavLink
-                to="/applications/me"
+                to="/courses"
                 className={getNavLinkClass}
                 onClick={closeMenu}
               >
-                <FileText size={18} />
-                Müraciətlərim
+                <Map size={18} />
+                Kurslar
               </NavLink>
-            )}
-          </div>
+
+              <NavLink
+                to="/jobs"
+                className={getNavLinkClass}
+                onClick={closeMenu}
+              >
+                <BriefcaseBusiness size={18} />
+                Vakansiyalar
+              </NavLink>
+
+              {isAuthenticated && user?.role !== "ADMIN" && (
+                <NavLink
+                  to="/applications/me"
+                  className={getNavLinkClass}
+                  onClick={closeMenu}
+                >
+                  <FileText size={18} />
+                  Müraciətlərim
+                </NavLink>
+              )}
+            </div>
+          )}
 
           <div className="nav-actions">
             {isAuthenticated ? (

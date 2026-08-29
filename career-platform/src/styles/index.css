@@ -298,6 +298,10 @@ ol {
   gap: 8px;
 }
 
+.nav-actions {
+  margin-left: auto;
+}
+
 .nav-link {
   display: inline-flex;
   align-items: center;
@@ -1688,15 +1692,19 @@ ol {
 
   .nav-content {
     position: absolute;
-    top: 72px;
-    right: 0;
-    left: 0;
+    top: calc(100% + 8px);
+    right: 14px;
+    left: auto;
     display: none;
+    width: min(320px, calc(100% - 28px));
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
     align-items: stretch;
     flex-direction: column;
     gap: 15px;
     margin-left: 0;
-    border-bottom: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-radius: 14px;
     padding: 18px;
     background: white;
     box-shadow: var(--shadow);
@@ -1710,6 +1718,11 @@ ol {
   .nav-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .nav-actions {
+    width: 100%;
+    margin-left: 0;
   }
 
   .nav-link,
