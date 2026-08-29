@@ -52,6 +52,10 @@ const options = {
         description:
           "Şəxsi dərs videolarının yüklənməsi, izlənməsi və silinməsi",
       },
+      {
+        name: "Course Management",
+        description: "Administrator course, category, module and lesson management",
+      },
     ],
 
     components: {
@@ -64,6 +68,49 @@ const options = {
       },
 
       schemas: {
+        CourseCategory: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            name: { type: "string", example: "Cybersecurity" },
+            description: { type: "string", nullable: true },
+            order: { type: "integer", example: 1 },
+          },
+        },
+        CourseLesson: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            title: { type: "string", example: "Introduction to OWASP Top 10" },
+            description: { type: "string", nullable: true },
+            order: { type: "integer", example: 1 },
+            published: { type: "boolean", example: true },
+            moduleId: { type: "integer", example: 1 },
+          },
+        },
+        CourseModule: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            title: { type: "string", example: "Web Security" },
+            description: { type: "string", nullable: true },
+            order: { type: "integer", example: 3 },
+            courseId: { type: "integer", example: 1 },
+            lessons: { type: "array", items: { $ref: "#/components/schemas/CourseLesson" } },
+          },
+        },
+        ManagedCourse: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            title: { type: "string", example: "Introduction to Ethical Hacking" },
+            description: { type: "string", nullable: true },
+            published: { type: "boolean", example: true },
+            categoryId: { type: "integer", nullable: true, example: 1 },
+            category: { $ref: "#/components/schemas/CourseCategory" },
+            modules: { type: "array", items: { $ref: "#/components/schemas/CourseModule" } },
+          },
+        },
         Error: {
           type: "object",
           properties: {

@@ -99,14 +99,28 @@ model Application {
 }
 
 model Course {
-  id          Int            @id @default(autoincrement())
+  id          Int             @id @default(autoincrement())
   title       String
   description String?
-  published   Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  published   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   modules     CourseModule[]
   enrollments Enrollment[]
+  category    CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId  Int?
+
+  @@index([categoryId])
+}
+
+model CourseCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courses     Course[]
 }
 
 model CourseModule {
