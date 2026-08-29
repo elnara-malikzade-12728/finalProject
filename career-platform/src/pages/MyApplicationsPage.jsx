@@ -5,13 +5,15 @@ import {
   CalendarDays,
   FileText,
   MapPin,
+  Trash2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getMyApplications } from "../api/applicationsApi.js";
+import { getMyApplications, withdrawApplication } from "../api/applicationsApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
+import Notification from "../components/common/Notification.jsx";
 
 const statusLabels = {
   PENDING: "Gözləmədə",
@@ -50,6 +52,23 @@ function MyApplicationsPage() {
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [notification, setNotification] = useState(null);
+
+  async function handleWithdraw(application) {
+    if (!window.confirm("Müraciəti geri götürmək istədiyinizə əminsiniz?")) return;
+    setWithdrawingId(application.id);
+    setNotification(null);
+    try {
+      await withdrawApplication(application.id);
+      setApplications((current) => current.filter((item) => item.id !== application.id));
+      setNotification({ type: "success", message: "Müraciət geri götürüldü." });
+    } catch (requestError) {
+      setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+    } finally {
+      setWithdrawingId(null);
+    }
+  }
 
   const loadApplications = useCallback(async (signal) => {
     setIsLoading(true);
@@ -105,6 +124,7 @@ function MyApplicationsPage() {
 
       <section className="section jobs-section">
         <div className="container">
+          {notification && <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />}
           <div className="results-heading">
             <div>
               <h2>Göndərilmiş müraciətlər</h2>
@@ -214,6 +234,15 @@ function MyApplicationsPage() {
                             {getStatusLabel(application.status)}
                           </span>
                         </div>
+
+                        {application.status === "PENDING" && (
+                          <div className="job-card-actions">
+                            <button className="button button-ghost" type="button" disabled={withdrawingId === application.id} onClick={() => handleWithdraw(application)}>
+                              <Trash2 size={17} aria-hidden="true" />
+                              {withdrawingId === application.id ? "Geri götürülür..." : "Müraciəti geri götür"}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </article>

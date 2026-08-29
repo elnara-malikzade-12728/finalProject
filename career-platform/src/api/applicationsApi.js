@@ -151,3 +151,17 @@ export async function getMyApplications({ signal } = {}) {
     signal,
   });
 }
+
+export async function withdrawApplication(applicationId, { signal } = {}) {
+  if (USE_MOCK_API) {
+    const applications = readMockApplications();
+    const userId = getMockUserId();
+    const application = applications.find((item) => String(item.id) === String(applicationId) && item.userId === userId);
+    if (!application) throw new ApiError("Müraciət tapılmadı.", 404, "NOT_FOUND");
+    if (application.status !== "PENDING") throw new ApiError("Yalnız gözləmədə olan müraciət geri götürülə bilər.", 409, "CONFLICT");
+    localStorage.setItem(MOCK_APPLICATIONS_KEY, JSON.stringify(applications.filter((item) => String(item.id) !== String(applicationId))));
+    return null;
+  }
+
+  return apiRequest(`/applications/me/${applicationId}`, { method: "DELETE", authenticated: true, signal });
+}

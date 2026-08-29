@@ -44,6 +44,10 @@ function applicationInclude() {
 
 async function applyToJob(req, res) {
   try {
+    if (req.user.role === "ADMIN") {
+      return res.status(403).json({ error: "Administrator vakansiyaya müraciət edə bilməz." });
+    }
+
     const userId = req.user.id;
     const jobId = parsePositiveInteger(req.params.id);
 
@@ -109,6 +113,29 @@ async function applyToJob(req, res) {
       error:
         "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.",
     });
+  }
+}
+
+async function withdrawMyApplication(req, res) {
+  try {
+    const applicationId = parsePositiveInteger(req.params.id);
+    if (!applicationId) return res.status(404).json({ error: "Müraciət tapılmadı." });
+
+    const application = await prisma.application.findFirst({
+      where: { id: applicationId, userId: req.user.id },
+      select: { id: true, status: true },
+    });
+
+    if (!application) return res.status(404).json({ error: "Müraciət tapılmadı." });
+    if (application.status !== "PENDING") {
+      return res.status(409).json({ error: "Yalnız gözləmədə olan müraciət geri götürülə bilər." });
+    }
+
+    await prisma.application.delete({ where: { id: application.id } });
+    return res.status(204).send();
+  } catch (error) {
+    logger.error("Müraciət geri götürülərkən xəta", error);
+    return res.status(500).json({ error: "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin." });
   }
 }
 
@@ -318,6 +345,7 @@ async function updateApplicationStatus(req, res) {
 module.exports = {
   applyToJob,
   getMyApplications,
+  withdrawMyApplication,
   getApplications,
   updateApplicationStatus,
   deleteApplication,

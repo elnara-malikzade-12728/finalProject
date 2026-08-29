@@ -127,6 +127,12 @@ router.post("/", auth, requireAdmin, createJob);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Administrator vakansiyaya müraciət edə bilməz
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Vakansiya tapılmadı
  *         content:

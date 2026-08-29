@@ -6,6 +6,7 @@ const {
   getApplications,
   updateApplicationStatus,
   deleteApplication,
+  withdrawMyApplication,
 } = require("../controllers/applicationController");
 
 const router = express.Router();
@@ -43,6 +44,23 @@ const router = express.Router();
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/me", auth, getMyApplications);
+
+/**
+ * @openapi
+ * /api/applications/me/{id}:
+ *   delete:
+ *     tags: [Applications]
+ *     summary: Öz gözləmədə olan müraciətini geri götür
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       204: { description: Müraciət geri götürüldü }
+ *       401: { description: Autentifikasiya tələb olunur }
+ *       404: { description: Müraciət tapılmadı və ya istifadəçiyə aid deyil }
+ *       409: { description: Müraciətin statusu artıq dəyişdirilib }
+ */
+router.delete("/me/:id", auth, withdrawMyApplication);
 
 /**
  * @openapi
