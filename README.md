@@ -25,7 +25,7 @@ Sprint 3 expands the integrated application toward 75% completion:
 - Administrator dashboard and protected management routes
 - Course, module, lesson, and enrollment data models
 - Secure lesson video upload and deletion
-- Private Supabase Storage with short-lived signed URLs
+- Protected Bunny Stream HLS delivery with token authentication, referrer restrictions, and legacy Supabase fallback
 - Authenticated video playback for administrators and enrolled users
 - Swagger/OpenAPI documentation for all current API endpoints
 - Frontend loading, validation, success, error, and empty states
@@ -187,7 +187,7 @@ SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=YOUR_PRIVATE_SERVICE_ROLE_KEY
 SUPABASE_VIDEO_BUCKET=course-videos
 VIDEO_SIGNED_URL_TTL=600
-MAX_VIDEO_SIZE_BYTES=52428800
+MAX_VIDEO_SIZE_BYTES=524288000
 ```
 
 `DATABASE_URL` is used by the running API through the transaction pooler. `DIRECT_URL` is used by Prisma schema operations through the session pooler. Never commit `backend/.env` or expose the database password, JWT secret, or Supabase service-role key.
@@ -232,10 +232,16 @@ The current schema contains `User`, `Career`, `Step`, `Progress`, `Job`, `Course
 Create a private bucket named `course-videos` with:
 
 - Public access disabled
-- Maximum object size of 50 MB
+- Maximum object size of 500 MB
 - Allowed MIME types: `video/mp4`, `video/webm`, and `video/quicktime`
 
 The browser never receives the Supabase service-role key. The backend authorizes the administrator and issues a short-lived signed upload token. After the browser uploads directly to Supabase, the backend verifies the object and saves its metadata on the associated lesson.
+
+### Protected Bunny Stream Setup
+
+New production uploads can use Bunny Stream while existing Supabase videos continue to work. Set `VIDEO_PROVIDER=bunny` and configure `BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY`, and `BUNNY_STREAM_TOKEN_KEY` on the backend. The administrator browser uploads directly to Bunny with short-lived TUS authorization; the private API key is never exposed.
+
+In the Bunny Stream library security settings, enable player token authentication, block requests without a referrer, add the production frontend hostname (and localhost only for development) to allowed referrers, disable MP4 fallback/direct play, and enable MediaCage DRM when the selected Bunny plan supports it. The learner player overlays a moving account email/ID watermark. Lessons can be explicitly marked as a public free preview, while enrolled learners receive protected playback and persisted watch percentage/position.
 
 ## Running Locally
 
@@ -384,12 +390,14 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Profile updates persist in the database.
 - Progress updates persist after refresh.
 - Regular users cannot access administrator operations.
-- Administrators can upload MP4, WebM, and MOV videos up to 50 MB.
+- Administrators can upload MP4, WebM, and MOV videos up to 500 MB.
 - Invalid lesson identifiers and unsupported files are rejected.
 - Uploaded videos remain available after refresh and a new login.
 - Private videos play through expiring signed URLs.
 - Users can enroll in published courses and open their available lesson videos.
-- Lesson completion and course progress persist after refresh and login.
+- Lesson watch percentage, last position, completion, and course progress persist after refresh and login.
+- Free-preview lessons open without enrollment; protected lessons reject unenrolled users.
+- Bunny playback uses expiring tokens and the configured library rejects non-whitelisted referrers.
 - Unenrolled users cannot access private lesson videos.
 - Deleting a video removes it from storage and clears database metadata.
 - Loading, empty, validation, and error states display correctly.
@@ -423,7 +431,7 @@ Configure the deployed backend with `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, 
 - Passwords are hashed by the backend with bcrypt.
 - Protected API routes require JWT authentication.
 - Administrator operations verify the role from the database.
-- Lesson videos are stored in a private bucket and accessed using expiring signed URLs.
+- New lesson videos can be stored in Bunny Stream and accessed using expiring embed tokens; legacy Supabase videos retain expiring signed URLs.
 - The Supabase service-role key is used only by the backend.
 - Use a strong JWT secret and restricted production database credentials.
 - Review CORS restrictions and token storage before a production launch.

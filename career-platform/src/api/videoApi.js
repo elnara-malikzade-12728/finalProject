@@ -27,6 +27,22 @@ export async function uploadVideoToStorage(
   uploadCredentials,
   file,
 ) {
+  if (uploadCredentials.provider === "BUNNY") {
+    const { Upload } = await import("tus-js-client");
+    await new Promise((resolve, reject) => {
+      const upload = new Upload(file, {
+        endpoint: uploadCredentials.endpoint,
+        headers: uploadCredentials.headers,
+        metadata: { filetype: file.type, title: file.name },
+        retryDelays: [0, 1000, 3000, 5000],
+        removeFingerprintOnSuccess: true,
+        onError: reject,
+        onSuccess: resolve,
+      });
+      upload.start();
+    });
+    return { videoId: uploadCredentials.videoId };
+  }
   const supabase = getSupabaseClient();
 
   const {
@@ -61,6 +77,8 @@ export async function completeVideoUpload(
   lessonId,
   {
     path,
+    provider,
+    videoId,
     contentType,
     sizeBytes,
     durationSeconds,
@@ -75,6 +93,8 @@ export async function completeVideoUpload(
       signal,
       body: {
         path,
+        provider,
+        videoId,
         contentType,
         sizeBytes,
         durationSeconds,
@@ -107,6 +127,8 @@ export async function uploadLessonVideo(
     lessonId,
     {
       path: uploadCredentials.path,
+      provider: uploadCredentials.provider,
+      videoId: uploadCredentials.videoId,
       contentType: file.type,
       sizeBytes: file.size,
       durationSeconds,

@@ -21,7 +21,7 @@ import {
 } from "../../api/client.js";
 import Notification from "../common/Notification.jsx";
 
-const maximumFileSize = 50 * 1024 * 1024;
+const maximumFileSize = 500 * 1024 * 1024;
 
 const allowedVideoTypes = [
   "video/mp4",
@@ -181,7 +181,7 @@ function VideoUploader({
       setNotification({
         type: "error",
         message:
-          "Video faylı 50 MB-dan böyük ola bilməz.",
+          "Video faylı 500 MB-dan böyük ola bilməz.",
       });
 
       event.target.value = "";
@@ -306,7 +306,7 @@ function VideoUploader({
 
           <p>
             MP4, WebM və ya MOV formatında,
-            maksimum 50 MB.
+            maksimum 500 MB.
           </p>
         </div>
       </div>
@@ -380,15 +380,27 @@ function VideoUploader({
               </button>
 
               {isPreviewOpen && (
-                <video
-                  className="admin-video-preview"
-                  controls
-                  preload="metadata"
-                  src={uploadedVideo.url}
-                >
-                  Brauzeriniz video elementini
-                  dəstəkləmir.
-                </video>
+                <div className="secure-video-frame admin-secure-video-frame">
+                  {uploadedVideo.playbackType === "embed" ? (
+                    <iframe className="admin-video-preview" src={uploadedVideo.url} title={uploadedVideo.title || "Video dərs"} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+                  ) : (
+                    <video
+                      className="admin-video-preview"
+                      controls
+                      preload="metadata"
+                      src={uploadedVideo.url}
+                    >
+                      Brauzeriniz video elementini
+                      dəstəkləmir.
+                    </video>
+                  )}
+
+                  {uploadedVideo.watermark && (
+                    <span className="video-user-watermark">
+                      {uploadedVideo.watermark.email} · ID {uploadedVideo.watermark.userId}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}

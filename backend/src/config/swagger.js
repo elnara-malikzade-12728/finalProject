@@ -191,6 +191,20 @@ const options = {
               example:
                 "courses/1/modules/1/lessons/1/550e8400-e29b-41d4-a716-446655440000.mp4",
             },
+            videoProvider: {
+              type: "string",
+              nullable: true,
+              enum: ["SUPABASE", "BUNNY"],
+            },
+            videoProviderId: {
+              type: "string",
+              nullable: true,
+              description: "Protected video host identifier",
+            },
+            isFreePreview: {
+              type: "boolean",
+              example: false,
+            },
             videoMimeType: {
               type: "string",
               nullable: true,
@@ -212,6 +226,23 @@ const options = {
         VideoUploadCredentials: {
           type: "object",
           properties: {
+            provider: {
+              type: "string",
+              enum: ["SUPABASE", "BUNNY"],
+            },
+            endpoint: {
+              type: "string",
+              format: "uri",
+              description: "Bunny TUS upload endpoint",
+            },
+            headers: {
+              type: "object",
+              description: "Short-lived Bunny TUS authorization headers",
+            },
+            videoId: {
+              type: "string",
+              description: "Bunny Stream video identifier",
+            },
             bucket: {
               type: "string",
               example: "course-videos",
@@ -250,7 +281,7 @@ const options = {
             url: {
               type: "string",
               format: "uri",
-              description: "Temporary signed playback URL",
+              description: "Temporary tokenized embed or signed playback URL",
             },
             expiresIn: {
               type: "integer",
@@ -263,6 +294,21 @@ const options = {
             title: {
               type: "string",
               example: "HTML ilə ilk addım",
+            },
+            playbackType: {
+              type: "string",
+              enum: ["embed", "file"],
+            },
+            provider: {
+              type: "string",
+              enum: ["BUNNY", "SUPABASE"],
+            },
+            watermark: {
+              type: "object",
+              properties: {
+                email: { type: "string" },
+                userId: { oneOf: [{ type: "integer" }, { type: "string" }] },
+              },
             },
           },
         },

@@ -9,7 +9,7 @@ import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const emptyLearningState = { enrolled: false, completedLessonIds: [], completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
+const emptyLearningState = { enrolled: false, completedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
 
 function CourseDetailsPage() {
   const { courseId } = useParams();
@@ -80,11 +80,11 @@ function CourseDetailsPage() {
       setNotification({ type: "info", message: "Bu dərs üçün video hələ əlavə edilməyib." });
       return;
     }
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !lesson.isFreePreview) {
       navigate("/login", { state: { from: `/courses/${courseId}`, message: "Video dərsə baxmaq üçün daxil olun." } });
       return;
     }
-    if (user?.role !== "ADMIN" && !learningState.enrolled) {
+    if (user?.role !== "ADMIN" && !learningState.enrolled && !lesson.isFreePreview) {
       setNotification({ type: "info", message: "Video dərsə baxmaq üçün əvvəlcə kursa qeydiyyatdan keçin." });
       return;
     }
@@ -105,13 +105,23 @@ function CourseDetailsPage() {
     const completed = !completedLessonIds.has(lesson.id);
     setUpdatingLessonId(lesson.id);
     try {
-      await updateLessonProgress(lesson.id, completed);
+      await updateLessonProgress(lesson.id, completed ? 100 : 0, 0);
       setLearningState(await getMyCourseState(courseId));
     } catch (requestError) {
       setNotification({ type: "error", message: getApiErrorMessage(requestError) });
     } finally {
       setUpdatingLessonId(null);
     }
+  }
+
+  async function handleVideoProgress(event) {
+    if (!selectedLesson || isAdmin || !learningState.enrolled || !event.currentTarget.duration) return;
+    const watchedPercentage = Math.min(100, Math.round((event.currentTarget.currentTime / event.currentTarget.duration) * 100));
+    if (watchedPercentage % 5 !== 0) return;
+    const previous = learningState.lessonProgress?.[selectedLesson.id]?.watchedPercentage || 0;
+    if (watchedPercentage <= previous) return;
+    await updateLessonProgress(selectedLesson.id, watchedPercentage, Math.floor(event.currentTarget.currentTime));
+    setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: { watchedPercentage, lastPositionSeconds: Math.floor(event.currentTarget.currentTime) } } }));
   }
 
   if (loading) return <PageLoader message="Kurs yüklənir..." fullPage />;
@@ -148,7 +158,14 @@ function CourseDetailsPage() {
           {video && selectedLesson && (
             <section className="course-video-player">
               <div className="content-card-heading"><PlayCircle size={25} /><div><h2>{selectedLesson.title}</h2><p>Video keçidi təhlükəsizlik üçün məhdud müddət ərzində etibarlıdır.</p></div></div>
-              <video key={video.url} controls preload="metadata" src={video.url}>Brauzeriniz video elementini dəstəkləmir.</video>
+              <div className="secure-video-frame">
+                {video.playbackType === "embed" ? (
+                  <iframe key={video.url} src={video.url} title={selectedLesson.title} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+                ) : (
+                  <video key={video.url} controls preload="metadata" src={video.url} onTimeUpdate={handleVideoProgress}>Brauzeriniz video elementini dəstəkləmir.</video>
+                )}
+                {video.watermark && <span className="video-user-watermark">{video.watermark.email} · ID {video.watermark.userId}</span>}
+              </div>
             </section>
           )}
           <div className="content-card-heading"><BookOpen size={25} /><div><h2>Kurs proqramı</h2><p>Modullar və yayımlanmış dərslər.</p></div></div>
