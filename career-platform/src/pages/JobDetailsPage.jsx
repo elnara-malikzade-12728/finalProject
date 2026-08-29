@@ -33,6 +33,7 @@ function JobDetailsPage() {
   const {
     isAuthenticated,
     isInitializing,
+    user,
   } = useAuth();
 
   const [job, setJob] = useState(null);
@@ -89,7 +90,12 @@ function JobDetailsPage() {
   }, [loadJob]);
 
   async function handleApply() {
-    if (isApplying || hasApplied || isInitializing) {
+    if (
+      isApplying ||
+      hasApplied ||
+      isInitializing ||
+      user?.role === "ADMIN"
+    ) {
       return;
     }
 
@@ -227,25 +233,31 @@ function JobDetailsPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              className="button button-primary button-large"
-              onClick={handleApply}
-              disabled={isApplying || hasApplied}
-            >
-              {isApplying ? (
-                <>
-                  <LoaderCircle
-                    className="loading-spinner"
-                    size={19}
-                    aria-hidden="true"
-                  />
-                  {applyLabel}
-                </>
-              ) : (
-                applyLabel
-              )}
-            </button>
+            {user?.role === "ADMIN" ? (
+              <span className="tag">
+                Administrator müraciət edə bilməz
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="button button-primary button-large"
+                onClick={handleApply}
+                disabled={isApplying || hasApplied}
+              >
+                {isApplying ? (
+                  <>
+                    <LoaderCircle
+                      className="loading-spinner"
+                      size={19}
+                      aria-hidden="true"
+                    />
+                    {applyLabel}
+                  </>
+                ) : (
+                  applyLabel
+                )}
+              </button>
+            )}
           </div>
         </div>
       </section>
