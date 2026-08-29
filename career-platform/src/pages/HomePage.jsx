@@ -35,7 +35,7 @@ function HomePage() {
             </p>
 
             <div className="hero-actions">
-              <Link to="/careers" className="button button-primary button-large">
+              <Link to="/courses" className="button button-primary button-large">
                 Kursları kəşf et
                 <ArrowRight size={19} aria-hidden="true" />
               </Link>
@@ -169,7 +169,7 @@ function HomePage() {
               </p>
             </div>
 
-            <Link to="/careers" className="text-link">
+            <Link to="/courses" className="text-link">
               Bütün kurslar
               <ArrowRight size={18} aria-hidden="true" />
             </Link>

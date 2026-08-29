@@ -28,7 +28,7 @@ function CareerDetailsPage() {
             silinib.
           </p>
 
-          <Link to="/careers" className="button button-primary">
+          <Link to="/courses" className="button button-primary">
             <ArrowLeft size={18} />
             Kurslara qayıt
           </Link>
@@ -45,7 +45,7 @@ function CareerDetailsPage() {
     <>
       <section className="career-detail-hero">
         <div className="container">
-          <Link to="/careers" className="back-link">
+          <Link to="/courses" className="back-link">
             <ArrowLeft size={18} aria-hidden="true" />
             Bütün kurslar
           </Link>

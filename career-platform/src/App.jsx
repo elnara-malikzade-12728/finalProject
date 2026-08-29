@@ -30,6 +30,9 @@ const CareersPage = lazy(
 const CareerDetailsPage = lazy(
   () => import("./pages/CareerDetailsPage.jsx"),
 );
+const CourseDetailsPage = lazy(
+  () => import("./pages/CourseDetailsPage.jsx"),
+);
 
 const RoadmapPage = lazy(
   () => import("./pages/RoadmapPage.jsx"),
@@ -117,12 +120,22 @@ function App() {
 
             <Route
               path="careers"
-              element={<CareersPage />}
+              element={<Navigate to="/courses" replace />}
             />
 
             <Route
               path="careers/:careerId"
               element={<CareerDetailsPage />}
+            />
+
+            <Route
+              path="courses"
+              element={<CareersPage />}
+            />
+
+            <Route
+              path="courses/:courseId"
+              element={<CourseDetailsPage />}
             />
 
             <Route

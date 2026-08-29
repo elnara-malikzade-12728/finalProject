@@ -43,6 +43,66 @@ async function listCourseStructure(_req, res) {
   }
 }
 
+async function listPublishedCourses(_req, res) {
+  try {
+    const courses = await prisma.course.findMany({
+      where: { published: true },
+      include: {
+        category: { select: { id: true, name: true } },
+        modules: {
+          select: {
+            id: true,
+            lessons: { where: { published: true }, select: { id: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json(courses.map((course) => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      moduleCount: course.modules.length,
+      lessonCount: course.modules.reduce((total, module) => total + module.lessons.length, 0),
+    })));
+  } catch (error) {
+    logger.error('Yayımlanmış kurslar alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kursları yükləmək mümkün olmadı.' });
+  }
+}
+
+async function getPublishedCourse(req, res) {
+  try {
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, published: true },
+      include: {
+        category: true,
+        modules: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              where: { published: true },
+              orderBy: { order: 'asc' },
+              select: { id: true, title: true, description: true, order: true, durationSeconds: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    return res.json(course);
+  } catch (error) {
+    logger.error('Yayımlanmış kurs alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kursu yükləmək mümkün olmadı.' });
+  }
+}
+
 async function createCategory(req, res) {
   try {
     const name = requiredText(req.body.name, 100);
@@ -249,6 +309,8 @@ async function deleteLesson(req, res) {
 }
 
 module.exports = {
+  listPublishedCourses,
+  getPublishedCourse,
   listCourseStructure,
   createCategory,
   updateCategory,

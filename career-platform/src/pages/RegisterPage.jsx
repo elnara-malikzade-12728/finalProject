@@ -42,7 +42,7 @@ function RegisterPage() {
   const navigate = useNavigate();
 
   if (!isInitializing && isAuthenticated) {
-    return <Navigate to="/careers" replace />;
+    return <Navigate to="/courses" replace />;
   }
 
   function handleChange(event) {
@@ -143,7 +143,7 @@ function RegisterPage() {
         return;
       }
 
-      navigate("/careers", {
+      navigate("/courses", {
         replace: true,
       });
     } finally {

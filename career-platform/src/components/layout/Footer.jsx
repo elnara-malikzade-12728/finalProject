@@ -39,7 +39,7 @@ function Footer() {
 
           <ul>
             <li>
-              <Link to="/careers">Kurslar</Link>
+              <Link to="/courses">Kurslar</Link>
             </li>
             <li>
               <Link to="/jobs">Vakansiyalar</Link>

@@ -1,6 +1,6 @@
 import { apiRequest } from './client.js';
 
-export const getCourseStructure = (options) => apiRequest('/courses', options);
+export const getCourseStructure = (options) => apiRequest('/courses/admin', options);
 export const createCategory = (body) => apiRequest('/courses/categories', { method: 'POST', body });
 export const deleteCategory = (id) => apiRequest(`/courses/categories/${id}`, { method: 'DELETE' });
 export const createCourse = (body) => apiRequest('/courses', { method: 'POST', body });
