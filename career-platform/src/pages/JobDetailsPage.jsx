@@ -24,6 +24,9 @@ import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
+const employmentLabels = { FULL_TIME: "Tam ştat", PART_TIME: "Yarım ştat", INTERNSHIP: "Təcrübə proqramı" };
+const experienceLabels = { ENTRY_LEVEL: "Başlanğıc", JUNIOR: "Junior", MID_LEVEL: "Mid-level", SENIOR: "Senior" };
+
 function JobDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -189,14 +192,17 @@ function JobDetailsPage() {
   }
 
   const companyName = job.company || "Şirkət göstərilməyib";
-  const careerTitle = job.career?.title;
-  const careerDescription = job.career?.description;
-  const careerId = job.careerId || job.career?.id;
+  const careerTitle = job.course?.title || job.career?.title;
+  const careerDescription = job.course?.description || job.career?.description;
+  const careerId = job.courseId || job.course?.id || job.careerId || job.career?.id;
   const applyLabel = hasApplied
     ? "Müraciət edilib"
     : isApplying
       ? "Göndərilir..."
       : "Müraciət et";
+  const salary = job.salaryMin == null && job.salaryMax == null
+    ? null
+    : `${job.salaryMin ?? ""}${job.salaryMin != null && job.salaryMax != null ? "–" : ""}${job.salaryMax ?? ""} ${job.salaryCurrency || "AZN"}`;
 
   return (
     <>
@@ -255,6 +261,25 @@ function JobDetailsPage() {
           )}
 
           <div className="career-overview">
+            <div className="career-overview-item">
+              <BriefcaseBusiness size={22} aria-hidden="true" />
+              <div><span>İş növü</span><strong>{employmentLabels[job.employmentType] || "Tam ştat"}</strong></div>
+            </div>
+
+            {job.experienceLevel && (
+              <div className="career-overview-item">
+                <BriefcaseBusiness size={22} aria-hidden="true" />
+                <div><span>Təcrübə</span><strong>{experienceLabels[job.experienceLevel]}</strong></div>
+              </div>
+            )}
+
+            {salary && (
+              <div className="career-overview-item">
+                <BriefcaseBusiness size={22} aria-hidden="true" />
+                <div><span>Maaş</span><strong>{salary}</strong></div>
+              </div>
+            )}
+
             {job.location && (
               <div className="career-overview-item">
                 <MapPin size={22} aria-hidden="true" />
@@ -322,7 +347,7 @@ function JobDetailsPage() {
           <div className="job-card-actions">
             {careerId && (
               <Link
-                to={`/careers/${careerId}`}
+                to={job.courseId || job.course?.id ? `/courses/${careerId}` : `/careers/${careerId}`}
                 className="button button-ghost"
               >
                 Uyğun yol xəritəsi

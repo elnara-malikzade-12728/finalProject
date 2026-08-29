@@ -64,15 +64,40 @@ model Progress {
 }
 
 model Job {
-  id           Int           @id @default(autoincrement())
-  title        String
-  company      String?
-  location     String?
-  description  String?
-  url          String?
-  career       Career        @relation(fields: [careerId], references: [id], onDelete: Cascade)
-  careerId     Int
-  applications Application[]
+  id              Int              @id @default(autoincrement())
+  title           String
+  company         String?
+  location        String?
+  description     String?
+  url             String?
+  employmentType  EmploymentType   @default(FULL_TIME)
+  experienceLevel ExperienceLevel?
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String           @default("AZN")
+  companyLogoUrl  String?
+  career          Career?          @relation(fields: [careerId], references: [id], onDelete: SetNull)
+  careerId        Int?
+  course          Course?          @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  courseId        Int?
+  applications    Application[]
+
+  @@index([employmentType])
+  @@index([experienceLevel])
+  @@index([courseId])
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+}
+
+enum ExperienceLevel {
+  ENTRY_LEVEL
+  JUNIOR
+  MID_LEVEL
+  SENIOR
 }
 
 enum ApplicationStatus {
@@ -109,6 +134,7 @@ model Course {
   enrollments Enrollment[]
   category    CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId  Int?
+  jobs        Job[]
 
   @@index([categoryId])
 }

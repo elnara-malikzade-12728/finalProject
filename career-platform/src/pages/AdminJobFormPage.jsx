@@ -13,7 +13,7 @@ import {
   createJob,
   updateJob,
 } from "../api/adminJobsApi.js";
-import { getCareers } from "../api/careersApi.js";
+import { getPublishedCourses } from "../api/coursesApi.js";
 import {
   getApiErrorMessage,
 } from "../api/client.js";
@@ -28,7 +28,13 @@ const initialForm = {
   location: "",
   description: "",
   url: "",
-  careerId: "",
+  courseId: "",
+  employmentType: "FULL_TIME",
+  experienceLevel: "",
+  salaryMin: "",
+  salaryMax: "",
+  salaryCurrency: "AZN",
+  companyLogoUrl: "",
 };
 
 function AdminJobFormPage() {
@@ -38,7 +44,7 @@ function AdminJobFormPage() {
   const isEditing = Boolean(jobId);
 
   const [form, setForm] = useState(initialForm);
-  const [careers, setCareers] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [loadError, setLoadError] = useState("");
   const [notification, setNotification] = useState(null);
@@ -61,13 +67,13 @@ function AdminJobFormPage() {
       setLoadError("");
 
       try {
-        const careersResponse = await getCareers({
+        const coursesResponse = await getPublishedCourses({
           signal: controller.signal,
         });
 
-        setCareers(
-          Array.isArray(careersResponse)
-            ? careersResponse
+        setCourses(
+          Array.isArray(coursesResponse)
+            ? coursesResponse
             : [],
         );
 
@@ -83,7 +89,13 @@ function AdminJobFormPage() {
             location: job.location || "",
             description: job.description || "",
             url: job.url || "",
-            careerId: String(job.careerId || ""),
+            courseId: String(job.courseId || ""),
+            employmentType: job.employmentType || "FULL_TIME",
+            experienceLevel: job.experienceLevel || "",
+            salaryMin: job.salaryMin ?? "",
+            salaryMax: job.salaryMax ?? "",
+            salaryCurrency: job.salaryCurrency || "AZN",
+            companyLogoUrl: job.companyLogoUrl || "",
           });
         }
       } catch (requestError) {
@@ -128,8 +140,8 @@ function AdminJobFormPage() {
         "Vakansiya adı daxil edilməlidir.";
     }
 
-    if (!form.careerId) {
-      errors.careerId = "Kurs seçilməlidir.";
+    if (!form.courseId) {
+      errors.courseId = "Kurs seçilməlidir.";
     }
 
     if (
@@ -138,6 +150,14 @@ function AdminJobFormPage() {
     ) {
       errors.url =
         "Keçid http:// və ya https:// ilə başlamalıdır.";
+    }
+
+    if (form.companyLogoUrl.trim() && !/^https?:\/\/\S+$/i.test(form.companyLogoUrl.trim())) {
+      errors.companyLogoUrl = "Loqo keçidi http:// və ya https:// ilə başlamalıdır.";
+    }
+
+    if (form.salaryMin && form.salaryMax && Number(form.salaryMin) > Number(form.salaryMax)) {
+      errors.salaryMax = "Maksimum maaş minimum maaşdan az ola bilməz.";
     }
 
     setFieldErrors(errors);
@@ -168,7 +188,14 @@ function AdminJobFormPage() {
       description:
         form.description.trim() || null,
       url: form.url.trim() || null,
-      careerId: Number(form.careerId),
+      courseId: Number(form.courseId),
+      careerId: null,
+      employmentType: form.employmentType,
+      experienceLevel: form.experienceLevel || null,
+      salaryMin: form.salaryMin === "" ? null : Number(form.salaryMin),
+      salaryMax: form.salaryMax === "" ? null : Number(form.salaryMax),
+      salaryCurrency: form.salaryCurrency.trim().toUpperCase() || "AZN",
+      companyLogoUrl: form.companyLogoUrl.trim() || null,
     };
 
     try {
@@ -304,30 +331,30 @@ function AdminJobFormPage() {
 
             <select
               id="job-career"
-              name="careerId"
-              value={form.careerId}
+              name="courseId"
+              value={form.courseId}
               onChange={handleChange}
               aria-invalid={Boolean(
-                fieldErrors.careerId,
+                fieldErrors.courseId,
               )}
             >
               <option value="">
                 Kurs seçin
               </option>
 
-              {careers.map((career) => (
+              {courses.map((course) => (
                 <option
-                  key={career.id}
-                  value={career.id}
+                  key={course.id}
+                  value={course.id}
                 >
-                  {career.title}
+                  {course.title}
                 </option>
               ))}
             </select>
 
-            {fieldErrors.careerId && (
+            {fieldErrors.courseId && (
               <span className="form-error">
-                {fieldErrors.careerId}
+                {fieldErrors.courseId}
               </span>
             )}
           </div>
@@ -360,6 +387,48 @@ function AdminJobFormPage() {
               onChange={handleChange}
               placeholder="Bakı və ya Remote"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="job-employment-type">İş növü *</label>
+            <select id="job-employment-type" name="employmentType" value={form.employmentType} onChange={handleChange}>
+              <option value="FULL_TIME">Tam ştat</option>
+              <option value="PART_TIME">Yarım ştat</option>
+              <option value="INTERNSHIP">Təcrübə proqramı</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="job-experience-level">Təcrübə səviyyəsi</label>
+            <select id="job-experience-level" name="experienceLevel" value={form.experienceLevel} onChange={handleChange}>
+              <option value="">Qeyd edilməyib</option>
+              <option value="ENTRY_LEVEL">Başlanğıc</option>
+              <option value="JUNIOR">Junior</option>
+              <option value="MID_LEVEL">Mid-level</option>
+              <option value="SENIOR">Senior</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="job-salary-min">Minimum maaş</label>
+            <input id="job-salary-min" name="salaryMin" type="number" min="0" value={form.salaryMin} onChange={handleChange} placeholder="1000" />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="job-salary-max">Maksimum maaş</label>
+            <input id="job-salary-max" name="salaryMax" type="number" min="0" value={form.salaryMax} onChange={handleChange} placeholder="1800" aria-invalid={Boolean(fieldErrors.salaryMax)} />
+            {fieldErrors.salaryMax && <span className="form-error">{fieldErrors.salaryMax}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="job-salary-currency">Valyuta</label>
+            <input id="job-salary-currency" name="salaryCurrency" maxLength="3" value={form.salaryCurrency} onChange={handleChange} placeholder="AZN" />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="job-company-logo">Şirkət loqosu URL</label>
+            <input id="job-company-logo" name="companyLogoUrl" type="url" value={form.companyLogoUrl} onChange={handleChange} placeholder="https://example.com/logo.png" aria-invalid={Boolean(fieldErrors.companyLogoUrl)} />
+            {fieldErrors.companyLogoUrl && <span className="form-error">{fieldErrors.companyLogoUrl}</span>}
           </div>
 
           <div className="form-group admin-form-full">

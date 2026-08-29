@@ -317,12 +317,18 @@ const options = {
               type: "integer",
               example: 1,
             },
+            employmentType: { type: "string", enum: ["FULL_TIME", "PART_TIME", "INTERNSHIP"], example: "FULL_TIME" },
+            experienceLevel: { type: "string", nullable: true, enum: ["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR"], example: "JUNIOR" },
+            salaryMin: { type: "integer", nullable: true, minimum: 0, example: 1000 },
+            salaryMax: { type: "integer", nullable: true, minimum: 0, example: 1800 },
+            salaryCurrency: { type: "string", example: "AZN" },
+            companyLogoUrl: { type: "string", format: "uri", nullable: true },
           },
         },
 
         JobInput: {
           type: "object",
-          required: ["title", "careerId"],
+          required: ["title", "courseId"],
           properties: {
             title: {
               type: "string",
@@ -351,9 +357,22 @@ const options = {
             },
             careerId: {
               type: "integer",
+              nullable: true,
               minimum: 1,
               example: 1,
             },
+            courseId: {
+              type: "integer",
+              minimum: 1,
+              example: 1,
+              description: "Administrator tərəfindən idarə olunan kurs identifikatoru",
+            },
+            employmentType: { type: "string", enum: ["FULL_TIME", "PART_TIME", "INTERNSHIP"], default: "FULL_TIME" },
+            experienceLevel: { type: "string", nullable: true, enum: ["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR"] },
+            salaryMin: { type: "integer", nullable: true, minimum: 0, example: 1000 },
+            salaryMax: { type: "integer", nullable: true, minimum: 0, example: 1800 },
+            salaryCurrency: { type: "string", minLength: 3, maxLength: 3, example: "AZN" },
+            companyLogoUrl: { type: "string", format: "uri", nullable: true, example: "https://example.com/logo.png" },
           },
         },
 

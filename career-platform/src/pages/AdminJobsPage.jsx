@@ -179,10 +179,11 @@ function AdminJobsPage() {
 
                   <td>
                     <span className="admin-job-type">
-                      {job.isInternship ||
-                      job.type === "INTERNSHIP"
+                      {job.employmentType === "INTERNSHIP"
                         ? "Təcrübə"
-                        : "İş"}
+                        : job.employmentType === "PART_TIME"
+                          ? "Yarım ştat"
+                          : "Tam ştat"}
                     </span>
                   </td>
 

@@ -3132,6 +3132,14 @@ a.admin-action-card:hover {
 .course-public-module li small { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: var(--muted); }
 
 /* Admin course structure */
+.company-logo img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: contain;
+  background: #fff;
+}
+
 .admin-courses-page { display: grid; gap: 24px; }
 .course-admin-forms { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; }
 .course-admin-form { display: grid; align-content: start; gap: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; background: var(--surface); }
