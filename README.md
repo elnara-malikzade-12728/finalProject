@@ -391,6 +391,7 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Progress updates persist after refresh.
 - Regular users cannot access administrator operations.
 - Administrators can upload MP4, WebM, and MOV videos up to 500 MB.
+- Enrolled learners see persisted per-lesson status, overall course completion, and a continue-learning action; lessons are completed automatically after 90% playback.
 - Invalid lesson identifiers and unsupported files are rejected.
 - Uploaded videos remain available after refresh and a new login.
 - Private videos play through expiring signed URLs.
