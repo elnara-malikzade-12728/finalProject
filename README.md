@@ -279,6 +279,11 @@ The frontend normally runs at `http://localhost:5173/`.
 | `PATCH` | `/api/applications/:id/status` | Admin | Update an application status |
 | `DELETE` | `/api/applications/:id` | Admin | Delete an application |
 | `PUT` | `/api/progress/:stepId` | Yes | Create or update step progress |
+| `GET` | `/api/courses` | No | List published courses |
+| `GET` | `/api/courses/:id` | No | Get published course modules and lessons |
+| `POST` | `/api/courses/:id/enroll` | User | Enroll in a published course |
+| `GET` | `/api/courses/:id/me` | Yes | Get enrollment and lesson progress |
+| `PUT` | `/api/courses/lessons/:id/progress` | User | Mark a lesson complete or incomplete |
 | `POST` | `/api/lessons/:lessonId/video/upload-url` | Admin | Create signed video-upload credentials |
 | `POST` | `/api/lessons/:lessonId/video/complete` | Admin | Verify the upload and save lesson metadata |
 | `GET` | `/api/lessons/:lessonId/video` | Yes | Get a temporary signed playback URL |
@@ -325,6 +330,8 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/register` | Public | User registration |
 | `/careers` | Public | Career catalogue |
 | `/careers/:careerId` | Public | Career details |
+| `/courses` | Public | Published course catalogue |
+| `/courses/:courseId` | Public/User | Course programme, enrollment, video playback, and progress |
 | `/roadmap/:careerId` | Authenticated | Interactive roadmap |
 | `/jobs` | Public | Jobs and internships |
 | `/profile` | Authenticated | User profile |
@@ -381,6 +388,9 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Invalid lesson identifiers and unsupported files are rejected.
 - Uploaded videos remain available after refresh and a new login.
 - Private videos play through expiring signed URLs.
+- Users can enroll in published courses and open their available lesson videos.
+- Lesson completion and course progress persist after refresh and login.
+- Unenrolled users cannot access private lesson videos.
 - Deleting a video removes it from storage and clears database metadata.
 - Loading, empty, validation, and error states display correctly.
 - Responsive navigation and pages work on mobile and desktop.
@@ -403,8 +413,7 @@ Configure the deployed backend with `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, 
 
 ## Known Limitations and Follow-up
 
-- Automated backend tests and end-to-end tests are not yet configured.
-- Video selection currently uses a numeric lesson ID; course, module, and lesson dropdowns remain a UX improvement.
+- Automated backend validation tests exist; broader integration and end-to-end coverage is still being expanded.
 - Custom video display titles and original filenames are not yet stored.
 - Employer workflows, CV uploads, mentoring, and AI recommendations remain future work.
 

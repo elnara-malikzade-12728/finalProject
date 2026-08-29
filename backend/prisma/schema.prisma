@@ -9,23 +9,24 @@ datasource db {
 }
 
 model User {
-  id           Int           @id @default(autoincrement())
-  name         String
-  email        String        @unique
-  password     String
-  role         UserRole      @default(USER)
-  isActive     Boolean       @default(true)
-  tokenVersion Int           @default(0)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  education    String?
-  location     String?
-  bio          String?
-  interests    String[]      @default([])
-  skills       String[]      @default([])
-  progress     Progress[]
-  enrollments  Enrollment[]
-  applications Application[]
+  id             Int              @id @default(autoincrement())
+  name           String
+  email          String           @unique
+  password       String
+  role           UserRole         @default(USER)
+  isActive       Boolean          @default(true)
+  tokenVersion   Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  education      String?
+  location       String?
+  bio            String?
+  interests      String[]         @default([])
+  skills         String[]         @default([])
+  progress       Progress[]
+  lessonProgress LessonProgress[]
+  enrollments    Enrollment[]
+  applications   Application[]
 }
 
 enum UserRole {
@@ -178,11 +179,27 @@ model Lesson {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  module   CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module   CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId Int
+  progress LessonProgress[]
 
   @@unique([moduleId, order])
   @@index([moduleId])
+}
+
+model LessonProgress {
+  id        Int      @id @default(autoincrement())
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId Int
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
 }
 
 model Enrollment {
