@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 import {
   getAdminApplications,
 } from "../api/adminApplicationsApi.js";
-import { getCareers } from "../api/careersApi.js";
+import { getCourseStructure } from "../api/adminCoursesApi.js";
 import { getJobs } from "../api/jobsApi.js";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -35,7 +35,7 @@ function AdminDashboardPage() {
   const { user } = useAuth();
 
   const [statistics, setStatistics] = useState({
-    careers: null,
+    courses: null,
     jobs: null,
     applications: null,
   });
@@ -49,7 +49,7 @@ function AdminDashboardPage() {
       setIsLoading(true);
 
       const results = await Promise.allSettled([
-        getCareers({
+        getCourseStructure({
           signal: controller.signal,
         }),
         getJobs(
@@ -71,11 +71,11 @@ function AdminDashboardPage() {
       }
 
       setStatistics({
-        careers:
+        courses:
           results[0].status === "fulfilled"
             ? getCollectionLength(
                 results[0].value,
-                "careers",
+                "courses",
               )
             : null,
 
@@ -141,7 +141,7 @@ function AdminDashboardPage() {
           <div>
             <span>Kurslar</span>
             <strong>
-              {statistics.careers ?? "—"}
+              {statistics.courses ?? "—"}
             </strong>
           </div>
         </article>
