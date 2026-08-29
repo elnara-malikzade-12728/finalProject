@@ -88,7 +88,7 @@ async function getPublishedCourse(req, res) {
             lessons: {
               where: { published: true },
               orderBy: { order: 'asc' },
-              select: { id: true, title: true, description: true, order: true, durationSeconds: true },
+              select: { id: true, title: true, description: true, order: true, durationSeconds: true, videoPath: true },
             },
           },
         },
@@ -96,10 +96,134 @@ async function getPublishedCourse(req, res) {
     });
 
     if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
-    return res.json(course);
+    return res.json({
+      ...course,
+      modules: course.modules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map(({ videoPath, ...lesson }) => ({
+          ...lesson,
+          hasVideo: Boolean(videoPath),
+        })),
+      })),
+    });
   } catch (error) {
     logger.error('Yayımlanmış kurs alınarkən xəta', error);
     return res.status(500).json({ error: 'Kursu yükləmək mümkün olmadı.' });
+  }
+}
+
+async function enrollInCourse(req, res) {
+  try {
+    if (req.user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Administrator kursa qeydiyyatdan keçə bilməz.' });
+    }
+
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, published: true },
+      select: { id: true },
+    });
+    if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+
+    const existing = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId: req.user.id, courseId } },
+    });
+    if (existing) return res.status(200).json(existing);
+
+    const enrollment = await prisma.enrollment.create({
+      data: { userId: req.user.id, courseId },
+    });
+    return res.status(201).json(enrollment);
+  } catch (error) {
+    logger.error('Kursa qeydiyyat zamanı xəta', error);
+    return res.status(500).json({ error: 'Kursa qeydiyyatdan keçmək mümkün olmadı.' });
+  }
+}
+
+async function getMyCourseState(req, res) {
+  try {
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, published: true },
+      select: {
+        id: true,
+        modules: {
+          select: {
+            lessons: { where: { published: true }, select: { id: true } },
+          },
+        },
+      },
+    });
+    if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+
+    const lessonIds = course.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id));
+    const enrollment = req.user.role === 'ADMIN'
+      ? null
+      : await prisma.enrollment.findUnique({
+          where: { userId_courseId: { userId: req.user.id, courseId } },
+        });
+    const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment);
+    const completed = enrolled && lessonIds.length
+      ? await prisma.lessonProgress.findMany({
+          where: { userId: req.user.id, lessonId: { in: lessonIds }, completed: true },
+          select: { lessonId: true },
+        })
+      : [];
+    const completedLessonIds = completed.map((item) => item.lessonId);
+
+    return res.json({
+      enrolled,
+      completedLessonIds,
+      completedLessons: completedLessonIds.length,
+      totalLessons: lessonIds.length,
+      progressPercentage: lessonIds.length
+        ? Math.round((completedLessonIds.length / lessonIds.length) * 100)
+        : 0,
+    });
+  } catch (error) {
+    logger.error('Kurs irəliləyişi alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kurs irəliləyişini yükləmək mümkün olmadı.' });
+  }
+}
+
+async function updateLessonProgress(req, res) {
+  try {
+    if (req.user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Administrator üçün dərs irəliləyişi saxlanılmır.' });
+    }
+    const lessonId = id(req.params.id);
+    if (!lessonId || typeof req.body.completed !== 'boolean') {
+      return res.status(400).json({ error: 'Dərs ID-si və completed dəyəri düzgün olmalıdır.' });
+    }
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, published: true, module: { course: { published: true } } },
+      select: { id: true, module: { select: { courseId: true } } },
+    });
+    if (!lesson) return res.status(404).json({ error: 'Dərs tapılmadı.' });
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId: req.user.id, courseId: lesson.module.courseId },
+      },
+    });
+    if (!enrollment) {
+      return res.status(403).json({ error: 'İrəliləyişi saxlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
+    }
+
+    const progress = await prisma.lessonProgress.upsert({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+      update: { completed: req.body.completed },
+      create: { userId: req.user.id, lessonId, completed: req.body.completed },
+    });
+    return res.json(progress);
+  } catch (error) {
+    logger.error('Dərs irəliləyişi yenilənərkən xəta', error);
+    return res.status(500).json({ error: 'Dərs irəliləyişini saxlamaq mümkün olmadı.' });
   }
 }
 
@@ -311,6 +435,9 @@ async function deleteLesson(req, res) {
 module.exports = {
   listPublishedCourses,
   getPublishedCourse,
+  enrollInCourse,
+  getMyCourseState,
+  updateLessonProgress,
   listCourseStructure,
   createCategory,
   updateCategory,

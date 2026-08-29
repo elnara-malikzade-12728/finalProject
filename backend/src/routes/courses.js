@@ -9,6 +9,54 @@ router.get('/', controller.listPublishedCourses);
 router.get('/admin', auth, requireAdmin, controller.listCourseStructure);
 router.get('/:id', controller.getPublishedCourse);
 
+/**
+ * @openapi
+ * /api/courses/{id}/enroll:
+ *   post:
+ *     tags: [Learning]
+ *     summary: Yayımlanmış kursa qeydiyyatdan keç
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       201: { description: Kurs qeydiyyatı yaradıldı }
+ *       200: { description: İstifadəçi artıq kursa qeydiyyatdan keçib }
+ *       403: { description: Administrator kursa qeydiyyatdan keçə bilməz }
+ *       404: { description: Kurs tapılmadı }
+ * /api/courses/{id}/me:
+ *   get:
+ *     tags: [Learning]
+ *     summary: Kurs qeydiyyatını və dərs irəliləyişini əldə et
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Qeydiyyat və tamamlanmış dərslər }
+ *       404: { description: Kurs tapılmadı }
+ * /api/courses/lessons/{id}/progress:
+ *   put:
+ *     tags: [Learning]
+ *     summary: Dərsi tamamlanmış və ya tamamlanmamış kimi qeyd et
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [completed]
+ *             properties: { completed: { type: boolean } }
+ *     responses:
+ *       200: { description: Dərs irəliləyişi saxlanıldı }
+ *       403: { description: Kurs qeydiyyatı tələb olunur }
+ *       404: { description: Dərs tapılmadı }
+ */
+router.post('/:id/enroll', auth, controller.enrollInCourse);
+router.get('/:id/me', auth, controller.getMyCourseState);
+router.put('/lessons/:id/progress', auth, controller.updateLessonProgress);
+
 router.use(auth, requireAdmin);
 
 /**

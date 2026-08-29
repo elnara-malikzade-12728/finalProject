@@ -5,3 +5,14 @@ export const getPublishedCourses = ({ signal } = {}) =>
 
 export const getPublishedCourse = (courseId, { signal } = {}) =>
   apiRequest(`/courses/${courseId}`, { authenticated: false, signal });
+
+export const enrollInCourse = (courseId, { signal } = {}) =>
+  apiRequest(`/courses/${courseId}/enroll`, { method: 'POST', authenticated: true, signal });
+
+export const getMyCourseState = (courseId, { signal } = {}) =>
+  apiRequest(`/courses/${courseId}/me`, { authenticated: true, signal });
+
+export const updateLessonProgress = (lessonId, completed, { signal } = {}) =>
+  apiRequest(`/courses/lessons/${lessonId}/progress`, {
+    method: 'PUT', authenticated: true, signal, body: { completed },
+  });
