@@ -121,7 +121,18 @@ function CourseDetailsPage() {
     const previous = learningState.lessonProgress?.[selectedLesson.id]?.watchedPercentage || 0;
     if (watchedPercentage <= previous) return;
     await updateLessonProgress(selectedLesson.id, watchedPercentage, Math.floor(event.currentTarget.currentTime));
+    if (watchedPercentage >= 90) {
+      setLearningState(await getMyCourseState(courseId));
+      return;
+    }
     setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: { watchedPercentage, lastPositionSeconds: Math.floor(event.currentTarget.currentTime) } } }));
+  }
+
+  function handleVideoLoaded(event) {
+    const lastPosition = learningState.lessonProgress?.[selectedLesson?.id]?.lastPositionSeconds || 0;
+    if (lastPosition > 0 && lastPosition < event.currentTarget.duration - 5) {
+      event.currentTarget.currentTime = lastPosition;
+    }
   }
 
   if (loading) return <PageLoader message="Kurs yüklənir..." fullPage />;
@@ -129,6 +140,12 @@ function CourseDetailsPage() {
 
   const lessonCount = course.modules.reduce((total, module) => total + module.lessons.length, 0);
   const isAdmin = user?.role === "ADMIN";
+  const orderedLessons = course.modules.flatMap((module) => module.lessons);
+  const inProgressLesson = orderedLessons.find((lesson) => {
+    const percentage = learningState.lessonProgress?.[lesson.id]?.watchedPercentage || 0;
+    return percentage > 0 && !completedLessonIds.has(lesson.id);
+  });
+  const nextLesson = inProgressLesson || orderedLessons.find((lesson) => !completedLessonIds.has(lesson.id)) || orderedLessons[0];
 
   return (
     <>
@@ -155,6 +172,26 @@ function CourseDetailsPage() {
       <section className="section">
         <div className="container course-public-modules">
           {notification && <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />}
+          {learningState.enrolled && !isAdmin && (
+            <section className="course-progress-card" aria-label="Kurs irəliləyişi">
+              <div className="course-progress-heading">
+                <div>
+                  <span>Kurs irəliləyişi</span>
+                  <strong>{learningState.completedLessons}/{learningState.totalLessons} dərs tamamlandı</strong>
+                </div>
+                <strong>{learningState.progressPercentage}%</strong>
+              </div>
+              <div className="progress-track" role="progressbar" aria-label="Kursun tamamlanma faizi" aria-valuemin="0" aria-valuemax="100" aria-valuenow={learningState.progressPercentage}>
+                <span style={{ width: `${learningState.progressPercentage}%` }} />
+              </div>
+              {nextLesson && (
+                <button type="button" className="button button-primary" onClick={() => handleOpenLesson(nextLesson)} disabled={isLoadingVideo || learningState.progressPercentage === 100}>
+                  <PlayCircle size={18} />
+                  {learningState.progressPercentage === 100 ? "Kurs tamamlandı" : learningState.completedLessons > 0 || inProgressLesson ? "Davam et" : "İlk dərsə başla"}
+                </button>
+              )}
+            </section>
+          )}
           {video && selectedLesson && (
             <section className="course-video-player">
               <div className="content-card-heading"><PlayCircle size={25} /><div><h2>{selectedLesson.title}</h2><p>Video keçidi təhlükəsizlik üçün məhdud müddət ərzində etibarlıdır.</p></div></div>
@@ -162,7 +199,7 @@ function CourseDetailsPage() {
                 {video.playbackType === "embed" ? (
                   <iframe key={video.url} src={video.url} title={selectedLesson.title} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
                 ) : (
-                  <video key={video.url} controls preload="metadata" src={video.url} onTimeUpdate={handleVideoProgress}>Brauzeriniz video elementini dəstəkləmir.</video>
+                  <video key={video.url} controls preload="metadata" src={video.url} onLoadedMetadata={handleVideoLoaded} onTimeUpdate={handleVideoProgress}>Brauzeriniz video elementini dəstəkləmir.</video>
                 )}
                 {video.watermark && <span className="video-user-watermark">{video.watermark.email} · ID {video.watermark.userId}</span>}
               </div>
@@ -175,6 +212,8 @@ function CourseDetailsPage() {
               {module.description && <p>{module.description}</p>}
               <ul>{module.lessons.map((lesson) => {
                 const completed = completedLessonIds.has(lesson.id);
+                const watchedPercentage = learningState.lessonProgress?.[lesson.id]?.watchedPercentage || 0;
+                const lessonStatus = completed ? "Tamamlandı" : watchedPercentage > 0 ? `Davam edir · ${watchedPercentage}%` : "Başlanmayıb";
                 return (
                   <li key={lesson.id} className={completed ? "course-lesson-completed" : ""}>
                     <button type="button" className="course-lesson-open" onClick={() => handleOpenLesson(lesson)} disabled={isLoadingVideo}>
@@ -183,8 +222,14 @@ function CourseDetailsPage() {
                     </button>
                     {lesson.durationSeconds && <small><Clock3 size={14} /> {Math.ceil(lesson.durationSeconds / 60)} dəq.</small>}
                     {learningState.enrolled && !isAdmin && (
+                      <span className={`course-lesson-status ${completed ? "is-complete" : watchedPercentage > 0 ? "is-progress" : ""}`}>
+                        {completed && <CheckCircle2 size={15} aria-hidden="true" />}
+                        {lessonStatus}
+                      </span>
+                    )}
+                    {learningState.enrolled && !isAdmin && !completed && (
                       <button type="button" className="course-lesson-complete" onClick={() => handleCompletion(lesson)} disabled={updatingLessonId === lesson.id}>
-                        <CheckCircle2 size={17} /> {completed ? "Tamamlandı" : "Tamamla"}
+                        <CheckCircle2 size={17} /> Tamamla
                       </button>
                     )}
                   </li>

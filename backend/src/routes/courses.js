@@ -36,7 +36,8 @@ router.get('/:id', controller.getPublishedCourse);
  * /api/courses/lessons/{id}/progress:
  *   put:
  *     tags: [Learning]
- *     summary: Dərsi tamamlanmış və ya tamamlanmamış kimi qeyd et
+ *     summary: Dərsin izləmə irəliləyişini yadda saxla
+ *     description: İzləmə faizi 90 və ya daha çox olduqda dərs avtomatik tamamlanmış hesab edilir.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { in: path, name: id, required: true, schema: { type: integer } }
