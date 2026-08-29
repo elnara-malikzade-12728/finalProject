@@ -173,9 +173,12 @@ model Lesson {
   order           Int
   published       Boolean  @default(false)
   videoPath       String?  @unique
+  videoProvider   VideoProvider?
+  videoProviderId String?  @unique
   videoMimeType   String?
   videoSizeBytes  Int?
   durationSeconds Int?
+  isFreePreview   Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -190,6 +193,8 @@ model Lesson {
 model LessonProgress {
   id        Int      @id @default(autoincrement())
   completed Boolean  @default(false)
+  watchedPercentage Int      @default(0)
+  lastPositionSeconds Int    @default(0)
   updatedAt DateTime @updatedAt
 
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -200,6 +205,11 @@ model LessonProgress {
   @@unique([userId, lessonId])
   @@index([userId])
   @@index([lessonId])
+}
+
+enum VideoProvider {
+  SUPABASE
+  BUNNY
 }
 
 model Enrollment {

@@ -6,6 +6,11 @@ const {
   getVideoBucket,
   getVideoSignedUrlTtl,
 } = require("../lib/supabase");
+const bunny = require("../lib/bunnyStream");
+
+function useBunnyStream() {
+  return process.env.VIDEO_PROVIDER?.trim().toLowerCase() === "bunny";
+}
 
 const allowedVideoTypes = {
   "video/mp4": "mp4",
@@ -105,6 +110,17 @@ async function createLessonUploadUrl(req, res) {
       });
     }
 
+    if (useBunnyStream()) {
+      const video = await bunny.createVideo(`${lesson.module.courseId}-${lesson.id}-${lesson.title}`);
+      return res.status(201).json({
+        provider: "BUNNY",
+        videoId: video.guid,
+        contentType,
+        sizeBytes: normalizedSize,
+        ...bunny.createTusCredentials(video.guid),
+      });
+    }
+
     const extension =
       allowedVideoTypes[contentType];
 
@@ -172,6 +188,32 @@ async function completeLessonVideoUpload(req, res) {
     return res.status(400).json({
       error: "Dərs identifikatoru yanlışdır.",
     });
+  }
+
+  if (req.body.provider === "BUNNY") {
+    const videoId = typeof req.body.videoId === "string" ? req.body.videoId.trim() : "";
+    if (!videoId) return res.status(400).json({ error: "Bunny video identifikatoru daxil edilməyib." });
+    try {
+      const [lesson, video] = await Promise.all([
+        prisma.lesson.findUnique({ where: { id: lessonId } }),
+        bunny.getVideo(videoId),
+      ]);
+      if (!lesson) return res.status(404).json({ error: "Dərs tapılmadı." });
+      if (video.status === 5) {
+        return res.status(422).json({ error: "Bunny Stream videonu emal edə bilmədi.", status: video.status });
+      }
+      if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId && lesson.videoProviderId !== videoId) {
+        await bunny.deleteVideo(lesson.videoProviderId).catch((error) => logger.error("Köhnə Bunny videosu silinərkən xəta:", error));
+      }
+      const updatedLesson = await prisma.lesson.update({
+        where: { id: lessonId },
+        data: { videoProvider: "BUNNY", videoProviderId: videoId, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: Number(video.length) || Number(req.body.durationSeconds) || null },
+      });
+      return res.status(200).json(updatedLesson);
+    } catch (error) {
+      logger.error("Bunny video yüklənməsi tamamlanarkən xəta:", error);
+      return res.status(500).json({ error: "Bunny video məlumatlarını yadda saxlamaq mümkün olmadı." });
+    }
   }
 
   if (
@@ -315,6 +357,8 @@ async function completeLessonVideoUpload(req, res) {
         },
         data: {
           videoPath,
+          videoProvider: "SUPABASE",
+          videoProviderId: null,
           videoMimeType: contentType,
           videoSizeBytes: normalizedSize,
           durationSeconds: normalizedDuration,
@@ -366,32 +410,40 @@ async function getLessonVideoUrl(req, res) {
       });
     }
 
-    if (!lesson.videoPath) {
+    if (!lesson.videoPath && !lesson.videoProviderId) {
       return res.status(404).json({
         error: "Bu dərs üçün video yüklənməyib.",
       });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = req.user ? await prisma.user.findUnique({
       where: {
         id: req.user.id,
       },
       select: {
         role: true,
+        email: true,
       },
-    });
+    }) : null;
 
-    if (!user) {
+    if (!user && !lesson.isFreePreview) {
       return res.status(401).json({
         error: "İstifadəçi tapılmadı.",
       });
     }
 
-    const isAdmin = user.role === "ADMIN";
+    const isAdmin = user?.role === "ADMIN";
 
     if (!isAdmin) {
-      const enrollment =
-        await prisma.enrollment.findUnique({
+      if (!lesson.published) {
+        return res.status(403).json({
+          error:
+            "Bu dərs hələ yayımlanmayıb.",
+        });
+      }
+
+      if (!lesson.isFreePreview) {
+        const enrollment = await prisma.enrollment.findUnique({
           where: {
             userId_courseId: {
               userId: req.user.id,
@@ -403,19 +455,19 @@ async function getLessonVideoUrl(req, res) {
           },
         });
 
-      if (!enrollment) {
-        return res.status(403).json({
-          error:
-            "Bu videoya baxmaq üçün kursa qeydiyyatdan keçməlisiniz.",
-        });
+        if (!enrollment) {
+          return res.status(403).json({
+            error:
+              "Bu videoya baxmaq üçün kursa qeydiyyatdan keçməlisiniz.",
+          });
+        }
       }
+    }
 
-      if (!lesson.published) {
-        return res.status(403).json({
-          error:
-            "Bu dərs hələ yayımlanmayıb.",
-        });
-      }
+    if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId) {
+      const expiresIn = getVideoSignedUrlTtl();
+      const access = bunny.createEmbedUrl(lesson.videoProviderId, expiresIn);
+      return res.status(200).json({ ...access, playbackType: "embed", provider: "BUNNY", lessonId: lesson.id, title: lesson.title, watermark: user ? { userId: user.id, email: user.email } : { userId: "preview", email: "Synex Academy" } });
     }
 
     const expiresIn = getVideoSignedUrlTtl();
@@ -440,6 +492,9 @@ async function getLessonVideoUrl(req, res) {
       expiresIn,
       lessonId: lesson.id,
       title: lesson.title,
+      playbackType: "file",
+      provider: "SUPABASE",
+      watermark: user ? { userId: user.id, email: user.email } : { userId: "preview", email: "Synex Academy" },
     });
   } catch (error) {
     logger.error(
@@ -478,13 +533,16 @@ async function deleteLessonVideo(req, res) {
       });
     }
 
-    if (!lesson.videoPath) {
+    if (!lesson.videoPath && !lesson.videoProviderId) {
       return res.status(404).json({
         error: "Bu dərs üçün video tapılmadı.",
       });
     }
 
-    const supabase = getSupabaseAdmin();
+    if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId) {
+      await bunny.deleteVideo(lesson.videoProviderId);
+    } else {
+      const supabase = getSupabaseAdmin();
 
     const {
       error: storageError,
@@ -495,6 +553,7 @@ async function deleteLessonVideo(req, res) {
     if (storageError) {
       throw storageError;
     }
+    }
 
     await prisma.lesson.update({
       where: {
@@ -502,6 +561,8 @@ async function deleteLessonVideo(req, res) {
       },
       data: {
         videoPath: null,
+        videoProvider: null,
+        videoProviderId: null,
         videoMimeType: null,
         videoSizeBytes: null,
         durationSeconds: null,

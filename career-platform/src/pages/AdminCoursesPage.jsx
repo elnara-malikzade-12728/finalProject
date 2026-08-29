@@ -11,6 +11,7 @@ import {
   deleteModule,
   getCourseStructure,
   updateCourse,
+  updateLesson,
 } from '../api/adminCoursesApi.js';
 import { getApiErrorMessage } from '../api/client.js';
 import EmptyState from '../components/common/EmptyState.jsx';
@@ -95,10 +96,10 @@ function AdminCoursesPage() {
     event.preventDefault();
     const draft = lessonDrafts[moduleId] || {};
     const ok = await perform(
-      () => createLesson(moduleId, { title: draft.title, order: Number(draft.order), published: true }),
+      () => createLesson(moduleId, { title: draft.title, order: Number(draft.order), published: true, isFreePreview: draft.isFreePreview === true }),
       'Dərs yaradıldı.',
     );
-    if (ok) setLessonDrafts((current) => ({ ...current, [moduleId]: { title: '', order: '' } }));
+    if (ok) setLessonDrafts((current) => ({ ...current, [moduleId]: { title: '', order: '', isFreePreview: false } }));
   }
 
   function confirmDelete(message, action, successMessage) {
@@ -166,11 +167,12 @@ function AdminCoursesPage() {
                   <section className="course-tree-module" key={module.id}>
                     <header><span><Layers3 size={17} /><strong>{module.order}. {module.title}</strong></span><button type="button" className="danger" onClick={() => confirmDelete(`“${module.title}” modulu silinsin?`, () => deleteModule(module.id), 'Modul silindi.')}><Trash2 size={15} /></button></header>
                     <ul>
-                      {module.lessons.map((lesson) => <li key={lesson.id}><span>{lesson.order}. {lesson.title}</span><button type="button" className="danger" onClick={() => confirmDelete(`“${lesson.title}” dərsi silinsin?`, () => deleteLesson(lesson.id), 'Dərs silindi.')}><Trash2 size={14} /></button></li>)}
+                      {module.lessons.map((lesson) => <li key={lesson.id}><span>{lesson.order}. {lesson.title} {lesson.isFreePreview && <small>· Pulsuz baxış</small>}</span><span><button type="button" onClick={() => perform(() => updateLesson(lesson.id, { isFreePreview: !lesson.isFreePreview }), lesson.isFreePreview ? 'Pulsuz baxış söndürüldü.' : 'Pulsuz baxış aktiv edildi.')}>{lesson.isFreePreview ? 'Preview söndür' : 'Pulsuz preview'}</button><button type="button" className="danger" onClick={() => confirmDelete(`“${lesson.title}” dərsi silinsin?`, () => deleteLesson(lesson.id), 'Dərs silindi.')}><Trash2 size={14} /></button></span></li>)}
                     </ul>
                     <form className="course-tree-add" onSubmit={(event) => submitLesson(event, module.id)}>
                       <input value={lessonDrafts[module.id]?.order || ''} onChange={(event) => setLessonDrafts({ ...lessonDrafts, [module.id]: { ...lessonDrafts[module.id], order: event.target.value } })} type="number" min="0" placeholder="Sıra" required />
                       <input value={lessonDrafts[module.id]?.title || ''} onChange={(event) => setLessonDrafts({ ...lessonDrafts, [module.id]: { ...lessonDrafts[module.id], title: event.target.value } })} placeholder="Yeni dərsin adı" required />
+                      <label><input type="checkbox" checked={lessonDrafts[module.id]?.isFreePreview || false} onChange={(event) => setLessonDrafts({ ...lessonDrafts, [module.id]: { ...lessonDrafts[module.id], isFreePreview: event.target.checked } })} /> Pulsuz preview</label>
                       <button className="button button-secondary" disabled={saving}><Plus size={16} /> Dərs</button>
                     </form>
                   </section>

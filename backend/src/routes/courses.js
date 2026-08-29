@@ -46,8 +46,10 @@ router.get('/:id', controller.getPublishedCourse);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [completed]
- *             properties: { completed: { type: boolean } }
+ *             required: [watchedPercentage, lastPositionSeconds]
+ *             properties:
+ *               watchedPercentage: { type: integer, minimum: 0, maximum: 100, example: 45 }
+ *               lastPositionSeconds: { type: integer, minimum: 0, example: 135 }
  *     responses:
  *       200: { description: Dərs irəliləyişi saxlanıldı }
  *       403: { description: Kurs qeydiyyatı tələb olunur }

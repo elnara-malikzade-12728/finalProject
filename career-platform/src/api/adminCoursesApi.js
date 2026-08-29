@@ -9,4 +9,5 @@ export const deleteCourse = (id) => apiRequest(`/courses/${id}`, { method: 'DELE
 export const createModule = (courseId, body) => apiRequest(`/courses/${courseId}/modules`, { method: 'POST', body });
 export const deleteModule = (id) => apiRequest(`/courses/modules/${id}`, { method: 'DELETE' });
 export const createLesson = (moduleId, body) => apiRequest(`/courses/modules/${moduleId}/lessons`, { method: 'POST', body });
+export const updateLesson = (id, body) => apiRequest(`/courses/lessons/${id}`, { method: 'PATCH', body });
 export const deleteLesson = (id) => apiRequest(`/courses/lessons/${id}`, { method: 'DELETE' });

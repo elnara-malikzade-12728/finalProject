@@ -88,7 +88,7 @@ async function getPublishedCourse(req, res) {
             lessons: {
               where: { published: true },
               orderBy: { order: 'asc' },
-              select: { id: true, title: true, description: true, order: true, durationSeconds: true, videoPath: true },
+              select: { id: true, title: true, description: true, order: true, durationSeconds: true, videoPath: true, videoProviderId: true, isFreePreview: true },
             },
           },
         },
@@ -100,9 +100,9 @@ async function getPublishedCourse(req, res) {
       ...course,
       modules: course.modules.map((module) => ({
         ...module,
-        lessons: module.lessons.map(({ videoPath, ...lesson }) => ({
+        lessons: module.lessons.map(({ videoPath, videoProviderId, ...lesson }) => ({
           ...lesson,
-          hasVideo: Boolean(videoPath),
+          hasVideo: Boolean(videoPath || videoProviderId),
         })),
       })),
     });
@@ -167,17 +167,19 @@ async function getMyCourseState(req, res) {
           where: { userId_courseId: { userId: req.user.id, courseId } },
         });
     const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment);
-    const completed = enrolled && lessonIds.length
+    const progress = enrolled && lessonIds.length
       ? await prisma.lessonProgress.findMany({
-          where: { userId: req.user.id, lessonId: { in: lessonIds }, completed: true },
-          select: { lessonId: true },
+          where: { userId: req.user.id, lessonId: { in: lessonIds } },
+          select: { lessonId: true, completed: true, watchedPercentage: true, lastPositionSeconds: true },
         })
       : [];
-    const completedLessonIds = completed.map((item) => item.lessonId);
+    const completedLessonIds = progress.filter((item) => item.completed).map((item) => item.lessonId);
+    const lessonProgress = Object.fromEntries(progress.map((item) => [item.lessonId, { watchedPercentage: item.watchedPercentage, lastPositionSeconds: item.lastPositionSeconds }]));
 
     return res.json({
       enrolled,
       completedLessonIds,
+      lessonProgress,
       completedLessons: completedLessonIds.length,
       totalLessons: lessonIds.length,
       progressPercentage: lessonIds.length
@@ -196,8 +198,10 @@ async function updateLessonProgress(req, res) {
       return res.status(403).json({ error: 'Administrator üçün dərs irəliləyişi saxlanılmır.' });
     }
     const lessonId = id(req.params.id);
-    if (!lessonId || typeof req.body.completed !== 'boolean') {
-      return res.status(400).json({ error: 'Dərs ID-si və completed dəyəri düzgün olmalıdır.' });
+    const watchedPercentage = Number(req.body.watchedPercentage);
+    const lastPositionSeconds = Number(req.body.lastPositionSeconds);
+    if (!lessonId || !Number.isInteger(watchedPercentage) || watchedPercentage < 0 || watchedPercentage > 100 || !Number.isInteger(lastPositionSeconds) || lastPositionSeconds < 0) {
+      return res.status(400).json({ error: 'Dərs ID-si, izləmə faizi və son mövqe düzgün olmalıdır.' });
     }
 
     const lesson = await prisma.lesson.findFirst({
@@ -217,8 +221,8 @@ async function updateLessonProgress(req, res) {
 
     const progress = await prisma.lessonProgress.upsert({
       where: { userId_lessonId: { userId: req.user.id, lessonId } },
-      update: { completed: req.body.completed },
-      create: { userId: req.user.id, lessonId, completed: req.body.completed },
+      update: { watchedPercentage, lastPositionSeconds, completed: watchedPercentage >= 90 },
+      create: { userId: req.user.id, lessonId, watchedPercentage, lastPositionSeconds, completed: watchedPercentage >= 90 },
     });
     return res.json(progress);
   } catch (error) {
@@ -387,7 +391,7 @@ async function createLesson(req, res) {
     const title = requiredText(req.body.title);
     if (!moduleId || !title) return res.status(400).json({ error: 'Modul və dərs məlumatları yanlışdır.' });
     const result = await prisma.lesson.create({
-      data: { moduleId, title, description: optionalText(req.body.description), order: sortOrder(req.body.order), published: req.body.published === true },
+      data: { moduleId, title, description: optionalText(req.body.description), order: sortOrder(req.body.order), published: req.body.published === true, isFreePreview: req.body.isFreePreview === true },
     });
     return res.status(201).json(result);
   } catch (error) {
@@ -410,6 +414,7 @@ async function updateLesson(req, res) {
     if ('description' in req.body) data.description = optionalText(req.body.description);
     if ('order' in req.body) data.order = sortOrder(req.body.order);
     if ('published' in req.body) data.published = req.body.published === true;
+    if ('isFreePreview' in req.body) data.isFreePreview = req.body.isFreePreview === true;
     return res.json(await prisma.lesson.update({ where: { id: lessonId }, data }));
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ error: 'Dərs tapılmadı.' });

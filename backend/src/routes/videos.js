@@ -1,5 +1,6 @@
 const express = require("express");
 const auth = require("../middleware/auth");
+const optionalAuth = require("../middleware/optionalAuth");
 const requireAdmin = require(
   "../middleware/requireAdmin",
 );
@@ -18,7 +19,7 @@ const router = express.Router();
  *   post:
  *     tags: [Videos]
  *     summary: İmzalanmış video yükləmə URL-i yarat
- *     description: Qısa müddətli Supabase yükləmə məlumatları yaradır. Administrator icazəsi tələb olunur.
+ *     description: Konfiqurasiyadan asılı olaraq Bunny Stream üçün qısa müddətli TUS məlumatları və ya Supabase üçün imzalanmış yükləmə məlumatları yaradır. Administrator icazəsi tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -44,7 +45,7 @@ const router = express.Router();
  *               sizeBytes:
  *                 type: integer
  *                 minimum: 1
- *                 maximum: 52428800
+ *                 maximum: 524288000
  *                 example: 4938271
  *     responses:
  *       201:
@@ -83,7 +84,7 @@ router.post(
  *   post:
  *     tags: [Videos]
  *     summary: Dərs videosunun yüklənməsini tamamla
- *     description: Yüklənmiş obyektin mövcudluğunu təsdiqləyir və metadata məlumatlarını dərsdə saxlayır. Administrator icazəsi tələb olunur.
+ *     description: Bunny Stream və ya Supabase yükləməsini təsdiqləyir və provayder metadata məlumatlarını dərsdə saxlayır. Administrator icazəsi tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -145,8 +146,8 @@ router.post(
  * /api/lessons/{lessonId}/video:
  *   get:
  *     tags: [Videos]
- *     summary: Dərs videosu üçün imzalanmış URL əldə et
- *     description: Administratorlar bütün dərs videolarına baxa bilər. Adi istifadəçi əlaqəli kursa qeydiyyatdan keçməli, dərs isə yayımlanmış olmalıdır.
+ *     summary: Dərs videosu üçün qorunan izləmə keçidi əldə et
+ *     description: Bunny Stream üçün tokenli embed, köhnə Supabase videoları üçün imzalanmış URL qaytarır. Pulsuz preview dərsləri açıqdır; digər dərslər üçün kurs qeydiyyatı tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -200,7 +201,7 @@ router.post(
  */
 router.get(
   "/:lessonId/video",
-  auth,
+  optionalAuth,
   getLessonVideoUrl,
 );
 

@@ -3240,3 +3240,36 @@ a.admin-action-card:hover {
   .course-tree-add { grid-template-columns: 1fr; }
   .course-admin-inline { grid-template-columns: 1fr; }
 }
+.secure-video-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #120b07;
+}
+
+.admin-secure-video-frame {
+  width: 100%;
+}
+.secure-video-frame video,
+.secure-video-frame iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+.video-user-watermark {
+  position: absolute;
+  z-index: 2;
+  left: 5%;
+  top: 8%;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: clamp(11px, 1.2vw, 15px);
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  animation: synex-watermark-move 18s linear infinite alternate;
+}
+@keyframes synex-watermark-move {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(42vw, 20vh); }
+  100% { transform: translate(12vw, 34vh); }
+}
