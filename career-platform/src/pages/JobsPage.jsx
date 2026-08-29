@@ -5,7 +5,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { getCareers } from "../api/careersApi.js";
+import { getPublishedCourses } from "../api/coursesApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import { getJobs } from "../api/jobsApi.js";
 import EmptyState from "../components/common/EmptyState.jsx";
@@ -28,6 +28,8 @@ function JobsPage() {
   const [selectedCareerId, setSelectedCareerId] = useState(
     searchParams.get("career") || "",
   );
+  const [employmentType, setEmploymentType] = useState(searchParams.get("employmentType") || "");
+  const [experienceLevel, setExperienceLevel] = useState(searchParams.get("experienceLevel") || "");
   const [careers, setCareers] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,7 @@ function JobsPage() {
 
     async function loadCareers() {
       try {
-        const response = await getCareers({
+        const response = await getPublishedCourses({
           signal: controller.signal,
         });
 
@@ -78,7 +80,9 @@ function JobsPage() {
             search: searchTerm.trim(),
             location: location.trim(),
             category: selectedCategory,
-            careerId: selectedCareerId,
+            courseId: selectedCareerId,
+            employmentType,
+            experienceLevel,
           },
           { signal },
         );
@@ -100,6 +104,8 @@ function JobsPage() {
       location,
       selectedCategory,
       selectedCareerId,
+      employmentType,
+      experienceLevel,
     ],
   );
 
@@ -135,6 +141,8 @@ function JobsPage() {
     setLocation("");
     setSelectedCategory("Hamısı");
     setSelectedCareerId("");
+    setEmploymentType("");
+    setExperienceLevel("");
     setSearchParams({});
   }
 
@@ -143,6 +151,7 @@ function JobsPage() {
     location ||
     selectedCategory !== "Hamısı" ||
     selectedCareerId;
+  const hasJobDetailFilters = employmentType || experienceLevel;
 
   return (
     <>
@@ -198,6 +207,27 @@ function JobsPage() {
             </div>
 
             <div className="select-field">
+              <label htmlFor="employment-type-filter">İş növü</label>
+              <select id="employment-type-filter" value={employmentType} onChange={(event) => setEmploymentType(event.target.value)}>
+                <option value="">Bütün növlər</option>
+                <option value="FULL_TIME">Tam ştat</option>
+                <option value="PART_TIME">Yarım ştat</option>
+                <option value="INTERNSHIP">Təcrübə proqramı</option>
+              </select>
+            </div>
+
+            <div className="select-field">
+              <label htmlFor="experience-filter">Təcrübə</label>
+              <select id="experience-filter" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)}>
+                <option value="">Bütün səviyyələr</option>
+                <option value="ENTRY_LEVEL">Başlanğıc</option>
+                <option value="JUNIOR">Junior</option>
+                <option value="MID_LEVEL">Mid-level</option>
+                <option value="SENIOR">Senior</option>
+              </select>
+            </div>
+
+            <div className="select-field">
               <label htmlFor="location-filter">Məkan</label>
 
               <div className="search-field">
@@ -249,7 +279,7 @@ function JobsPage() {
               </p>
             </div>
 
-            {hasActiveFilters && (
+            {(hasActiveFilters || hasJobDetailFilters) && (
               <button
                 type="button"
                 className="text-button"
@@ -280,10 +310,10 @@ function JobsPage() {
               title="Uyğun elan tapılmadı"
               message="Axtarış və filtr seçimlərini dəyişərək yenidən yoxlayın."
               actionLabel={
-                hasActiveFilters ? "Filtrləri təmizlə" : undefined
+                hasActiveFilters || hasJobDetailFilters ? "Filtrləri təmizlə" : undefined
               }
               onAction={
-                hasActiveFilters ? clearFilters : undefined
+                hasActiveFilters || hasJobDetailFilters ? clearFilters : undefined
               }
             />
           )}

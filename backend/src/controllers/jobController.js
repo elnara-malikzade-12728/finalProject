@@ -12,6 +12,16 @@ const jobDetailsCareerSelect = {
   description: true,
 };
 
+const jobInclude = {
+  career: { select: jobCareerSelect },
+  course: { select: jobCareerSelect },
+};
+
+const jobDetailsInclude = {
+  career: { select: jobDetailsCareerSelect },
+  course: { select: jobDetailsCareerSelect },
+};
+
 function parsePositiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
 
@@ -45,6 +55,9 @@ function buildJobFilters(query = {}) {
   const location = normalizeFilter(query.location);
   const category = normalizeFilter(query.category);
   const careerId = parsePositiveInteger(query.careerId);
+  const courseId = parsePositiveInteger(query.courseId);
+  const employmentType = normalizeFilter(query.employmentType);
+  const experienceLevel = normalizeFilter(query.experienceLevel);
   const where = {};
 
   if (search) {
@@ -65,6 +78,15 @@ function buildJobFilters(query = {}) {
   if (careerId) {
     where.careerId = careerId;
   }
+  if (courseId) where.courseId = courseId;
+
+  if (['FULL_TIME', 'PART_TIME', 'INTERNSHIP'].includes(employmentType)) {
+    where.employmentType = employmentType;
+  }
+
+  if (['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR'].includes(experienceLevel)) {
+    where.experienceLevel = experienceLevel;
+  }
 
   if (category) {
     const categoryCareerId = parsePositiveInteger(category);
@@ -76,12 +98,10 @@ function buildJobFilters(query = {}) {
         where.careerId = categoryCareerId;
       }
     } else {
-      where.career = {
-        title: {
-          contains: category,
-          mode: 'insensitive',
-        },
-      };
+      where.OR = [
+        { career: { title: { contains: category, mode: 'insensitive' } } },
+        { course: { title: { contains: category, mode: 'insensitive' } } },
+      ];
     }
   }
 
@@ -122,6 +142,13 @@ function validateJobPayload(body = {}, { partial = false } = {}) {
     'description',
     'url',
     'careerId',
+    'courseId',
+    'employmentType',
+    'experienceLevel',
+    'salaryMin',
+    'salaryMax',
+    'salaryCurrency',
+    'companyLogoUrl',
   ];
   const hasField = (field) =>
     Object.prototype.hasOwnProperty.call(body, field);
@@ -138,21 +165,17 @@ function validateJobPayload(body = {}, { partial = false } = {}) {
     data.title = title;
   }
 
-  if (!partial || hasField('careerId')) {
-    const careerId = parsePositiveInteger(body.careerId);
-
-    if (!careerId) {
-      return { error: 'Düzgün peşə seçilməlidir.' };
-    }
-
-    data.careerId = careerId;
-  }
+  if (hasField('careerId')) data.careerId = body.careerId ? parsePositiveInteger(body.careerId) : null;
+  if (hasField('courseId')) data.courseId = body.courseId ? parsePositiveInteger(body.courseId) : null;
+  if (!partial && !data.careerId && !data.courseId) return { error: 'Düzgün kurs seçilməlidir.' };
+  if ((body.careerId && !data.careerId) || (body.courseId && !data.courseId)) return { error: 'Kurs ID-si yanlışdır.' };
 
   for (const field of [
     'company',
     'location',
     'description',
     'url',
+    'companyLogoUrl',
   ]) {
     if (!partial || hasField(field)) {
       data[field] = normalizeOptionalString(body[field]);
@@ -165,6 +188,48 @@ function validateJobPayload(body = {}, { partial = false } = {}) {
     };
   }
 
+  if (!isValidHttpUrl(data.companyLogoUrl)) {
+    return { error: 'Şirkət loqosu keçidi http:// və ya https:// ilə başlamalıdır.' };
+  }
+
+  if (!partial || hasField('employmentType')) {
+    const value = body.employmentType || 'FULL_TIME';
+    if (!['FULL_TIME', 'PART_TIME', 'INTERNSHIP'].includes(value)) {
+      return { error: 'İş növü yanlışdır.' };
+    }
+    data.employmentType = value;
+  }
+
+  if (!partial || hasField('experienceLevel')) {
+    const value = body.experienceLevel || null;
+    if (value && !['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR'].includes(value)) {
+      return { error: 'Təcrübə səviyyəsi yanlışdır.' };
+    }
+    data.experienceLevel = value;
+  }
+
+  for (const field of ['salaryMin', 'salaryMax']) {
+    if (!partial || hasField(field)) {
+      if (body[field] === null || body[field] === '' || body[field] === undefined) {
+        data[field] = null;
+      } else {
+        const value = Number(body[field]);
+        if (!Number.isInteger(value) || value < 0) return { error: 'Maaş müsbət tam ədəd olmalıdır.' };
+        data[field] = value;
+      }
+    }
+  }
+
+  if (data.salaryMin !== undefined && data.salaryMax !== undefined && data.salaryMin !== null && data.salaryMax !== null && data.salaryMin > data.salaryMax) {
+    return { error: 'Minimum maaş maksimum maaşdan böyük ola bilməz.' };
+  }
+
+  if (!partial || hasField('salaryCurrency')) {
+    const currency = String(body.salaryCurrency || 'AZN').trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) return { error: 'Valyuta 3 hərfli kod olmalıdır.' };
+    data.salaryCurrency = currency;
+  }
+
   if (partial && !allowedFields.some(hasField)) {
     return { error: 'Yenilənəcək məlumat daxil edilməlidir.' };
   }
@@ -173,7 +238,7 @@ function validateJobPayload(body = {}, { partial = false } = {}) {
 }
 
 async function careerExists(careerId) {
-  if (careerId === undefined) {
+  if (careerId === undefined || careerId === null) {
     return true;
   }
 
@@ -185,6 +250,11 @@ async function careerExists(careerId) {
   return Boolean(career);
 }
 
+async function courseExists(courseId) {
+  if (courseId === undefined || courseId === null) return true;
+  return Boolean(await prisma.course.findFirst({ where: { id: courseId, published: true }, select: { id: true } }));
+}
+
 async function listJobs(req, res) {
   try {
     const page = parsePositiveInteger(req.query.page) || 1;
@@ -194,7 +264,7 @@ async function listJobs(req, res) {
     );
     const jobs = await prisma.job.findMany({
       where: buildJobFilters(req.query),
-      include: { career: { select: jobCareerSelect } },
+      include: jobInclude,
       orderBy: { id: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -216,7 +286,7 @@ async function getJobById(req, res) {
 
     const job = await prisma.job.findUnique({
       where: { id },
-      include: { career: { select: jobDetailsCareerSelect } },
+      include: jobDetailsInclude,
     });
 
     if (!job) {
@@ -241,10 +311,13 @@ async function createJob(req, res) {
     if (!(await careerExists(validation.data.careerId))) {
       return res.status(404).json({ error: 'Peşə tapılmadı.' });
     }
+    if (!(await courseExists(validation.data.courseId))) {
+      return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    }
 
     const job = await prisma.job.create({
       data: validation.data,
-      include: { career: { select: jobCareerSelect } },
+      include: jobInclude,
     });
 
     return res.status(201).json(job);
@@ -282,11 +355,14 @@ async function updateJob(req, res) {
     if (!(await careerExists(validation.data.careerId))) {
       return res.status(404).json({ error: 'Peşə tapılmadı.' });
     }
+    if (!(await courseExists(validation.data.courseId))) {
+      return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    }
 
     const job = await prisma.job.update({
       where: { id },
       data: validation.data,
-      include: { career: { select: jobCareerSelect } },
+      include: jobInclude,
     });
 
     return res.status(200).json(job);

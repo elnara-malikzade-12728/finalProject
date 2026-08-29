@@ -21,6 +21,15 @@ const {
  *       - Jobs
  *     summary: Bütün vakansiya və təcrübə proqramlarını göstər
  *     description: İctimai endpoint-dir. Vakansiyaları əlaqəli kurs məlumatları ilə birlikdə səhifələnmiş şəkildə qaytarır.
+ *     parameters:
+ *       - in: query
+ *         name: employmentType
+ *         schema: { type: string, enum: [FULL_TIME, PART_TIME, INTERNSHIP] }
+ *         description: İş növünə görə filtr
+ *       - in: query
+ *         name: experienceLevel
+ *         schema: { type: string, enum: [ENTRY_LEVEL, JUNIOR, MID_LEVEL, SENIOR] }
+ *         description: Təcrübə səviyyəsinə görə filtr
  *     responses:
  *       200:
  *         description: Vakansiya və təcrübə proqramlarının siyahısı
@@ -81,7 +90,7 @@ router.get("/", listJobs);
  *       403:
  *         description: Administrator icazəsi tələb olunur
  *       404:
- *         description: Seçilmiş peşə tapılmadı
+ *         description: Seçilmiş kurs tapılmadı
  *       500:
  *         description: Server və ya verilənlər bazası xətası
  */

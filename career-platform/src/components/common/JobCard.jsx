@@ -5,6 +5,16 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const employmentLabels = { FULL_TIME: "Tam ştat", PART_TIME: "Yarım ştat", INTERNSHIP: "Təcrübə proqramı" };
+const experienceLabels = { ENTRY_LEVEL: "Başlanğıc", JUNIOR: "Junior", MID_LEVEL: "Mid-level", SENIOR: "Senior" };
+
+function formatSalary(job) {
+  if (job.salaryMin == null && job.salaryMax == null) return null;
+  const currency = job.salaryCurrency || "AZN";
+  if (job.salaryMin != null && job.salaryMax != null) return `${job.salaryMin}–${job.salaryMax} ${currency}`;
+  return `${job.salaryMin ?? job.salaryMax} ${currency}`;
+}
+
 function getCompanyInitials(company) {
   if (!company) {
     return "—";
@@ -22,8 +32,8 @@ function getCompanyInitials(company) {
 
 function JobCard({ job }) {
   const companyName = job.company || "Şirkət göstərilməyib";
-  const careerTitle = job.career?.title;
-  const careerId = job.careerId || job.career?.id;
+  const careerTitle = job.course?.title || job.career?.title;
+  const careerId = job.courseId || job.course?.id || job.careerId || job.career?.id;
 
   return (
     <article className="job-card">
@@ -32,7 +42,7 @@ function JobCard({ job }) {
           className="company-logo"
           aria-label={`${companyName} şirkətinin loqosu`}
         >
-          {getCompanyInitials(job.company)}
+          {job.companyLogoUrl ? <img src={job.companyLogoUrl} alt="" /> : getCompanyInitials(job.company)}
         </div>
 
         <div className="job-card-content">
@@ -43,6 +53,10 @@ function JobCard({ job }) {
                   <span className="tag">{careerTitle}</span>
                 </div>
               )}
+              <div className="job-tags">
+                <span className="tag">{employmentLabels[job.employmentType] || "Tam ştat"}</span>
+                {job.experienceLevel && <span className="tag">{experienceLabels[job.experienceLevel]}</span>}
+              </div>
 
               <h3>
                 <Link to={`/jobs/${job.id}`}>{job.title}</Link>
@@ -69,6 +83,7 @@ function JobCard({ job }) {
                 {careerTitle}
               </span>
             )}
+            {formatSalary(job) && <span>{formatSalary(job)}</span>}
           </div>
 
           {job.description && (
@@ -85,7 +100,7 @@ function JobCard({ job }) {
 
             {careerId && (
               <Link
-                to={`/careers/${careerId}`}
+                to={job.courseId || job.course?.id ? `/courses/${careerId}` : `/careers/${careerId}`}
                 className="button button-ghost"
               >
                 Uyğun yol xəritəsi

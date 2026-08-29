@@ -12,6 +12,8 @@ function filterMockJobs(filters = {}) {
     careerId = "",
     category = "",
     location = "",
+    employmentType = "",
+    experienceLevel = "",
   } = filters;
 
   const normalizedSearch = search
@@ -57,11 +59,16 @@ function filterMockJobs(filters = {}) {
         .toLocaleLowerCase("az")
         .includes(normalizedLocation);
 
+    const matchesEmploymentType = !employmentType || job.employmentType === employmentType || job.type === employmentType;
+    const matchesExperienceLevel = !experienceLevel || job.experienceLevel === experienceLevel;
+
     return (
       matchesSearch &&
       matchesCareer &&
       matchesCategory &&
       matchesLocation
+      && matchesEmploymentType
+      && matchesExperienceLevel
     );
   });
 }
