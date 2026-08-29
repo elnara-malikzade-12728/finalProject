@@ -69,7 +69,7 @@ function RoadmapPage() {
             Axtardığınız karyera istiqaməti mövcud deyil.
           </p>
 
-          <Link to="/careers" className="button button-primary">
+          <Link to="/courses" className="button button-primary">
             <ArrowLeft size={18} />
             Kurslara qayıt
           </Link>

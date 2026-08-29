@@ -3121,6 +3121,16 @@ a.admin-action-card:hover {
   background: #000;
 }
 
+.course-public-modules { display: grid; gap: 18px; }
+.course-public-modules > .content-card-heading { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; background: var(--surface); }
+.course-public-module { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; background: var(--surface); }
+.course-public-module h3 { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--text); }
+.course-public-module > p { margin: 9px 0 0; color: var(--muted); }
+.course-public-module ul { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.course-public-module li { display: flex; align-items: center; gap: 9px; border-radius: var(--radius-sm); padding: 11px 13px; background: var(--surface-muted); color: var(--text); }
+.course-public-module li > svg { flex: 0 0 auto; color: var(--primary); }
+.course-public-module li small { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: var(--muted); }
+
 /* Admin course structure */
 .admin-courses-page { display: grid; gap: 24px; }
 .course-admin-forms { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; }

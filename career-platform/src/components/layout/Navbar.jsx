@@ -66,7 +66,7 @@ function Navbar() {
         >
           <div className="nav-links">
             <NavLink
-              to="/careers"
+              to="/courses"
               className={getNavLinkClass}
               onClick={closeMenu}
             >

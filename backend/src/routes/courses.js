@@ -4,6 +4,11 @@ const requireAdmin = require('../middleware/requireAdmin');
 const controller = require('../controllers/courseController');
 
 const router = express.Router();
+
+router.get('/', controller.listPublishedCourses);
+router.get('/admin', auth, requireAdmin, controller.listCourseStructure);
+router.get('/:id', controller.getPublishedCourse);
+
 router.use(auth, requireAdmin);
 
 /**
@@ -11,21 +16,16 @@ router.use(auth, requireAdmin);
  * /api/courses:
  *   get:
  *     tags: [Course Management]
- *     summary: Kurs strukturunu əldə et
- *     description: Bütün kateqoriya, kurs, modul və dərsləri qaytarır. Yalnız administrator üçündür.
- *     security: [{ bearerAuth: [] }]
+ *     summary: Yayımlanmış kursları əldə et
+ *     description: İctimai kataloq üçün yalnız yayımlanmış kursları qaytarır.
  *     responses:
  *       200:
- *         description: Kurs strukturu
+ *         description: Yayımlanmış kurslar
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 categories: { type: array, items: { $ref: '#/components/schemas/CourseCategory' } }
- *                 courses: { type: array, items: { $ref: '#/components/schemas/ManagedCourse' } }
- *       401: { description: Autentifikasiya tələb olunur }
- *       403: { description: Administrator icazəsi tələb olunur }
+ *               type: array
+ *               items: { $ref: '#/components/schemas/ManagedCourse' }
  *   post:
  *     tags: [Course Management]
  *     summary: Yeni kurs yarat
@@ -47,6 +47,14 @@ router.use(auth, requireAdmin);
  *       400: { description: Məlumatlar yanlışdır }
  *       403: { description: Administrator icazəsi tələb olunur }
  * /api/courses/{id}:
+ *   get:
+ *     tags: [Course Management]
+ *     summary: Yayımlanmış kursun proqramını əldə et
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Kursun modulları və yayımlanmış dərsləri }
+ *       404: { description: Kurs tapılmadı və ya yayımlanmayıb }
  *   patch:
  *     tags: [Course Management]
  *     summary: Kursu yenilə və ya yayım vəziyyətini dəyiş
@@ -70,8 +78,17 @@ router.use(auth, requireAdmin);
  *     responses:
  *       204: { description: Kurs silindi }
  *       404: { description: Kurs tapılmadı }
+ * /api/courses/admin:
+ *   get:
+ *     tags: [Course Management]
+ *     summary: Tam kurs strukturunu idarəetmə üçün əldə et
+ *     description: Qaralamalar daxil olmaqla kateqoriya, kurs, modul və dərsləri qaytarır.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Tam kurs strukturu }
+ *       401: { description: Autentifikasiya tələb olunur }
+ *       403: { description: Administrator icazəsi tələb olunur }
  */
-router.get('/', controller.listCourseStructure);
 router.post('/', controller.createCourse);
 
 /**
