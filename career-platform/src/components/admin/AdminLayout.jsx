@@ -2,6 +2,7 @@ import {
   BriefcaseBusiness,
   ClipboardList,
   LayoutDashboard,
+  BookOpen,
   Video,
 } from "lucide-react";
 import {
@@ -15,6 +16,12 @@ const adminLinks = [
     label: "İcmal",
     icon: LayoutDashboard,
     end: true,
+  },
+  {
+    to: "/admin/courses",
+    label: "Kurslar",
+    icon: BookOpen,
+    end: false,
   },
   {
     to: "/admin/videos",

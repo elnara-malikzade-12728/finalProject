@@ -195,6 +195,17 @@ function AdminDashboardPage() {
           <div className="admin-action-grid">
             <Link
               className="admin-action-card"
+              to="/admin/courses"
+            >
+              <Route size={24} aria-hidden="true" />
+              <div>
+                <strong>Kursları idarə et</strong>
+                <span>Kateqoriya, modul və dərsləri yaradın.</span>
+              </div>
+            </Link>
+
+            <Link
+              className="admin-action-card"
               to="/admin/jobs"
             >
               <BriefcaseBusiness

@@ -86,6 +86,9 @@ const AdminApplicationsPage = lazy(
 const AdminVideoPage = lazy(
   () => import("./pages/AdminVideoPage.jsx"),
 );
+const AdminCoursesPage = lazy(
+  () => import("./pages/AdminCoursesPage.jsx"),
+);
 
 function App() {
   return (
@@ -162,6 +165,10 @@ function App() {
                   <Route
                     path="videos"
                     element={<AdminVideoPage />}
+                  />
+                  <Route
+                    path="courses"
+                    element={<AdminCoursesPage />}
                   />
 
                   <Route

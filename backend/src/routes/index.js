@@ -7,6 +7,7 @@ const applicationRoutes = require("./applications");
 const progressRoutes = require("./progress");
 const userRoutes = require("./users");
 const videoRoutes = require("./videos");
+const courseRoutes = require("./courses");
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.use("/jobs", jobRoutes);
 router.use("/applications", applicationRoutes);
 router.use("/progress", progressRoutes);
 router.use("/lessons", videoRoutes);
+router.use("/courses", courseRoutes);
 
 module.exports = router;
