@@ -1,8 +1,12 @@
 import {
   BriefcaseBusiness,
+  Building2,
   ClipboardList,
+  CreditCard,
   LayoutDashboard,
   BookOpen,
+  Newspaper,
+  RefreshCcw,
   Video,
   ListChecks,
 } from "lucide-react";
@@ -46,6 +50,36 @@ const adminLinks = [
     to: "/admin/applications",
     label: "Müraciətlər",
     icon: ClipboardList,
+    end: false,
+  },
+  {
+    to: "/admin/plans",
+    label: "Planlar",
+    icon: CreditCard,
+    end: false,
+  },
+  {
+    to: "/admin/subscriptions",
+    label: "Abunəliklər",
+    icon: RefreshCcw,
+    end: false,
+  },
+  {
+    to: "/admin/payments",
+    label: "Ödənişlər",
+    icon: CreditCard,
+    end: false,
+  },
+  {
+    to: "/admin/corporate-inquiries",
+    label: "Korporativ sorğular",
+    icon: Building2,
+    end: false,
+  },
+  {
+    to: "/admin/articles",
+    label: "Məqalələr",
+    icon: Newspaper,
     end: false,
   },
 ];

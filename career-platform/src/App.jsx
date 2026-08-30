@@ -115,6 +115,50 @@ const AdminTestsPage = lazy(
   () => import("./pages/AdminTestsPage.jsx"),
 );
 
+const PricingPage = lazy(
+  () => import("./pages/PricingPage.jsx"),
+);
+const PaymentSuccessPage = lazy(
+  () => import("./pages/PaymentSuccessPage.jsx"),
+);
+const PaymentCancelPage = lazy(
+  () => import("./pages/PaymentCancelPage.jsx"),
+);
+const SubscriptionPage = lazy(
+  () => import("./pages/SubscriptionPage.jsx"),
+);
+const PaymentHistoryPage = lazy(
+  () => import("./pages/PaymentHistoryPage.jsx"),
+);
+const CorporatePage = lazy(
+  () => import("./pages/CorporatePage.jsx"),
+);
+const CorporateContactPage = lazy(
+  () => import("./pages/CorporateContactPage.jsx"),
+);
+const ArticlesPage = lazy(
+  () => import("./pages/ArticlesPage.jsx"),
+);
+const ArticleDetailsPage = lazy(
+  () => import("./pages/ArticleDetailsPage.jsx"),
+);
+
+const AdminPlansPage = lazy(
+  () => import("./pages/AdminPlansPage.jsx"),
+);
+const AdminSubscriptionsPage = lazy(
+  () => import("./pages/AdminSubscriptionsPage.jsx"),
+);
+const AdminPaymentsPage = lazy(
+  () => import("./pages/AdminPaymentsPage.jsx"),
+);
+const AdminCorporateInquiriesPage = lazy(
+  () => import("./pages/AdminCorporateInquiriesPage.jsx"),
+);
+const AdminArticlesPage = lazy(
+  () => import("./pages/AdminArticlesPage.jsx"),
+);
+
 function App() {
   return (
     <AuthProvider>
@@ -181,6 +225,31 @@ function App() {
             />
 
             <Route
+              path="pricing"
+              element={<PricingPage />}
+            />
+
+            <Route
+              path="corporate"
+              element={<CorporatePage />}
+            />
+
+            <Route
+              path="corporate/contact"
+              element={<CorporateContactPage />}
+            />
+
+            <Route
+              path="articles"
+              element={<ArticlesPage />}
+            />
+
+            <Route
+              path="articles/:slug"
+              element={<ArticleDetailsPage />}
+            />
+
+            <Route
               path="certificates/:verificationCode/verify"
               element={<CertificateVerifyPage />}
             />
@@ -194,6 +263,26 @@ function App() {
               <Route
                 path="profile"
                 element={<ProfilePage />}
+              />
+
+              <Route
+                path="profile/subscription"
+                element={<SubscriptionPage />}
+              />
+
+              <Route
+                path="payment-history"
+                element={<PaymentHistoryPage />}
+              />
+
+              <Route
+                path="payment/success"
+                element={<PaymentSuccessPage />}
+              />
+
+              <Route
+                path="payment/cancel"
+                element={<PaymentCancelPage />}
               />
 
               <Route
@@ -259,6 +348,31 @@ function App() {
                     element={
                       <AdminApplicationsPage />
                     }
+                  />
+
+                  <Route
+                    path="plans"
+                    element={<AdminPlansPage />}
+                  />
+
+                  <Route
+                    path="subscriptions"
+                    element={<AdminSubscriptionsPage />}
+                  />
+
+                  <Route
+                    path="payments"
+                    element={<AdminPaymentsPage />}
+                  />
+
+                  <Route
+                    path="corporate-inquiries"
+                    element={<AdminCorporateInquiriesPage />}
+                  />
+
+                  <Route
+                    path="articles"
+                    element={<AdminArticlesPage />}
                   />
                 </Route>
               </Route>

@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0",
     "prisma": "^4.16.2",
+    "stripe": "^22.6.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   },

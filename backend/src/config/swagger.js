@@ -40,6 +40,26 @@ const options = {
         description: "Job and internship operations",
       },
       {
+        name: "Plans",
+        description: "Abunəlik planlarının idarə edilməsi",
+      },
+      {
+        name: "Articles",
+        description: "Bloq məqalələrinin idarə edilməsi",
+      },
+      {
+        name: "Payments",
+        description: "Ödəniş və checkout əməliyyatları",
+      },
+      {
+        name: "Subscriptions",
+        description: "İstifadəçi abunəliklərinin idarə edilməsi",
+      },
+            {
+        name: "Corporate",
+        description: "Korporativ B2B müraciətlərinin idarə edilməsi",
+      },
+      {
         name: "Applications",
         description: "User job applications and administrator application management",
       },
