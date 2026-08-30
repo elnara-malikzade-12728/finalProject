@@ -186,6 +186,7 @@ PORT=4000
 SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=YOUR_PRIVATE_SERVICE_ROLE_KEY
 SUPABASE_VIDEO_BUCKET=course-videos
+SUPABASE_CV_BUCKET=user-cvs
 VIDEO_SIGNED_URL_TTL=600
 MAX_VIDEO_SIZE_BYTES=524288000
 ```
@@ -236,6 +237,8 @@ Create a private bucket named `course-videos` with:
 - Allowed MIME types: `video/mp4`, `video/webm`, and `video/quicktime`
 
 The browser never receives the Supabase service-role key. The backend authorizes the administrator and issues a short-lived signed upload token. After the browser uploads directly to Supabase, the backend verifies the object and saves its metadata on the associated lesson.
+
+Create a second private bucket named `user-cvs` for CV documents. Keep public access disabled, set the maximum object size to 5 MB, and allow PDF, DOC, and DOCX MIME types. Configure its name through `SUPABASE_CV_BUCKET`; CV uploads are authorized by the backend and stored under the authenticated user's folder.
 
 ### Protected Bunny Stream Setup
 
