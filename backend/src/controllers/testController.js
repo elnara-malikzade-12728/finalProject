@@ -158,6 +158,45 @@ async function createTest(req, res, next) {
     }
 }
 
+async function listTests(req, res, next) {
+    try {
+        const tests = await prisma.test.findMany({
+            orderBy: { updatedAt: "desc" },
+            include: {
+                course: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true } },
+                _count: { select: { questions: true, attempts: true } },
+            },
+        });
+
+        return res.status(200).json(tests);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function listPublishedTests(req, res, next) {
+    try {
+        const tests = await prisma.test.findMany({
+            where: { published: true },
+            orderBy: { updatedAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                type: true,
+                passScorePercent: true,
+                timeLimitMinutes: true,
+                course: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true } },
+                _count: { select: { questions: true } },
+            },
+        });
+        return res.status(200).json(tests);
+    } catch (error) {
+        return next(error);
+    }
+}
+
 async function getTest(req, res, next) {
     try {
         const id = normalizePositiveInt(req.params.id, "id");
@@ -276,11 +315,24 @@ async function deleteTest(req, res, next) {
 async function publishTest(req, res, next) {
     try {
         const id = normalizePositiveInt(req.params.id, "id");
-        await ensureTestExists(id);
+        const test = await ensureTestExists(id);
 
         const publishedValue = req.body && typeof req.body.published === "boolean"
             ? req.body.published
             : true;
+
+        if (publishedValue) {
+            const minimumQuestions = test.type === "FINAL" ? 20 : 3;
+            const maximumQuestions = test.type === "FINAL" ? 30 : 5;
+            const questionCount = test.questions.length;
+
+            if (questionCount < minimumQuestions || questionCount > maximumQuestions) {
+                throw createHttpError(
+                    400,
+                    `${test.type === "FINAL" ? "Final" : "Lesson"} testi yayımlamaq üçün ${minimumQuestions}–${maximumQuestions} sual olmalıdır.`,
+                );
+            }
+        }
 
         const updated = await prisma.test.update({
             where: { id },
@@ -298,6 +350,8 @@ module.exports = {
     normalizePercent,
     validateTestType,
     buildQuestionPayload,
+    listTests,
+    listPublishedTests,
     createTest,
     getTest,
     updateTest,

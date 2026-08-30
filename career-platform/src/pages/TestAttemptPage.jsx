@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Clock3, LoaderCircle, XCircle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client.js";
@@ -16,6 +16,8 @@ function TestAttemptPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [notification, setNotification] = useState(null);
+    const [remainingSeconds, setRemainingSeconds] = useState(null);
+    const autoSubmitStarted = useRef(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -25,6 +27,10 @@ function TestAttemptPage() {
                 setIsLoading(true);
                 const response = await getAttempt(attemptId, { signal: controller.signal });
                 setAttempt(response);
+                if (response.status !== "SUBMITTED" && response.test?.timeLimitMinutes) {
+                    const deadline = new Date(response.startedAt).getTime() + response.test.timeLimitMinutes * 60000;
+                    setRemainingSeconds(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+                }
                 const initialAnswers = {};
                 response.questions?.forEach((question) => {
                     initialAnswers[question.id] = null;
@@ -47,6 +53,24 @@ function TestAttemptPage() {
     }, [attemptId]);
 
     const questionList = useMemo(() => attempt?.questions || [], [attempt]);
+    const answeredCount = useMemo(
+        () => Object.values(answers).filter((answer) => answer !== null && answer !== undefined).length,
+        [answers],
+    );
+
+    useEffect(() => {
+        if (remainingSeconds === null || remainingSeconds <= 0 || attempt?.status === "SUBMITTED") return undefined;
+        const timer = window.setInterval(() => {
+            setRemainingSeconds((current) => current === null ? null : Math.max(0, current - 1));
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [remainingSeconds, attempt?.status]);
+
+    useEffect(() => {
+        if (remainingSeconds !== 0 || !attempt || attempt.status === "SUBMITTED" || autoSubmitStarted.current) return;
+        autoSubmitStarted.current = true;
+        handleSubmit({ automatic: true });
+    }, [remainingSeconds, attempt]);
 
     function handleOptionChange(questionId, optionValue) {
         setAnswers((current) => ({
@@ -55,7 +79,14 @@ function TestAttemptPage() {
         }));
     }
 
-    async function handleSubmit() {
+    async function handleSubmit({ automatic = false } = {}) {
+        if (!automatic && answeredCount < questionList.length) {
+            setNotification({
+                type: "info",
+                message: "Testi göndərmək üçün bütün sualları cavablandırın.",
+            });
+            return;
+        }
         const payload = questionList.map((question) => ({
             questionId: question.id,
             answer: answers[question.id] ?? null,
@@ -65,12 +96,13 @@ function TestAttemptPage() {
             setIsSubmitting(true);
             const result = await submitAttempt(attemptId, payload);
             setAttempt((current) => ({ ...current, ...result }));
-            setNotification({
-                type: "success",
-                message: result.passed
-                    ? "Testi uğurla keçdiniz!"
-                    : "Test tamamlandı, nəticəni yoxlayın.",
-            });
+            setRemainingSeconds(null);
+            setNotification(automatic
+                ? {
+                    type: "info",
+                    message: "Vaxt bitdiyi üçün cavablar avtomatik göndərildi.",
+                }
+                : null);
         } catch (requestError) {
             setNotification({
                 type: "error",
@@ -133,16 +165,18 @@ function TestAttemptPage() {
                             )}
                             <span>
                                 {attempt.passed
-                                    ? "Bu cəhd uğurla tamamlandı."
-                                    : "Bu cəhd uğursuz oldu."}
+                                    ? "Bu testdən uğurla keçdiniz."
+                                    : "Bu cəhd keçid balını toplamadı."}
                             </span>
                         </div>
                     )}
 
-                    {attempt.test?.timeLimitMinutes && (
-                        <p className="muted-text">
+                    {attempt.status !== "SUBMITTED" && attempt.test?.timeLimitMinutes && (
+                        <p className="muted-text test-time-limit">
                             <Clock3 size={16} />
-                            Vaxt limiti: {attempt.test.timeLimitMinutes} dəqiqə
+                            Qalan vaxt: {remainingSeconds === null
+                                ? `${attempt.test.timeLimitMinutes}:00`
+                                : `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`}
                         </p>
                     )}
 
@@ -172,14 +206,25 @@ function TestAttemptPage() {
                     </div>
 
                     {attempt.status !== "SUBMITTED" && (
-                        <button
+                        <div className="test-submit-bar"><span>{answeredCount}/{questionList.length} sual cavablandırılıb</span><button
                             type="button"
                             className="button button-primary button-large"
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
+                            onClick={() => handleSubmit()}
+                            disabled={isSubmitting || answeredCount < questionList.length}
                         >
                             {isSubmitting ? <LoaderCircle className="loading-spinner" size={18} /> : null}
                             Cavabları göndər
+                        </button>
+                        </div>
+                    )}
+
+                    {attempt.status === "SUBMITTED" && (
+                        <button
+                            type="button"
+                            className="button button-primary"
+                            onClick={() => navigate(`/tests/${attempt.test.id}`)}
+                        >
+                            Yenidən cəhd et
                         </button>
                     )}
 

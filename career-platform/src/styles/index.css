@@ -3219,6 +3219,61 @@ a.admin-action-card:hover {
 
 .admin-courses-page { display: grid; gap: 24px; }
 .course-admin-forms { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; }
+.assessment-admin-grid { display: grid; grid-template-columns: minmax(280px, .75fr) minmax(360px, 1.25fr); gap: 20px; align-items: start; }
+.assessment-admin-grid label { display: grid; gap: 7px; color: var(--text-muted); font-weight: 600; }
+.assessment-test-list { display: grid; gap: 10px; }
+.assessment-test-card { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.assessment-test-card-selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(243,112,33,.1); }
+.assessment-test-select { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.assessment-test-select span { display: grid; gap: 3px; min-width: 0; }
+.assessment-test-select small { color: var(--text-muted); }
+.assessment-editor { margin-top: 24px; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.assessment-editor > header { display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 20px; }
+.assessment-editor-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.assessment-editor h2, .assessment-editor p { margin: 0; }
+.assessment-question-list { display: grid; gap: 12px; margin-bottom: 20px; }
+.assessment-question-list article { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.assessment-question-list ul { margin: 10px 0; }
+.assessment-correct-answer { color: #16803c; font-weight: 700; }
+.assessment-question-form { max-width: 760px; }
+.assessment-option-input { display: grid !important; grid-template-columns: auto 1fr; align-items: center; gap: 9px !important; }
+.assessment-option-input > input[type="radio"] { width: auto; }
+@media (max-width: 850px) { .assessment-admin-grid { grid-template-columns: 1fr; } .assessment-editor > header { align-items: flex-start; flex-direction: column; } }
+.tests-catalog-header { max-width: 720px; margin-bottom: 30px; }
+.tests-catalog-header h1 { margin: 8px 0 10px; font-size: clamp(2rem, 5vw, 3.4rem); }
+.tests-catalog-header p { color: var(--text-muted); font-size: 1.08rem; }
+.tests-catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.test-catalog-card { display: flex; flex-direction: column; gap: 15px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: 0 12px 32px rgba(56,32,18,.06); }
+.test-catalog-card-top { display: flex; justify-content: space-between; align-items: center; }
+.test-catalog-id { color: var(--text-muted); font-weight: 700; }
+.test-catalog-card h2, .test-catalog-card p { margin: 0; }
+.test-catalog-card p { color: var(--text-muted); }
+.test-catalog-meta { display: grid; gap: 9px; margin: 4px 0 8px; color: var(--text-muted); }
+.test-catalog-meta span { display: flex; align-items: center; gap: 8px; }
+.test-catalog-card .button { margin-top: auto; }
+.tests-empty { text-align: center; padding: 48px 24px; }
+.test-attempt-layout { max-width: 960px; }
+.test-attempt-card { padding: clamp(22px, 4vw, 46px); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 20px 55px rgba(61,35,18,.08); }
+.test-attempt-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+.test-attempt-header h1 { margin: 12px 0 0; font-size: clamp(2rem, 5vw, 3.2rem); }
+.attempt-score-box { display: grid; min-width: 125px; padding: 16px 20px; border-radius: 18px; background: #eefbf2; color: #126b35; text-align: center; }
+.attempt-score-box strong { font-size: 1.75rem; line-height: 1; }
+.attempt-score-box span { margin-top: 6px; font-weight: 700; }
+.success-summary { display: flex; align-items: center; gap: 10px; margin: 20px 0; padding: 14px 16px; border: 1px solid #b9e8c7; border-radius: 14px; background: #f0fbf3; color: #126b35; font-weight: 700; }
+.test-time-limit { display: inline-flex; align-items: center; gap: 8px; margin: 20px 0; padding: 10px 14px; border-radius: 999px; background: var(--surface-muted); }
+.test-time-limit { color: var(--primary-dark); font-weight: 800; font-variant-numeric: tabular-nums; }
+.question-list { display: grid; gap: 18px; }
+.question-card { padding: clamp(18px, 3vw, 28px); border: 1px solid var(--border); border-radius: 20px; background: #fffdfa; }
+.question-card h3 { margin: 0 0 18px; line-height: 1.4; }
+.answer-options { display: grid; gap: 10px; }
+.option-item { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
+.option-item:hover { border-color: var(--primary); transform: translateY(-1px); }
+.option-item:has(input:checked) { border-color: var(--primary); background: rgba(243,112,33,.08); box-shadow: 0 0 0 3px rgba(243,112,33,.08); }
+.option-item input { width: 18px; height: 18px; accent-color: var(--primary); }
+.test-submit-bar { position: sticky; bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-top: 24px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 18px; background: rgba(255,255,255,.96); box-shadow: 0 12px 35px rgba(61,35,18,.14); backdrop-filter: blur(10px); }
+.test-submit-bar span { color: var(--text-muted); font-weight: 700; }
+@media (max-width: 900px) { .tests-catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .tests-catalog-grid { grid-template-columns: 1fr; } .test-attempt-header, .test-submit-bar { align-items: stretch; flex-direction: column; } .test-submit-bar .button { width: 100%; } }
 .course-admin-form { display: grid; align-content: start; gap: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; background: var(--surface); }
 .course-admin-form h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 4px; font-size: 1.05rem; }
 .course-admin-form input, .course-admin-form textarea, .course-admin-form select, .course-tree-add input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 13px; outline: 0; background: var(--surface-muted); color: var(--text); font: inherit; }

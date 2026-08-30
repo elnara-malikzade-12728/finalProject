@@ -108,6 +108,12 @@ const AdminVideoPage = lazy(
 const AdminCoursesPage = lazy(
   () => import("./pages/AdminCoursesPage.jsx"),
 );
+const TestsPage = lazy(
+  () => import("./pages/TestsPage.jsx"),
+);
+const AdminTestsPage = lazy(
+  () => import("./pages/AdminTestsPage.jsx"),
+);
 
 function App() {
   return (
@@ -165,6 +171,11 @@ function App() {
             />
 
             <Route
+              path="tests"
+              element={<TestsPage />}
+            />
+
+            <Route
               path="tests/:testId"
               element={<TestPage />}
             />
@@ -218,6 +229,10 @@ function App() {
                   <Route
                     path="courses"
                     element={<AdminCoursesPage />}
+                  />
+                  <Route
+                    path="tests"
+                    element={<AdminTestsPage />}
                   />
 
                   <Route

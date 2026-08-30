@@ -6,6 +6,7 @@ import {
   Map,
   Menu,
   UserRound,
+  ListChecks,
   X,
 } from "lucide-react";
 import {
@@ -94,6 +95,14 @@ function Navbar() {
 
               {isAuthenticated && user?.role !== "ADMIN" && (
                 <>
+                  <NavLink
+                    to="/tests"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <ListChecks size={18} />
+                    Testlər
+                  </NavLink>
                   <NavLink
                     to="/applications/me"
                     className={getNavLinkClass}

@@ -8,6 +8,7 @@ import {
   Route,
   Users,
   Video,
+  ListChecks,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -193,6 +194,13 @@ function AdminDashboardPage() {
           </div>
 
           <div className="admin-action-grid">
+            <Link className="admin-action-card" to="/admin/tests">
+              <ListChecks size={24} aria-hidden="true" />
+              <div>
+                <strong>Testləri idarə et</strong>
+                <span>Testləri və sualları yaradın, sonra yayımlayın.</span>
+              </div>
+            </Link>
             <Link
               className="admin-action-card"
               to="/admin/courses"
