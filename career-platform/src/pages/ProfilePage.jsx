@@ -17,6 +17,7 @@ import {
   deleteMyCv,
   getMyCv,
   requestCvUploadUrl,
+  uploadCvToStorage,
 } from "../api/cvApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -157,13 +158,7 @@ function ProfilePage() {
         file.size,
       );
 
-      await fetch(uploadInfo.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
-        body: file,
-      });
+      await uploadCvToStorage(uploadInfo, file);
 
       const updatedCv = await completeCvUpload(
         uploadInfo.path,
