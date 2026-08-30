@@ -279,7 +279,9 @@ function ProfilePage() {
                 <p className="muted-text">CV yüklənir...</p>
               ) : cv ? (
                 <>
-                  <p className="cv-file-name">{cv.originalName || "Yüklənmiş CV"}</p>
+                  {cv.originalName && (
+                    <p className="cv-file-name">{cv.originalName}</p>
+                  )}
 
                   <div className="cv-actions">
                     <a
@@ -317,6 +319,7 @@ function ProfilePage() {
               ) : (
                 <label className="upload-box">
                   <input
+                    className="sr-only"
                     type="file"
                     accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={handleCvUpload}
