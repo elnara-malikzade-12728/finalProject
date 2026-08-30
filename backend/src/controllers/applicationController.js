@@ -70,15 +70,29 @@ async function applyToJob(req, res) {
       });
     }
 
-    const existingApplication =
-      await prisma.application.findUnique({
-        where: {
-          userId_jobId: {
-            userId,
-            jobId,
-          },
-        },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, cvFilePath: true },
+    });
+
+    const selectedCv = typeof req.body?.cvFilePathAtApplication === "string"
+      ? req.body.cvFilePathAtApplication.trim()
+      : user?.cvFilePath || null;
+
+    if (!selectedCv) {
+      return res.status(400).json({
+        error: "Müraciət üçün CV seçilməlidir.",
       });
+    }
+
+    const existingApplication = await prisma.application.findUnique({
+      where: {
+        userId_jobId: {
+          userId,
+          jobId,
+        },
+      },
+    });
 
     if (existingApplication) {
       return res.status(409).json({
@@ -86,11 +100,17 @@ async function applyToJob(req, res) {
       });
     }
 
+    const coverLetter = typeof req.body?.coverLetter === "string"
+      ? req.body.coverLetter.trim()
+      : null;
+
     const application = await prisma.application.create({
       data: {
         userId,
         jobId,
         status: "PENDING",
+        cvFilePathAtApplication: selectedCv,
+        coverLetter: coverLetter || null,
       },
       include: {
         job: {
@@ -191,41 +211,41 @@ async function getApplications(req, res) {
       ...(status ? { status } : {}),
       ...(search
         ? {
-            OR: [
-              {
-                user: {
-                  name: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
+          OR: [
+            {
+              user: {
+                name: {
+                  contains: search,
+                  mode: "insensitive",
                 },
               },
-              {
-                user: {
-                  email: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
+            },
+            {
+              user: {
+                email: {
+                  contains: search,
+                  mode: "insensitive",
                 },
               },
-              {
-                job: {
-                  title: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
+            },
+            {
+              job: {
+                title: {
+                  contains: search,
+                  mode: "insensitive",
                 },
               },
-              {
-                job: {
-                  company: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
+            },
+            {
+              job: {
+                company: {
+                  contains: search,
+                  mode: "insensitive",
                 },
               },
-            ],
-          }
+            },
+          ],
+        }
         : {}),
     };
 

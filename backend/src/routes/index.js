@@ -8,6 +8,11 @@ const progressRoutes = require("./progress");
 const userRoutes = require("./users");
 const videoRoutes = require("./videos");
 const courseRoutes = require("./courses");
+const testRoutes = require("./tests");
+const questionRoutes = require("./questions");
+const attemptsRoutes = require("./attempts");
+const certificatesRoutes = require("./certificates");
+const userCvRoutes = require("./usersCv");
 
 const router = express.Router();
 
@@ -19,5 +24,10 @@ router.use("/applications", applicationRoutes);
 router.use("/progress", progressRoutes);
 router.use("/lessons", videoRoutes);
 router.use("/courses", courseRoutes);
+router.use("/tests", testRoutes);
+router.use("/questions", questionRoutes);
+router.use("/", attemptsRoutes);
+router.use("/certificates", certificatesRoutes);
+router.use("/users", userCvRoutes);
 
 module.exports = router;
