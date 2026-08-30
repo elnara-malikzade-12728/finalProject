@@ -140,4 +140,5 @@ module.exports = {
   createInquiry,
   listInquiries,
   updateInquiryStatus,
+  validateInquiryPayload,
 };

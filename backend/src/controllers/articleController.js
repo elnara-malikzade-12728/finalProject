@@ -210,4 +210,6 @@ module.exports = {
   createArticle,
   updateArticle,
   deleteArticle,
+  validateArticlePayload,
+  slugify,
 };

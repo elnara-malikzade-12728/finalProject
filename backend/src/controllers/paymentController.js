@@ -289,4 +289,7 @@ module.exports = {
   createCheckout,
   handleWebhook,
   getMyPayments,
+  addMonths,
+  addYears,
+  parsePositiveInteger,
 };

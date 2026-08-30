@@ -180,4 +180,5 @@ module.exports = {
   createPlan,
   updatePlan,
   deletePlan,
+  validatePlanPayload,
 };
