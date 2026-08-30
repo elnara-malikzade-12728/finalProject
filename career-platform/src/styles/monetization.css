@@ -111,6 +111,54 @@
   width: 100%;
 }
 
+/* Single-course purchase */
+
+.pricing-single-course {
+  width: min(1120px, calc(100% - 40px));
+  margin: 48px auto 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  background: var(--surface);
+}
+
+.pricing-single-course header {
+  margin-bottom: 18px;
+}
+
+.pricing-single-course h2 {
+  margin-bottom: 8px;
+  color: var(--secondary);
+  font-size: 1.3rem;
+}
+
+.pricing-single-course p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.pricing-single-course-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pricing-single-course-form select {
+  flex: 1;
+  min-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: white;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.pricing-single-course-form .button {
+  flex-shrink: 0;
+}
+
 /* Subscription page */
 
 .subscription-page {
@@ -285,7 +333,8 @@
   color: #d97706;
 }
 
-.payment-result-icon-cancel {
+.payment-result-icon-cancel,
+.payment-result-icon-error {
   color: var(--danger);
 }
 
@@ -392,6 +441,15 @@
 @media (max-width: 760px) {
   .pricing-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pricing-single-course-form {
+    flex-direction: column;
+  }
+
+  .pricing-single-course-form select,
+  .pricing-single-course-form .button {
+    width: 100%;
   }
 
   .subscription-details {

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { Check, ShoppingCart, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getPlans } from "../api/plansApi.js";
 import { createCheckout } from "../api/paymentsApi.js";
+import { getPublishedCourses } from "../api/coursesApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
@@ -20,18 +21,34 @@ function PricingPage() {
   const navigate = useNavigate();
 
   const [plans, setPlans] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
   const [loadingPlanId, setLoadingPlanId] = useState(null);
+  const [isBuyingCourse, setIsBuyingCourse] = useState(false);
 
-  const loadPlans = useCallback(async (signal) => {
+  const loadData = useCallback(async (signal) => {
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await getPlans({ signal });
-      setPlans(Array.isArray(response) ? response.filter((p) => p.active) : []);
+      const [plansResponse, coursesResponse] = await Promise.all([
+        getPlans({ signal }),
+        getPublishedCourses({ signal }),
+      ]);
+
+      setPlans(Array.isArray(plansResponse) ? plansResponse.filter((p) => p.active) : []);
+
+      const courseList = Array.isArray(coursesResponse)
+        ? coursesResponse
+        : coursesResponse?.courses || [];
+      setCourses(courseList);
+
+      if (courseList.length > 0) {
+        setSelectedCourseId(String(courseList[0].id));
+      }
     } catch (requestError) {
       if (requestError.name !== "AbortError") {
         setError(getApiErrorMessage(requestError));
@@ -45,21 +62,15 @@ function PricingPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadPlans(controller.signal);
+    loadData(controller.signal);
     return () => controller.abort();
-  }, [loadPlans]);
+  }, [loadData]);
 
   async function handleSelectPlan(plan) {
     setCheckoutError("");
 
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/pricing" } });
-      return;
-    }
-
-    if (plan.billingPeriod === "ONE_TIME") {
-      // Tək kurs planı burada birbaşa satılmır — kurs səhifəsindən alınır.
-      navigate("/courses");
       return;
     }
 
@@ -74,6 +85,30 @@ function PricingPage() {
     }
   }
 
+  async function handleBuyCourse() {
+    setCheckoutError("");
+
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: "/pricing" } });
+      return;
+    }
+
+    if (!selectedCourseId) {
+      setCheckoutError("Zəhmət olmasa, kurs seçin.");
+      return;
+    }
+
+    setIsBuyingCourse(true);
+
+    try {
+      const { url } = await createCheckout({ courseId: Number(selectedCourseId) });
+      window.location.href = url;
+    } catch (requestError) {
+      setCheckoutError(getApiErrorMessage(requestError));
+      setIsBuyingCourse(false);
+    }
+  }
+
   if (isLoading) {
     return <PageLoader message="Planlar yüklənir..." fullPage />;
   }
@@ -82,12 +117,13 @@ function PricingPage() {
     return (
       <ErrorState
         message={error}
-        onRetry={() => loadPlans()}
+        onRetry={() => loadData()}
       />
     );
   }
 
   const displayPlans = plans.filter((plan) => plan.billingPeriod !== "ONE_TIME");
+  const hasSingleCoursePlan = plans.some((plan) => plan.billingPeriod === "ONE_TIME");
 
   return (
     <section className="pricing-page">
@@ -171,6 +207,39 @@ function PricingPage() {
             </button>
           </article>
         </div>
+      )}
+
+      {hasSingleCoursePlan && courses.length > 0 && (
+        <section className="pricing-single-course">
+          <header>
+            <h2>Tək kurs al</h2>
+            <p>Abunəlik istəmirsinizsə, konkret bir kursu birdəfəlik ala bilərsiniz.</p>
+          </header>
+
+          <div className="pricing-single-course-form">
+            <select
+              value={selectedCourseId}
+              onChange={(event) => setSelectedCourseId(event.target.value)}
+              disabled={isBuyingCourse}
+            >
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={handleBuyCourse}
+              disabled={isBuyingCourse}
+            >
+              <ShoppingCart size={16} aria-hidden="true" />
+              {isBuyingCourse ? "Yönləndirilir..." : "Kursu al"}
+            </button>
+          </div>
+        </section>
       )}
     </section>
   );

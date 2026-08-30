@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getMySubscription } from "../api/subscriptionsApi.js";
+import { getMyPayments } from "../api/paymentsApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import PageLoader from "../components/common/PageLoader.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
@@ -9,6 +9,8 @@ import ErrorState from "../components/common/ErrorState.jsx";
 /**
  * Stripe webhook asinxron gəldiyi üçün, backend statusu bir neçə dəfə
  * yoxlayırıq (webhook checkout tamamlandıqdan az sonra gəlir).
+ * Son ödənişə baxırıq — bu, həm abunəlik, həm də tək kurs alışı
+ * üçün işləyir (subscription statusu deyil, birbaşa Payment statusu).
  */
 const POLL_ATTEMPTS = 5;
 const POLL_DELAY_MS = 2000;
@@ -17,8 +19,23 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getSuccessMessage(payment) {
+  if (payment?.coursePurchase || payment?.coursePurchaseId) {
+    return {
+      title: "Ödəniş uğurla tamamlandı",
+      description: "Kurs alışınız təsdiqləndi. Kursa girişiniz açıqdır.",
+    };
+  }
+
+  return {
+    title: "Ödəniş uğurla tamamlandı",
+    description: "Abunəliyiniz aktivləşdirildi. Premium kurslara giriş açıqdır.",
+  };
+}
+
 function PaymentSuccessPage() {
   const [status, setStatus] = useState("checking");
+  const [payment, setPayment] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -27,12 +44,20 @@ function PaymentSuccessPage() {
     async function verify() {
       try {
         for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-          const subscription = await getMySubscription();
+          const payments = await getMyPayments();
+          const latestPayment = Array.isArray(payments) ? payments[0] : null;
 
           if (cancelled) return;
 
-          if (subscription && subscription.status === "ACTIVE") {
+          if (latestPayment?.status === "SUCCEEDED") {
+            setPayment(latestPayment);
             setStatus("active");
+            return;
+          }
+
+          if (latestPayment?.status === "FAILED") {
+            setPayment(latestPayment);
+            setStatus("failed");
             return;
           }
 
@@ -65,19 +90,38 @@ function PaymentSuccessPage() {
     return <ErrorState message={error} />;
   }
 
+  const successMessage = status === "active" ? getSuccessMessage(payment) : null;
+
   return (
     <section className="payment-result-page">
-      {status === "active" ? (
+      {status === "active" && (
         <>
           <CheckCircle2
             size={56}
             className="payment-result-icon payment-result-icon-success"
             aria-hidden="true"
           />
-          <h1>Ödəniş uğurla tamamlandı</h1>
-          <p>Abunəliyiniz aktivləşdirildi. Premium kurslara giriş açıqdır.</p>
+          <h1>{successMessage.title}</h1>
+          <p>{successMessage.description}</p>
         </>
-      ) : (
+      )}
+
+      {status === "failed" && (
+        <>
+          <XCircle
+            size={56}
+            className="payment-result-icon payment-result-icon-error"
+            aria-hidden="true"
+          />
+          <h1>Ödəniş uğursuz oldu</h1>
+          <p>
+            Ödənişiniz təsdiqlənmədi. Zəhmət olmasa, kart məlumatlarınızı
+            yoxlayıb yenidən cəhd edin.
+          </p>
+        </>
+      )}
+
+      {status === "pending" && (
         <>
           <Clock
             size={56}
