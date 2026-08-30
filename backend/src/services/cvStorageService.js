@@ -119,6 +119,11 @@ async function completeCvUpload(req) {
         },
     });
 
+    const previousPath = req.prismaUser?.cvFilePath;
+    if (previousPath && previousPath !== path) {
+        await supabase.storage.from(bucket).remove([previousPath]);
+    }
+
     return {
         path,
         fileName,
