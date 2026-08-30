@@ -279,7 +279,7 @@ function ProfilePage() {
                 <p className="muted-text">CV yüklənir...</p>
               ) : cv ? (
                 <>
-                  <p className="cv-file-name">{cv.originalName}</p>
+                  <p className="cv-file-name">{cv.originalName || "Yüklənmiş CV"}</p>
 
                   <div className="cv-actions">
                     <a
@@ -290,6 +290,18 @@ function ProfilePage() {
                     >
                       CV-ni aç
                     </a>
+
+                    <label className="button button-secondary">
+                      <FileUp size={16} aria-hidden="true" />
+                      {isCvUploading ? "Yüklənir..." : "CV əlavə et"}
+                      <input
+                        className="sr-only"
+                        type="file"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        onChange={handleCvUpload}
+                        disabled={isCvUploading}
+                      />
+                    </label>
 
                     <button
                       type="button"
@@ -314,7 +326,7 @@ function ProfilePage() {
                   <span>
                     {isCvUploading
                       ? "Yüklənir..."
-                      : "CV yüklə"}
+                      : "CV əlavə et"}
                   </span>
                 </label>
               )}
