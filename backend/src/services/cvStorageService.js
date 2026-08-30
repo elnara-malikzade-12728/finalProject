@@ -38,6 +38,19 @@ function validateCvDocument(fileName, contentType, fileSizeBytes) {
     return true;
 }
 
+async function createCvSignedUrl(supabase, bucket, path) {
+    const expiresIn = 300;
+    const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, expiresIn);
+
+    if (error || !data?.signedUrl) {
+        throw createHttpError(500, "CV üçün təhlükəsiz baxış keçidi yaratmaq mümkün olmadı.");
+    }
+
+    return { signedUrl: data.signedUrl, expiresIn };
+}
+
 async function generateCvUploadUrl(req) {
     const { fileName, contentType, fileSizeBytes } = req.body || {};
 
@@ -88,11 +101,14 @@ async function completeCvUpload(req) {
         throw createHttpError(400, "fileName tələb olunur.");
     }
 
+    if (!path.startsWith(`${req.user.id}/`)) {
+        throw createHttpError(403, "Yalnız öz CV faylınızı təsdiqləyə bilərsiniz.");
+    }
+
     const bucket = process.env.SUPABASE_CV_BUCKET || "user-cvs";
     const supabase = getSupabaseAdmin();
 
-    const { data: urlData } = await supabase.storage.from(bucket).getPublicUrl(path);
-    const publicUrl = urlData?.publicUrl || null;
+    const { signedUrl, expiresIn } = await createCvSignedUrl(supabase, bucket, path);
 
     await prisma.user.update({
         where: { id: req.user.id },
@@ -106,7 +122,8 @@ async function completeCvUpload(req) {
         path,
         fileName,
         contentType: contentType || null,
-        publicUrl,
+        publicUrl: signedUrl,
+        expiresIn,
     };
 }
 
@@ -116,11 +133,16 @@ async function getMyCv(req) {
         return null;
     }
 
+    const bucket = process.env.SUPABASE_CV_BUCKET || "user-cvs";
+    const supabase = getSupabaseAdmin();
+    const { signedUrl, expiresIn } = await createCvSignedUrl(supabase, bucket, user.cvFilePath);
+
     return {
         id: user.id,
         filePath: user.cvFilePath,
         originalName: user.cvOriginalName,
-        publicUrl: null,
+        publicUrl: signedUrl,
+        expiresIn,
     };
 }
 
@@ -151,4 +173,5 @@ module.exports = {
     getMyCv,
     deleteMyCv,
     validateCvDocument,
+    createCvSignedUrl,
 };
