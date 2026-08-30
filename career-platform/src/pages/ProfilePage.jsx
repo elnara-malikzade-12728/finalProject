@@ -39,6 +39,7 @@ function ProfilePage() {
   const [cv, setCv] = useState(null);
   const [isCvLoading, setIsCvLoading] = useState(false);
   const [isCvUploading, setIsCvUploading] = useState(false);
+  const [isCvDeleting, setIsCvDeleting] = useState(false);
 
   useEffect(() => {
     async function loadCv() {
@@ -180,7 +181,9 @@ function ProfilePage() {
 
   async function handleDeleteCv() {
     try {
-      setIsCvLoading(true);
+      setIsCvDeleting(true);
+      setSuccessMessage("");
+      setErrorMessage("");
       const result = await deleteMyCv();
 
       if (result.deleted) {
@@ -192,7 +195,7 @@ function ProfilePage() {
         deleteError?.message || "CV silmək mümkün olmadı.",
       );
     } finally {
-      setIsCvLoading(false);
+      setIsCvDeleting(false);
     }
   }
 
@@ -301,7 +304,7 @@ function ProfilePage() {
                         type="file"
                         accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={handleCvUpload}
-                        disabled={isCvUploading}
+                        disabled={isCvUploading || isCvDeleting}
                       />
                     </label>
 
@@ -309,10 +312,14 @@ function ProfilePage() {
                       type="button"
                       className="button button-danger-ghost"
                       onClick={handleDeleteCv}
-                      disabled={isCvLoading}
+                      disabled={isCvDeleting}
                     >
-                      <Trash2 size={16} aria-hidden="true" />
-                      Sil
+                      {isCvDeleting ? (
+                        <LoaderCircle className="loading-spinner" size={16} aria-hidden="true" />
+                      ) : (
+                        <Trash2 size={16} aria-hidden="true" />
+                      )}
+                      {isCvDeleting ? "Silinir..." : "Sil"}
                     </button>
                   </div>
                 </>
