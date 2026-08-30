@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  FileUp,
   GraduationCap,
   LoaderCircle,
   Mail,
   MapPin,
   Save,
   Sparkles,
+  Trash2,
   UserRound,
 } from "lucide-react";
+import {
+  completeCvUpload,
+  deleteMyCv,
+  getMyCv,
+  requestCvUploadUrl,
+} from "../api/cvApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 function ProfilePage() {
@@ -27,6 +35,29 @@ function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [cv, setCv] = useState(null);
+  const [isCvLoading, setIsCvLoading] = useState(false);
+  const [isCvUploading, setIsCvUploading] = useState(false);
+
+  useEffect(() => {
+    async function loadCv() {
+      if (!user?.id) {
+        return;
+      }
+
+      try {
+        setIsCvLoading(true);
+        const fetchedCv = await getMyCv();
+        setCv(fetchedCv);
+      } catch {
+        setCv(null);
+      } finally {
+        setIsCvLoading(false);
+      }
+    }
+
+    loadCv();
+  }, [user?.id]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -86,6 +117,87 @@ function ProfilePage() {
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleCvUpload(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const validTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    const validExtension = /\.(pdf|doc|docx)$/i.test(file.name);
+
+    if (!validExtension && !validTypes.includes(file.type)) {
+      setErrorMessage("CV yalnız PDF, DOC və DOCX formatında yüklənə bilər.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage("CV faylı 5 MB-dan böyük ola bilməz.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setIsCvUploading(true);
+      setSuccessMessage("");
+      setErrorMessage("");
+
+      const uploadInfo = await requestCvUploadUrl(
+        file.name,
+        file.type || "application/octet-stream",
+        file.size,
+      );
+
+      await fetch(uploadInfo.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      const updatedCv = await completeCvUpload(
+        uploadInfo.path,
+        file.name,
+        file.type || "application/octet-stream",
+      );
+
+      setCv(updatedCv);
+      setSuccessMessage("CV uğurla yükləndi.");
+    } catch (uploadError) {
+      setErrorMessage(
+        uploadError?.message || "CV yüklənərkən xəta baş verdi.",
+      );
+    } finally {
+      setIsCvUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  async function handleDeleteCv() {
+    try {
+      setIsCvLoading(true);
+      const result = await deleteMyCv();
+
+      if (result.deleted) {
+        setCv(null);
+        setSuccessMessage("CV uğurla silindi.");
+      }
+    } catch (deleteError) {
+      setErrorMessage(
+        deleteError?.message || "CV silmək mümkün olmadı.",
+      );
+    } finally {
+      setIsCvLoading(false);
     }
   }
 
@@ -157,6 +269,60 @@ function ProfilePage() {
                 Bacarıq və maraqlarını əlavə etmək gələcəkdə daha uyğun
                 karyera tövsiyələri almağa kömək edəcək.
               </p>
+            </div>
+
+            <div className="sidebar-card cv-card">
+              <div className="content-card-heading compact-heading">
+                <FileUp size={22} aria-hidden="true" />
+
+                <div>
+                  <h2>CV</h2>
+                </div>
+              </div>
+
+              {isCvLoading ? (
+                <p className="muted-text">CV yüklənir...</p>
+              ) : cv ? (
+                <>
+                  <p className="cv-file-name">{cv.originalName}</p>
+
+                  <div className="cv-actions">
+                    <a
+                      className="button button-secondary"
+                      href={cv.publicUrl || "#"}
+                      target={cv.publicUrl ? "_blank" : undefined}
+                      rel={cv.publicUrl ? "noreferrer" : undefined}
+                    >
+                      CV-ni aç
+                    </a>
+
+                    <button
+                      type="button"
+                      className="button button-danger-ghost"
+                      onClick={handleDeleteCv}
+                      disabled={isCvLoading}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      Sil
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <label className="upload-box">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleCvUpload}
+                    disabled={isCvUploading}
+                  />
+
+                  <span>
+                    {isCvUploading
+                      ? "Yüklənir..."
+                      : "CV yüklə"}
+                  </span>
+                </label>
+              )}
             </div>
           </aside>
 

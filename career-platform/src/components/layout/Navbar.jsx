@@ -93,14 +93,25 @@ function Navbar() {
               </NavLink>
 
               {isAuthenticated && user?.role !== "ADMIN" && (
-                <NavLink
-                  to="/applications/me"
-                  className={getNavLinkClass}
-                  onClick={closeMenu}
-                >
-                  <FileText size={18} />
-                  Müraciətlərim
-                </NavLink>
+                <>
+                  <NavLink
+                    to="/applications/me"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <FileText size={18} />
+                    Müraciətlərim
+                  </NavLink>
+
+                  <NavLink
+                    to="/certificates"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <FileText size={18} />
+                    Sertifikatlar
+                  </NavLink>
+                </>
               )}
             </div>
           )}

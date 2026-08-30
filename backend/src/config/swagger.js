@@ -56,6 +56,26 @@ const options = {
         name: "Course Management",
         description: "Administrator course, category, module and lesson management",
       },
+      {
+        name: "Tests",
+        description: "Assessment test and question administration",
+      },
+      {
+        name: "Questions",
+        description: "Assessment question management",
+      },
+      {
+        name: "Attempts",
+        description: "User assessment attempt workflow",
+      },
+      {
+        name: "Certificates",
+        description: "Assessment certificate issuance and verification",
+      },
+      {
+        name: "CV Management",
+        description: "User CV upload, storage and lifecycle management",
+      },
     ],
 
     components: {

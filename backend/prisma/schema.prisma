@@ -8,6 +8,17 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum TestType {
+  LESSON
+  FINAL
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
 model User {
   id             Int              @id @default(autoincrement())
   name           String
@@ -23,10 +34,14 @@ model User {
   bio            String?
   interests      String[]         @default([])
   skills         String[]         @default([])
+  cvFilePath     String?
+  cvOriginalName String?
   progress       Progress[]
   lessonProgress LessonProgress[]
   enrollments    Enrollment[]
   applications   Application[]
+  testAttempts   TestAttempt[]
+  certificates   Certificate[]
 }
 
 enum UserRole {
@@ -109,19 +124,100 @@ enum ApplicationStatus {
 }
 
 model Application {
-  id        Int               @id @default(autoincrement())
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  job       Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId     Int
-  status    ApplicationStatus @default(PENDING)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id                     Int               @id @default(autoincrement())
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 Int
+  job                    Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId                  Int
+  status                 ApplicationStatus @default(PENDING)
+  cvFilePathAtApplication String?
+  coverLetter            String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
   @@unique([userId, jobId])
   @@index([userId])
   @@index([jobId])
   @@index([status])
+}
+
+model Test {
+  id               Int          @id @default(autoincrement())
+  title            String
+  type             TestType
+  lessonId         Int?
+  courseId         Int?
+  passScorePercent Int
+  timeLimitMinutes Int?
+  published        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  lesson           Lesson?      @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  course           Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  questions        Question[]
+  attempts         TestAttempt[]
+
+  @@index([lessonId])
+  @@index([courseId])
+  @@index([published])
+}
+
+model Question {
+  id            Int         @id @default(autoincrement())
+  testId        Int
+  questionText  String
+  options       Json
+  correctValue  Json
+  order         Int
+  test          Test        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers       TestAnswer[]
+
+  @@index([testId, order])
+}
+
+model TestAttempt {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  testId      Int
+  score       Float?
+  passed      Boolean?
+  status      AttemptStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  submittedAt DateTime?
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test        Test          @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers     TestAnswer[]
+
+  @@index([userId])
+  @@index([testId])
+  @@index([status])
+}
+
+model TestAnswer {
+  id         Int         @id @default(autoincrement())
+  attemptId  Int
+  questionId Int
+  answer     Json?
+  correct    Boolean?
+  attempt    TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}
+
+model Certificate {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  userId    Int
+  courseId  Int
+  issuedAt  DateTime @default(now())
+  pdfPath   String?
+  finalScore Float?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
 }
 
 model Course {
@@ -133,6 +229,8 @@ model Course {
   updatedAt   DateTime        @updatedAt
   modules     CourseModule[]
   enrollments Enrollment[]
+  tests       Test[]
+  certificates Certificate[]
   category    CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId  Int?
   jobs        Job[]
@@ -185,6 +283,7 @@ model Lesson {
   module   CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId Int
   progress LessonProgress[]
+  tests    Test[]
 
   @@unique([moduleId, order])
   @@index([moduleId])

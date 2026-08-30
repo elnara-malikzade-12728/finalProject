@@ -54,6 +54,22 @@ const ProfilePage = lazy(
   () => import("./pages/ProfilePage.jsx"),
 );
 
+const TestPage = lazy(
+  () => import("./pages/TestPage.jsx"),
+);
+
+const TestAttemptPage = lazy(
+  () => import("./pages/TestAttemptPage.jsx"),
+);
+
+const CertificatesPage = lazy(
+  () => import("./pages/CertificatesPage.jsx"),
+);
+
+const CertificateVerifyPage = lazy(
+  () => import("./pages/CertificateVerifyPage.jsx"),
+);
+
 const NotFoundPage = lazy(
   () => import("./pages/NotFoundPage.jsx"),
 );
@@ -148,6 +164,16 @@ function App() {
               element={<JobDetailsPage />}
             />
 
+            <Route
+              path="tests/:testId"
+              element={<TestPage />}
+            />
+
+            <Route
+              path="certificates/:verificationCode/verify"
+              element={<CertificateVerifyPage />}
+            />
+
             <Route element={<ProtectedRoute />}>
               <Route
                 path="roadmap/:careerId"
@@ -162,6 +188,16 @@ function App() {
               <Route
                 path="applications/me"
                 element={<MyApplicationsPage />}
+              />
+
+              <Route
+                path="attempts/:attemptId"
+                element={<TestAttemptPage />}
+              />
+
+              <Route
+                path="certificates"
+                element={<CertificatesPage />}
               />
 
               <Route element={<AdminRoute />}>
