@@ -36,12 +36,12 @@ async function createQuestion(req, res, next) {
         const totalCount = await prisma.question.count({ where: { testId } });
         const nextTotalCount = totalCount + 1;
 
-        if (test.type === "LESSON" && (nextTotalCount < 3 || nextTotalCount > 5)) {
-            throw createHttpError(400, "Lesson testləri 3 ilə 5 sual arasında olmalıdır.");
+        if (test.type === "LESSON" && nextTotalCount > 5) {
+            throw createHttpError(400, "Lesson testlərində maksimum 5 sual ola bilər.");
         }
 
-        if (test.type === "FINAL" && (nextTotalCount < 20 || nextTotalCount > 30)) {
-            throw createHttpError(400, "Final testlər 20 ilə 30 sual arasında olmalıdır.");
+        if (test.type === "FINAL" && nextTotalCount > 30) {
+            throw createHttpError(400, "Final testlərində maksimum 30 sual ola bilər.");
         }
 
         const question = await prisma.question.create({

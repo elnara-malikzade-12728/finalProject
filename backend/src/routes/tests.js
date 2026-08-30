@@ -2,10 +2,36 @@ const express = require("express");
 const auth = require("../middleware/auth");
 const optionalAuth = require("../middleware/optionalAuth");
 const requireRole = require("../middleware/requireRole");
-const { createTest, getTest, updateTest, deleteTest, publishTest } = require("../controllers/testController");
+const { createTest, listTests, listPublishedTests, getTest, updateTest, deleteTest, publishTest } = require("../controllers/testController");
 const { createQuestion, reorderQuestions } = require("../controllers/questionController");
 
 const router = express.Router();
+
+/**
+ * @openapi
+ * /api/tests/published:
+ *   get:
+ *     tags: [Tests]
+ *     summary: Yayımlanmış testləri əldə et
+ *     description: İstifadəçilər üçün əlçatan dərs və yekun testlərini qaytarır.
+ *     responses:
+ *       200: { description: Yayımlanmış testlər qaytarıldı }
+ */
+router.get("/published", listPublishedTests);
+
+/**
+ * @openapi
+ * /api/tests:
+ *   get:
+ *     tags: [Tests]
+ *     summary: Bütün testləri idarəetmə üçün əldə et
+ *     description: Administrator üçün testlər, bağlı kurs və ya dərs, sual və cəhd sayları ilə qaytarılır.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Test siyahısı qaytarıldı }
+ *       403: { description: Yalnız administratorlar üçün icazə var }
+ */
+router.get("/", auth, requireRole("ADMIN"), listTests);
 
 /**
  * @openapi

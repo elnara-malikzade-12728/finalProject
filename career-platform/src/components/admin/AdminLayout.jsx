@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Video,
+  ListChecks,
 } from "lucide-react";
 import {
   NavLink,
@@ -21,6 +22,12 @@ const adminLinks = [
     to: "/admin/courses",
     label: "Kurslar",
     icon: BookOpen,
+    end: false,
+  },
+  {
+    to: "/admin/tests",
+    label: "Testlər",
+    icon: ListChecks,
     end: false,
   },
   {
