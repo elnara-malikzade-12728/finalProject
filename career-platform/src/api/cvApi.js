@@ -38,7 +38,7 @@ export async function uploadCvToStorage(uploadCredentials, file) {
 }
 
 export async function completeCvUpload(path, fileName, contentType, { signal } = {}) {
-    return apiRequest("/users/me/cv/complete", {
+    const response = await apiRequest("/users/me/cv/complete", {
         method: "POST",
         authenticated: true,
         signal,
@@ -48,6 +48,10 @@ export async function completeCvUpload(path, fileName, contentType, { signal } =
             contentType,
         },
     });
+
+    return response
+        ? { ...response, originalName: response.originalName || response.fileName || fileName }
+        : null;
 }
 
 export async function getMyCv({ signal } = {}) {

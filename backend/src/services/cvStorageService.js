@@ -127,6 +127,7 @@ async function completeCvUpload(req) {
     return {
         path,
         fileName,
+        originalName: fileName,
         contentType: contentType || null,
         publicUrl: signedUrl,
         expiresIn,
