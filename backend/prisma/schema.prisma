@@ -19,21 +19,6 @@ enum AttemptStatus {
   EXPIRED
 }
 
-enum EmploymentType {
-  FULL_TIME
-  PART_TIME
-  REMOTE
-  INTERNSHIP
-  FREELANCE
-}
-
-enum ExperienceLevel {
-  JUNIOR
-  MIDDLE
-  SENIOR
-  LEAD_MANAGER
-}
-
 model User {
   id             Int              @id @default(autoincrement())
   name           String
@@ -101,15 +86,12 @@ model Job {
   location        String?
   description     String?
   url             String?
-  companyLogoUrl  String?
+  employmentType  EmploymentType   @default(FULL_TIME)
+  experienceLevel ExperienceLevel?
   salaryMin       Int?
   salaryMax       Int?
-  employmentType  EmploymentType?  @default(FULL_TIME)
-  experienceLevel ExperienceLevel?
-  active          Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
   salaryCurrency  String           @default("AZN")
+  companyLogoUrl  String?
   career          Career?          @relation(fields: [careerId], references: [id], onDelete: SetNull)
   careerId        Int?
   course          Course?          @relation(fields: [courseId], references: [id], onDelete: SetNull)
@@ -118,8 +100,20 @@ model Job {
 
   @@index([employmentType])
   @@index([experienceLevel])
-  @@index([active])
   @@index([courseId])
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+}
+
+enum ExperienceLevel {
+  ENTRY_LEVEL
+  JUNIOR
+  MID_LEVEL
+  SENIOR
 }
 
 enum ApplicationStatus {

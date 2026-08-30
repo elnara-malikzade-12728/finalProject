@@ -58,9 +58,6 @@ function buildJobFilters(query = {}) {
   const courseId = parsePositiveInteger(query.courseId);
   const employmentType = normalizeFilter(query.employmentType);
   const experienceLevel = normalizeFilter(query.experienceLevel);
-  const activeValue = query.active;
-  const salaryMin = parsePositiveInteger(query.salaryMin);
-  const salaryMax = parsePositiveInteger(query.salaryMax);
   const where = {};
 
   if (search) {
@@ -83,27 +80,12 @@ function buildJobFilters(query = {}) {
   }
   if (courseId) where.courseId = courseId;
 
-  if (['FULL_TIME', 'PART_TIME', 'REMOTE', 'INTERNSHIP', 'FREELANCE'].includes(employmentType)) {
+  if (['FULL_TIME', 'PART_TIME', 'INTERNSHIP'].includes(employmentType)) {
     where.employmentType = employmentType;
   }
 
-  if (['JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD_MANAGER'].includes(experienceLevel)) {
+  if (['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR'].includes(experienceLevel)) {
     where.experienceLevel = experienceLevel;
-  }
-
-  if (activeValue !== undefined) {
-    if (activeValue === 'true' || activeValue === true) {
-      where.active = true;
-    } else if (activeValue === 'false' || activeValue === false) {
-      where.active = false;
-    }
-  }
-
-  if (salaryMin || salaryMax) {
-    where.salaryMin = {
-      ...(salaryMin ? { gte: salaryMin } : {}),
-      ...(salaryMax ? { lte: salaryMax } : {}),
-    };
   }
 
   if (category) {
@@ -117,7 +99,6 @@ function buildJobFilters(query = {}) {
       }
     } else {
       where.OR = [
-        ...(where.OR || []),
         { career: { title: { contains: category, mode: 'insensitive' } } },
         { course: { title: { contains: category, mode: 'insensitive' } } },
       ];
