@@ -83,6 +83,7 @@ async function generateCvUploadUrl(req) {
 
     return {
         uploadUrl: data?.signedUrl,
+        token: data?.token,
         path: safeFileName,
         bucket,
         expiresIn: 3600,
