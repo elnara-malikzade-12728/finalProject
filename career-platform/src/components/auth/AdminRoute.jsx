@@ -1,10 +1,11 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext.jsx";
 import ErrorState from "../common/ErrorState.jsx";
 import PageLoader from "../common/PageLoader.jsx";
 
 function AdminRoute() {
+  const location = useLocation();
   const {
     user,
     isAuthenticated,
@@ -21,7 +22,13 @@ function AdminRoute() {
   }
 
   if (!isAuthenticated) {
-    return null;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location }}
+      />
+    );
   }
 
   const hasAdminAccess =

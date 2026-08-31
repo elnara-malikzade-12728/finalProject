@@ -24,6 +24,23 @@ function formatDate(date) {
   return `${day}.${month}.${year}`;
 }
 
+function getArticleBlocks(content = "") {
+  return content
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+}
+
+function isSectionHeading(block) {
+  const normalized = block.replace(/^##\s*/, "").trim();
+
+  return (
+    !block.includes("\n") &&
+    normalized.length <= 80 &&
+    !/[.!?…:]$/.test(normalized)
+  );
+}
+
 function ArticleDetailsPage() {
   const { slug } = useParams();
   const [article, setArticle] = useState(null);
@@ -74,6 +91,11 @@ function ArticleDetailsPage() {
     );
   }
 
+  const contentBlocks = getArticleBlocks(article.content);
+  const sectionHeadings = contentBlocks
+    .filter(isSectionHeading)
+    .map((heading) => heading.replace(/^##\s*/, "").trim());
+
   return (
     <section className="section jobs-section">
       <div className="container article-details">
@@ -95,14 +117,40 @@ function ArticleDetailsPage() {
           <p className="company-name">{article.summary}</p>
         )}
 
-        <div className="article-content">
-          {article.content
-            ?.split("\n")
-            .map((paragraph, index) =>
-              paragraph.trim() ? (
-                <p key={index}>{paragraph}</p>
-              ) : null,
-            )}
+        <div className="article-content-card">
+          {sectionHeadings.length > 0 && (
+            <aside className="article-highlights">
+              <h2>Əsas mövzular</h2>
+              <ul>
+                {sectionHeadings.map((heading) => (
+                  <li key={heading}>{heading}</li>
+                ))}
+              </ul>
+            </aside>
+          )}
+
+          <div className="article-content">
+            {contentBlocks.map((block, index) => {
+              const lines = block.split("\n").map((line) => line.trim());
+              const isList = lines.every((line) => line.startsWith("- "));
+
+              if (isList) {
+                return (
+                  <ul key={index}>
+                    {lines.map((line) => (
+                      <li key={line}>{line.slice(2)}</li>
+                    ))}
+                  </ul>
+                );
+              }
+
+              if (isSectionHeading(block)) {
+                return <h2 key={index}>{block.replace(/^##\s*/, "")}</h2>;
+              }
+
+              return <p key={index}>{block}</p>;
+            })}
+          </div>
         </div>
       </div>
     </section>
