@@ -45,6 +45,10 @@ app.use(
     credentials: true,
   }),
 );
+// Stripe webhook imzasını yoxlamaq üçün xam (raw) body lazımdır.
+// Bu, express.json()-dan ƏVVƏL olmalıdır ki, həmin bir route üçün
+// body JSON-a çevrilməsin.
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "10kb" }));
 app.use("/api", apiLimiter);
 

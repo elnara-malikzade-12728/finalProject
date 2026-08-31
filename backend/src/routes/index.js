@@ -13,7 +13,11 @@ const questionRoutes = require("./questions");
 const attemptsRoutes = require("./attempts");
 const certificatesRoutes = require("./certificates");
 const userCvRoutes = require("./usersCv");
-
+const planRoutes = require("./plans");
+const articleRoutes = require("./articles");
+const paymentRoutes = require("./payments");
+const subscriptionRoutes = require("./subscriptions");
+const corporateInquiryRoutes = require("./corporateInquiries");
 const router = express.Router();
 
 router.use("/auth", authRoutes);
@@ -29,5 +33,10 @@ router.use("/questions", questionRoutes);
 router.use("/", attemptsRoutes);
 router.use("/certificates", certificatesRoutes);
 router.use("/users", userCvRoutes);
+router.use("/plans", planRoutes);
+router.use("/articles", articleRoutes);
+router.use("/payments", paymentRoutes);
+router.use("/", subscriptionRoutes);
+router.use("/corporate-inquiries", corporateInquiryRoutes);
 
 module.exports = router;
