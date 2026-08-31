@@ -5,9 +5,12 @@ import {
   Map,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 function Footer() {
   const currentYear = new Date().getFullYear();
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <footer className="site-footer">
@@ -44,9 +47,13 @@ function Footer() {
             <li>
               <Link to="/jobs">Vakansiyalar</Link>
             </li>
-            <li>
-              <Link to="/applications/me">Müraciətlərim</Link>
-            </li>
+            {isAuthenticated && (
+              <li>
+                <Link to={isAdmin ? "/admin/applications" : "/applications/me"}>
+                  {isAdmin ? "Müraciətlər" : "Müraciətlərim"}
+                </Link>
+              </li>
+            )}
             <li>
               <Link to="/profile">Profilim</Link>
             </li>

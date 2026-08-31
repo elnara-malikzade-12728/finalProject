@@ -354,6 +354,10 @@ ol {
   width: 100%;
 }
 
+.mobile-extra-links {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .navbar .mobile-menu-button {
     display: inline-flex;
@@ -408,6 +412,14 @@ ol {
     border: 0;
     padding: 4px 0 4px 14px;
     box-shadow: none;
+  }
+
+  .nav-more-menu {
+    display: none;
+  }
+
+  .mobile-extra-links {
+    display: contents;
   }
 }
 
@@ -1347,6 +1359,75 @@ ol {
   margin-top: auto;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.article-details {
+  max-width: 900px;
+}
+
+.article-details > h1 {
+  margin: 18px 0 12px;
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  line-height: 1.08;
+}
+
+.article-details > .company-name {
+  max-width: 760px;
+  margin: 24px 0 30px;
+  border-left: 4px solid var(--primary);
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 1.15rem;
+}
+
+.article-content-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(24px, 5vw, 48px);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.article-highlights {
+  margin-bottom: 36px;
+  border-radius: var(--radius-md);
+  padding: 24px;
+  background: linear-gradient(135deg, var(--primary-soft), #fffaf6);
+}
+
+.article-highlights h2 {
+  margin-bottom: 14px;
+  color: var(--primary-dark);
+  font-size: 1.25rem;
+}
+
+.article-highlights ul,
+.article-content ul {
+  display: grid;
+  gap: 10px;
+  padding-left: 22px;
+}
+
+.article-highlights li::marker,
+.article-content li::marker {
+  color: var(--primary);
+}
+
+.article-content h2 {
+  margin: 38px 0 14px;
+  color: var(--primary-dark);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.article-content h2:first-child {
+  margin-top: 0;
+}
+
+.article-content p {
+  margin-bottom: 20px;
+  color: #513829;
+  font-size: 1.03rem;
+  line-height: 1.85;
 }
 
 .job-card {
