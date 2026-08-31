@@ -115,14 +115,21 @@ app.use((error, req, res, next) => {
     return next(error);
   }
 
+  const suppliedStatus = Number(error.status || error.statusCode);
+  const status = Number.isInteger(suppliedStatus) && suppliedStatus >= 400 && suppliedStatus <= 599
+    ? suppliedStatus
+    : 500;
+
   logger.error("Emal edilməmiş server xətası", error);
 
-  return res.status(error.status || 500).json({
-    error:
-      error.status === 403
-        ? "Bu mənbədən API sorğusuna icazə verilmir."
-        : "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.",
-  });
+  const isClientError = status >= 400 && status < 500;
+  const message = status === 403 && !error.message
+    ? "Bu mənbədən API sorğusuna icazə verilmir."
+    : isClientError && error.message
+    ? error.message
+    : "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.";
+
+  return res.status(status).json({ error: message });
 });
 
 if (require.main === module) {
