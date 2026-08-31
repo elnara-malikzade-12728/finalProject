@@ -393,7 +393,6 @@ model Payment {
   subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
   subscriptionId    Int?
   coursePurchase    CoursePurchase? @relation("PaymentToCoursePurchase")
-  coursePurchaseId  Int?
   providerReference String        @unique
   amount            Decimal
   currency          String
