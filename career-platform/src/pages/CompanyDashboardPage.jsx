@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Building2, Plus, Trash2 } from "lucide-react";
 import { addCompanyEmployee, createCompanyJob, getCompanyDashboard, removeCompanyEmployee, saveCompany } from "../api/companyApi.js";
 import { getApiErrorMessage } from "../api/client.js";
@@ -11,14 +11,16 @@ function CompanyDashboardPage() {
   const [email, setEmail] = useState("");
   const [job, setJob] = useState({ title: "", description: "", location: "", employmentType: "FULL_TIME", experienceLevel: "JUNIOR" });
   const [notice, setNotice] = useState(null);
+  const noticeRef = useRef(null);
   const load = useCallback(async () => { try { const result = await getCompanyDashboard(); setData(result); if (result?.company) setCompany({ name: result.company.name, logoUrl: result.company.logoUrl || "" }); } catch (error) { setNotice({ type: "error", message: getApiErrorMessage(error) }); setData(null); } }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (notice) noticeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [notice]);
   async function run(action, message) { try { await action(); await load(); setNotice({ type: "success", message }); return true; } catch (error) { setNotice({ type: "error", message: getApiErrorMessage(error) }); return false; } }
   if (data === undefined) return <PageLoader message="Şirkət paneli yüklənir..." />;
 
   return <section className="section"><div className="container admin-page company-dashboard">
     <div className="admin-page-header"><div><span className="admin-page-eyebrow"><Building2 size={18} /> Korporativ B2B</span><h1>Şirkət paneli</h1><p>Əməkdaşların təlim nəticələrini izləyin və prioritet vakansiyalar yaradın.</p></div></div>
-    {notice && <Notification {...notice} onClose={() => setNotice(null)} />}
+    {notice && <div ref={noticeRef}><Notification {...notice} onClose={() => setNotice(null)} /></div>}
     <form className="simple-card company-profile-card" onSubmit={async (event) => { event.preventDefault(); await run(() => saveCompany(company), "Şirkət profili saxlanıldı."); }}>
       <h2>Şirkət profili</h2><input value={company.name} onChange={(e) => setCompany({ ...company, name: e.target.value })} placeholder="Şirkət adı" required /><input value={company.logoUrl} onChange={(e) => setCompany({ ...company, logoUrl: e.target.value })} placeholder="Loqo URL (istəyə bağlı)" /><button className="button button-primary">Yadda saxla</button>
     </form>
