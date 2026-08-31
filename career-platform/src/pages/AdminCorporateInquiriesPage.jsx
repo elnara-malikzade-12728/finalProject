@@ -13,6 +13,7 @@ import PageLoader from "../components/common/PageLoader.jsx";
 const statusLabels = {
   NEW: "Yeni",
   CONTACTED: "Əlaqə saxlanıldı",
+  APPROVED: "Təsdiqləndi",
   CLOSED: "Bağlanıb",
 };
 
@@ -103,6 +104,7 @@ function AdminCorporateInquiriesPage() {
           <option value="">Bütün statuslar</option>
           <option value="NEW">Yeni</option>
           <option value="CONTACTED">Əlaqə saxlanıldı</option>
+          <option value="APPROVED">Təsdiqləndi</option>
           <option value="CLOSED">Bağlanıb</option>
         </select>
       </div>
@@ -143,6 +145,7 @@ function AdminCorporateInquiriesPage() {
                     >
                       <option value="NEW">Yeni</option>
                       <option value="CONTACTED">Əlaqə saxlanıldı</option>
+                      <option value="APPROVED">Təsdiqlə və panel icazəsi ver</option>
                       <option value="CLOSED">Bağlanıb</option>
                     </select>
                     {updatingId === inquiry.id && (

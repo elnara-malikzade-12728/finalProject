@@ -41,7 +41,7 @@ const {
  *     parameters:
  *       - in: query
  *         name: status
- *         schema: { type: string, enum: [NEW, CONTACTED, CLOSED] }
+ *         schema: { type: string, enum: [NEW, CONTACTED, APPROVED, CLOSED] }
  *         description: Statusa görə filtr
  *     responses:
  *       200: { description: Müraciətlərin siyahısı }
@@ -73,7 +73,7 @@ router.get("/", auth, requireAdmin, listInquiries);
  *             type: object
  *             required: [status]
  *             properties:
- *               status: { type: string, enum: [NEW, CONTACTED, CLOSED] }
+ *               status: { type: string, enum: [NEW, CONTACTED, APPROVED, CLOSED] }
  *     responses:
  *       200: { description: Status yeniləndi }
  *       400: { description: Status yanlışdır }

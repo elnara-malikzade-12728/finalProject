@@ -560,7 +560,7 @@ const options = {
             phone: { type: "string", nullable: true },
             employeeCount: { type: "integer", nullable: true, example: 25 },
             message: { type: "string" },
-            status: { type: "string", enum: ["NEW", "CONTACTED", "CLOSED"] },
+            status: { type: "string", enum: ["NEW", "CONTACTED", "APPROVED", "CLOSED"] },
             createdAt: { type: "string", format: "date-time" },
           },
         },

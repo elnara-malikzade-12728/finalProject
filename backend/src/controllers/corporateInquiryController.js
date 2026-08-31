@@ -12,7 +12,7 @@ function parsePositiveInteger(value) {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_STATUSES = ["NEW", "CONTACTED", "CLOSED"];
+const ALLOWED_STATUSES = ["NEW", "CONTACTED", "APPROVED", "CLOSED"];
 
 function validateInquiryPayload(body = {}) {
   const companyName =
@@ -118,10 +118,17 @@ async function updateInquiryStatus(req, res) {
       return res.status(404).json({ error: "Müraciət tapılmadı." });
     }
 
-    const inquiry = await prisma.corporateInquiry.update({
-      where: { id },
-      data: { status },
-    });
+    let inquiry;
+    if (status === "APPROVED") {
+      const user = await prisma.user.findUnique({ where: { email: existing.email.toLowerCase() }, select: { id: true } });
+      if (!user) return res.status(409).json({ error: "Təsdiq üçün müraciətdəki e-poçtla qeydiyyatdan keçmiş Synex istifadəçisi olmalıdır." });
+      inquiry = await prisma.$transaction(async (tx) => {
+        await tx.user.update({ where: { id: user.id }, data: { isCorporate: true, tokenVersion: { increment: 1 } } });
+        return tx.corporateInquiry.update({ where: { id }, data: { status } });
+      });
+    } else {
+      inquiry = await prisma.corporateInquiry.update({ where: { id }, data: { status } });
+    }
 
     res.json(inquiry);
   } catch (err) {

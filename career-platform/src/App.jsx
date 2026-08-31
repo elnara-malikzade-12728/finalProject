@@ -7,6 +7,7 @@ import {
 
 import AdminRoute from "./components/auth/AdminRoute.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
+import CorporateRoute from "./components/auth/CorporateRoute.jsx";
 import PageLoader from "./components/common/PageLoader.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
@@ -258,7 +259,9 @@ function App() {
             />
 
             <Route element={<ProtectedRoute />}>
-              <Route path="corporate/dashboard" element={<CompanyDashboardPage />} />
+              <Route element={<CorporateRoute />}>
+                <Route path="corporate/dashboard" element={<CompanyDashboardPage />} />
+              </Route>
               <Route
                 path="roadmap/:careerId"
                 element={<RoadmapPage />}

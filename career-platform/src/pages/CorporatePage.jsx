@@ -1,5 +1,6 @@
 import { Building2, CheckCircle2, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const benefits = [
   "Komandanız üçün fərdiləşdirilmiş təlim planı",
@@ -10,6 +11,7 @@ const benefits = [
 
 function CorporatePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <>
@@ -35,9 +37,9 @@ function CorporatePage() {
             <Mail size={16} aria-hidden="true" />
             Bizimlə əlaqə saxlayın
           </button>
-          <button type="button" className="button button-secondary" onClick={() => navigate("/corporate/dashboard")}>
+          {(user?.isCorporate || user?.role === "ADMIN") && <button type="button" className="button button-secondary" onClick={() => navigate("/corporate/dashboard")}>
             <Building2 size={16} aria-hidden="true" /> Şirkət panelinə keçin
-          </button>
+          </button>}
         </div>
       </section>
 
