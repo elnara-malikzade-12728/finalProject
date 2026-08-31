@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Award, CheckCircle2, Copy, LoaderCircle } from "lucide-react";
+import { Award, CalendarDays, CheckCircle2, Copy, ExternalLink, LoaderCircle, Printer, UserRound } from "lucide-react";
+import { Link } from "react-router-dom";
+import QRCode from "react-qr-code";
 import { getMyCertificates, verifyCertificate } from "../api/certificatesApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import ErrorState from "../components/common/ErrorState.jsx";
@@ -12,6 +14,13 @@ function CertificatesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isVerifying, setIsVerifying] = useState(false);
     const [error, setError] = useState("");
+    const [copiedCode, setCopiedCode] = useState("");
+
+    async function handleCopy(code) {
+        await navigator.clipboard?.writeText(code);
+        setCopiedCode(code);
+        window.setTimeout(() => setCopiedCode(""), 1600);
+    }
 
     useEffect(() => {
         const controller = new AbortController();
@@ -76,7 +85,7 @@ function CertificatesPage() {
     return (
         <section className="section">
             <div className="container certificates-layout">
-                <div className="content-card">
+                <div className="content-card certificates-main-card">
                     <div className="content-card-heading">
                         <Award size={24} />
                         <div>
@@ -92,24 +101,16 @@ function CertificatesPage() {
                     ) : (
                         <div className="certificate-list">
                             {certificates.map((certificate) => (
-                                <article key={certificate.id} className="certificate-item">
-                                    <div>
-                                        <span className="tag tag-success">Etibarlıdır</span>
-                                        <h3>{certificate.course?.title}</h3>
-                                        <p>{certificate.user?.name}</p>
-                                    </div>
-
-                                    <div className="certificate-meta">
-                                        <span>Kod: {certificate.code}</span>
-                                        <span>Final balı: {certificate.finalScore ?? 0}%</span>
-                                        <button
-                                            type="button"
-                                            className="text-button"
-                                            onClick={() => navigator.clipboard?.writeText(certificate.code)}
-                                        >
-                                            <Copy size={16} />
-                                            Kodu kopyala
-                                        </button>
+                                <article key={certificate.id} className="certificate-item certificate-print-area">
+                                    <div className="certificate-decoration" aria-hidden="true"><Award size={42} /></div>
+                                    <div className="certificate-heading-row"><div><span className="tag tag-success">Etibarlıdır</span><p className="certificate-kicker">Synex Academy sertifikatı</p><h3>{certificate.course?.title}</h3></div><div className="certificate-score"><strong>{certificate.finalScore ?? 0}%</strong><span>Final balı</span></div></div>
+                                    <div className="certificate-holder"><UserRound size={19} /><div><span>Sertifikat sahibi</span><strong>{certificate.user?.name || "İstifadəçi"}</strong></div></div>
+                                    <div className="certificate-details"><div><span>Sertifikat kodu</span><code>{certificate.code}</code></div><div><span>Verilmə tarixi</span><strong>{new Date(certificate.issuedAt).toLocaleDateString("az-AZ")}</strong></div></div>
+                                    <div className="certificate-qr"><div className="certificate-qr-image"><QRCode value={`${window.location.origin}/certificates/${certificate.code}/verify`} size={112} bgColor="#ffffff" fgColor="#2f1a10" level="M" /></div><div><strong>Sertifikatı yoxla</strong><span>QR kodu skan edərək açıq təsdiqləmə səhifəsini açın.</span></div></div>
+                                    <div className="certificate-actions no-print">
+                                        <button type="button" className="button button-secondary" onClick={() => handleCopy(certificate.code)}><Copy size={17} />{copiedCode === certificate.code ? "Kopyalandı" : "Kodu kopyala"}</button>
+                                        <Link className="button button-secondary" to={`/certificates/${certificate.code}/verify`}><ExternalLink size={17} />Açıq yoxlama</Link>
+                                        <button type="button" className="button button-primary" onClick={() => window.print()}><Printer size={17} />Çap et / PDF saxla</button>
                                     </div>
                                 </article>
                             ))}
@@ -117,8 +118,8 @@ function CertificatesPage() {
                     )}
                 </div>
 
-                <div className="content-card verify-card">
-                    <h2>Sertifikat yoxlama</h2>
+                <div className="content-card verify-card no-print">
+                    <div className="verify-card-heading"><CheckCircle2 size={24} /><div><h2>Sertifikat yoxlama</h2><p>Sertifikat kodunu daxil edərək etibarlılığını yoxlayın.</p></div></div>
                     <div className="verification-row">
                         <input
                             type="text"
@@ -136,9 +137,9 @@ function CertificatesPage() {
                         <div className={`verification-result ${verificationResult.valid ? "success" : "error"}`}>
                             {verificationResult.valid ? (
                                 <>
-                                    <strong>Etibarlıdır.</strong>
+                                    <strong><CheckCircle2 size={18} /> Etibarlıdır</strong>
                                     <p>{verificationResult.user?.name} — {verificationResult.course?.title}</p>
-                                    <small>İssuə tarixi: {new Date(verificationResult.issuedAt).toLocaleDateString("az-AZ")}</small>
+                                    <small><CalendarDays size={16} /> Verilmə tarixi: {new Date(verificationResult.issuedAt).toLocaleDateString("az-AZ")}</small>
                                 </>
                             ) : (
                                 <p>{verificationResult.message}</p>

@@ -18,6 +18,7 @@ function TestAttemptPage() {
     const [notification, setNotification] = useState(null);
     const [remainingSeconds, setRemainingSeconds] = useState(null);
     const autoSubmitStarted = useRef(false);
+    const resultRef = useRef(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -57,6 +58,9 @@ function TestAttemptPage() {
         () => Object.values(answers).filter((answer) => answer !== null && answer !== undefined).length,
         [answers],
     );
+    const contextTitle = attempt?.test?.type === "FINAL"
+        ? attempt?.test?.course?.title || "Yekun imtahan"
+        : attempt?.test?.lesson?.title || "Dərs testi";
 
     useEffect(() => {
         if (remainingSeconds === null || remainingSeconds <= 0 || attempt?.status === "SUBMITTED") return undefined;
@@ -71,6 +75,14 @@ function TestAttemptPage() {
         autoSubmitStarted.current = true;
         handleSubmit({ automatic: true });
     }, [remainingSeconds, attempt]);
+
+    useEffect(() => {
+        if (attempt?.status !== "SUBMITTED") return;
+        window.requestAnimationFrame(() => {
+            resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            resultRef.current?.focus({ preventScroll: true });
+        });
+    }, [attempt?.status]);
 
     function handleOptionChange(questionId, optionValue) {
         setAnswers((current) => ({
@@ -134,9 +146,9 @@ function TestAttemptPage() {
         <section className="section">
             <div className="container test-attempt-layout">
                 <div className="content-card test-attempt-card">
-                    <div className="test-attempt-header">
+                    <div ref={resultRef} tabIndex="-1" className="test-attempt-header">
                         <div>
-                            <span className="tag">{attempt.test?.type === "FINAL" ? "Final" : "Dərs"}</span>
+                            <span className="tag">{contextTitle}</span>
                             <h1>{attempt.test?.title}</h1>
                         </div>
 
@@ -225,6 +237,16 @@ function TestAttemptPage() {
                             onClick={() => navigate(`/tests/${attempt.test.id}`)}
                         >
                             Yenidən cəhd et
+                        </button>
+                    )}
+
+                    {attempt.status === "SUBMITTED" && attempt.passed && attempt.test?.type === "FINAL" && (
+                        <button
+                            type="button"
+                            className="button button-secondary"
+                            onClick={() => navigate("/certificates")}
+                        >
+                            Sertifikata bax
                         </button>
                     )}
 

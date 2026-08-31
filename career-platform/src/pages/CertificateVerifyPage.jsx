@@ -66,7 +66,7 @@ function CertificateVerifyPage() {
                         <strong>{verification.user?.name}</strong>
                         <p>{verification.course?.title}</p>
                         <small>Kod: {verification.code}</small>
-                        <small>İssuə tarixi: {new Date(verification.issuedAt).toLocaleDateString("az-AZ")}</small>
+                        <small>Verilmə tarixi: {new Date(verification.issuedAt).toLocaleDateString("az-AZ")}</small>
                         <small>Final balı: {verification.finalScore ?? 0}%</small>
                     </div>
                 </div>

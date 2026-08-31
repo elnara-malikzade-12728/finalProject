@@ -87,6 +87,28 @@ function Navbar() {
                 Kurslar
               </NavLink>
 
+              {isAuthenticated && user?.role !== "ADMIN" && (
+                <>
+                  <NavLink
+                    to="/tests"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <ListChecks size={18} />
+                    Testlər
+                  </NavLink>
+                  <NavLink
+                    to="/certificates"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <FileText size={18} />
+                    Sertifikatlar
+                  </NavLink>
+
+                </>
+              )}
+
               <NavLink
                 to="/jobs"
                 className={getNavLinkClass}
@@ -95,6 +117,27 @@ function Navbar() {
                 <BriefcaseBusiness size={18} />
                 Vakansiyalar
               </NavLink>
+
+              {isAuthenticated && user?.role !== "ADMIN" && (
+                <>
+                  <NavLink
+                    to="/applications/me"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <FileText size={18} />
+                    Müraciətlərim
+                  </NavLink>
+                  <NavLink
+                    to="/profile/subscription"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <CreditCard size={18} />
+                    Abunəliyim
+                  </NavLink>
+                </>
+              )}
 
               <NavLink
                 to="/pricing"
@@ -122,45 +165,6 @@ function Navbar() {
                 <Building2 size={18} />
                 Korporativ
               </NavLink>
-
-              {isAuthenticated && user?.role !== "ADMIN" && (
-                <>
-                  <NavLink
-                    to="/tests"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <ListChecks size={18} />
-                    Testlər
-                  </NavLink>
-                  <NavLink
-                    to="/applications/me"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <FileText size={18} />
-                    Müraciətlərim
-                  </NavLink>
-
-                  <NavLink
-                    to="/certificates"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <FileText size={18} />
-                    Sertifikatlar
-                  </NavLink>
-
-                  <NavLink
-                    to="/profile/subscription"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <CreditCard size={18} />
-                    Abunəliyim
-                  </NavLink>
-                </>
-              )}
             </div>
           )}
 

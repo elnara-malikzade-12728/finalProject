@@ -76,6 +76,9 @@ function TestPage() {
     }
 
     const questionCount = useMemo(() => test?.questions?.length || 0, [test]);
+    const contextTitle = test?.type === "FINAL"
+        ? test?.course?.title || "Yekun imtahan"
+        : test?.lesson?.title || "Dərs testi";
 
     if (isLoading) {
         return <PageLoader message="Test yüklənir..." fullPage />;
@@ -103,7 +106,7 @@ function TestPage() {
                         ← Kurslara qayıt
                     </Link>
 
-                    <span className="tag">{test.type === "FINAL" ? "Final imtahanı" : "Dərs testi"}</span>
+                    <span className="tag">{contextTitle}</span>
                     <h1>{test.title}</h1>
 
                     <p>

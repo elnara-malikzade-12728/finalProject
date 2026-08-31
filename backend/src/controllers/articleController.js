@@ -15,9 +15,9 @@ function slugify(value) {
   return String(value || "")
     .trim()
     .toLowerCase()
-    .replace(/[əğıöşü]/g, (ch) =>
-      ({ ə: "e", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" }[ch]),
-    )
+    .replace(/[əı]/g, (ch) => ({ ə: "e", ı: "i" })[ch])
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }

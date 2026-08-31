@@ -94,6 +94,26 @@ async function createCertificateForUser(userId, courseId) {
 }
 
 async function listCertificatesForUser(userId) {
+    const eligibleAttempts = await prisma.testAttempt.findMany({
+        where: {
+            userId,
+            status: "SUBMITTED",
+            passed: true,
+            test: {
+                is: { type: "FINAL", published: true, courseId: { not: null } },
+            },
+        },
+        select: { test: { select: { courseId: true } } },
+    });
+
+    const courseIds = [...new Set(
+        eligibleAttempts.map((attempt) => attempt.test.courseId).filter(Boolean),
+    )];
+
+    for (const courseId of courseIds) {
+        await createCertificateForUser(userId, courseId);
+    }
+
     return prisma.certificate.findMany({
         where: { userId },
         include: {

@@ -25,7 +25,7 @@ function TestsPage() {
     <header className="tests-catalog-header"><span className="eyebrow">Biliklərini yoxla</span><h1>Testlər</h1><p>Dərs testlərini tamamla, nəticəni dərhal gör və yekun imtahana hazırlaş.</p></header>
     {error ? <ErrorState title="Testlər yüklənmədi" message={error} /> : tests.length === 0 ? <div className="content-card tests-empty"><ListChecks size={38} /><h2>Hələ yayımlanmış test yoxdur</h2><p>Yeni test yayımlandıqda burada görünəcək.</p></div> :
       <div className="tests-catalog-grid">{tests.map((test) => <article className="test-catalog-card" key={test.id}>
-        <div className="test-catalog-card-top"><span className="tag">{test.type === "FINAL" ? "Yekun imtahan" : "Dərs testi"}</span><span className="test-catalog-id">#{test.id}</span></div>
+        <div className="test-catalog-card-top"><span className="tag">{test.type === "FINAL" ? test.course?.title || "Yekun imtahan" : test.lesson?.title || "Dərs testi"}</span><span className="test-catalog-id">#{test.id}</span></div>
         <h2>{test.title}</h2><p>{test.course?.title || test.lesson?.title || "Synex Academy testi"}</p>
         <div className="test-catalog-meta"><span><ListChecks size={17} />{test._count?.questions || 0} sual</span><span><Clock3 size={17} />{test.timeLimitMinutes ? `${test.timeLimitMinutes} dəq.` : "Limitsiz"}</span><span><ShieldCheck size={17} />{test.passScorePercent}% keçid</span></div>
         <Link className="button button-primary" to={`/tests/${test.id}`}>Testə bax <ArrowRight size={18} /></Link>
