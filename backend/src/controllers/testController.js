@@ -204,6 +204,8 @@ async function getTest(req, res, next) {
         const test = await prisma.test.findUnique({
             where: { id },
             include: {
+                lesson: { select: { id: true, title: true } },
+                course: { select: { id: true, title: true } },
                 questions: {
                     orderBy: { order: "asc" },
                 },
@@ -329,7 +331,7 @@ async function publishTest(req, res, next) {
             if (questionCount < minimumQuestions || questionCount > maximumQuestions) {
                 throw createHttpError(
                     400,
-                    `${test.type === "FINAL" ? "Final" : "Lesson"} testi yayımlamaq üçün ${minimumQuestions}–${maximumQuestions} sual olmalıdır.`,
+                    `${test.type === "FINAL" ? "Yekun testini" : "Dərs testini"} yayımlamaq üçün ${minimumQuestions}–${maximumQuestions} sual olmalıdır.`,
                 );
             }
         }
