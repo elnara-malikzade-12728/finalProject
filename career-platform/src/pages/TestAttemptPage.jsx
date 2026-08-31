@@ -57,6 +57,9 @@ function TestAttemptPage() {
         () => Object.values(answers).filter((answer) => answer !== null && answer !== undefined).length,
         [answers],
     );
+    const contextTitle = attempt?.test?.type === "FINAL"
+        ? attempt?.test?.course?.title || "Yekun imtahan"
+        : attempt?.test?.lesson?.title || "Dərs testi";
 
     useEffect(() => {
         if (remainingSeconds === null || remainingSeconds <= 0 || attempt?.status === "SUBMITTED") return undefined;
@@ -136,7 +139,7 @@ function TestAttemptPage() {
                 <div className="content-card test-attempt-card">
                     <div className="test-attempt-header">
                         <div>
-                            <span className="tag">{attempt.test?.type === "FINAL" ? "Final" : "Dərs"}</span>
+                            <span className="tag">{contextTitle}</span>
                             <h1>{attempt.test?.title}</h1>
                         </div>
 

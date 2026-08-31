@@ -204,6 +204,8 @@ async function getTest(req, res, next) {
         const test = await prisma.test.findUnique({
             where: { id },
             include: {
+                lesson: { select: { id: true, title: true } },
+                course: { select: { id: true, title: true } },
                 questions: {
                     orderBy: { order: "asc" },
                 },
