@@ -1,4 +1,6 @@
 const prisma = require("../lib/prisma");
+const logger = require("../utils/logger");
+const { createCertificateForUser } = require("../services/certificateService");
 
 function createHttpError(statusCode, message) {
     const error = new Error(message);
@@ -280,6 +282,15 @@ async function submitAttempt(req, res, next) {
             });
         });
 
+        let certificate = null;
+        if (passed && attempt.test.type === "FINAL" && attempt.test.courseId) {
+            try {
+                certificate = await createCertificateForUser(req.user.id, attempt.test.courseId);
+            } catch (certificateError) {
+                logger.error("Final testdən sonra sertifikat yaradılarkən xəta", certificateError);
+            }
+        }
+
         return res.status(200).json({
             id: attemptId,
             score,
@@ -287,6 +298,7 @@ async function submitAttempt(req, res, next) {
             status: "SUBMITTED",
             totalQuestions,
             correctAnswers: correctCount,
+            certificate,
         });
     } catch (error) {
         return next(error);

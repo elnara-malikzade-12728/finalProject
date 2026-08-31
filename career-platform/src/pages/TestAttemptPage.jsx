@@ -240,6 +240,16 @@ function TestAttemptPage() {
                         </button>
                     )}
 
+                    {attempt.status === "SUBMITTED" && attempt.passed && attempt.test?.type === "FINAL" && (
+                        <button
+                            type="button"
+                            className="button button-secondary"
+                            onClick={() => navigate("/certificates")}
+                        >
+                            Sertifikata bax
+                        </button>
+                    )}
+
                     <button
                         type="button"
                         className="button button-secondary"
