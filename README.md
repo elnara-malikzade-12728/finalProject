@@ -203,6 +203,7 @@ Configure `backend/.env` with real private values:
 DATABASE_URL="postgresql://USER:PASSWORD@TRANSACTION_POOLER:6543/DATABASE?pgbouncer=true&connection_limit=1"
 DIRECT_URL="postgresql://USER:PASSWORD@SESSION_POOLER:5432/DATABASE"
 JWT_SECRET="replace_with_a_long_random_secret"
+JWT_EXPIRES_IN=1h
 PORT=4000
 SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=YOUR_PRIVATE_SERVICE_ROLE_KEY
@@ -506,6 +507,8 @@ Configure the deployed backend with the database, JWT, Supabase/video variables,
 - New lesson videos can be stored in Bunny Stream and accessed using expiring embed tokens; legacy Supabase videos retain expiring signed URLs.
 - The Supabase service-role key is used only by the backend.
 - Use a strong JWT secret and restricted production database credentials.
+- Access tokens expire after one hour by default; `JWT_EXPIRES_IN` can configure the duration without changing code.
+- The SPA currently stores its bearer token in `localStorage`. Avoid rendering unsanitized HTML and keep the short token lifetime because an XSS vulnerability could otherwise expose the active token. Moving authentication to an httpOnly cookie requires a coordinated CSRF-protection design and should be handled as a separate architectural change.
 - Review CORS restrictions and token storage before a production launch.
 
 ## Team
