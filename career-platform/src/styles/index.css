@@ -3598,7 +3598,10 @@ a.admin-action-card:hover {
 .course-tree-module header span { justify-content: flex-start; }
 .course-tree-module ul { display: grid; gap: 7px; margin: 12px 0; padding: 0; list-style: none; }
 .course-tree-module li { border-radius: 8px; padding: 8px 10px; background: var(--surface-muted); color: var(--muted); font-size: .86rem; }
-.course-tree-add { display: grid; grid-template-columns: 80px 1fr auto; gap: 9px; }
+.course-tree-add { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto auto; align-items: center; gap: 9px; }
+.course-tree-add label { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.course-tree-add label input { width: auto; margin: 0; }
+.course-tree-add .button { white-space: nowrap; }
 .course-inline-editor { display: grid; gap: 10px; width: 100%; margin: 10px 0; padding: 14px; border: 1px solid rgba(243,112,33,.35); border-radius: 12px; background: #fffaf6; }
 .course-inline-editor h3 { margin: 0; font-size: 1rem; }
 .course-inline-editor input, .course-inline-editor textarea, .course-inline-editor select { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; background: #fff; color: var(--text); font: inherit; }
@@ -3612,6 +3615,8 @@ a.admin-action-card:hover {
   .course-admin-forms { grid-template-columns: 1fr; }
   .course-tree-course > summary, .course-tree-course > summary > span:first-child { align-items: flex-start; flex-direction: column; }
   .course-tree-add { grid-template-columns: 1fr; }
+  .course-tree-add label { justify-self: start; }
+  .course-tree-add .button { width: 100%; }
   .course-admin-inline { grid-template-columns: 1fr; }
   .course-edit-row { grid-template-columns: 1fr; }
   .course-tree-module li { align-items: flex-start; flex-direction: column; }
