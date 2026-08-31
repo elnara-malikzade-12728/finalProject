@@ -76,9 +76,9 @@ function TestPage() {
     }
 
     const questionCount = useMemo(() => test?.questions?.length || 0, [test]);
-    const contextTitle = test.type === "FINAL"
-        ? test.course?.title || "Yekun imtahan"
-        : test.lesson?.title || "Dərs testi";
+    const contextTitle = test?.type === "FINAL"
+        ? test?.course?.title || "Yekun imtahan"
+        : test?.lesson?.title || "Dərs testi";
 
     if (isLoading) {
         return <PageLoader message="Test yüklənir..." fullPage />;
