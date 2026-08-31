@@ -16,6 +16,7 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
 );
 
 function createAuthenticationResponse(user) {
+  const expiresIn = process.env.JWT_EXPIRES_IN || "1h";
   const token = jwt.sign(
     {
       userId: user.id,
@@ -23,7 +24,7 @@ function createAuthenticationResponse(user) {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: "7d",
+      expiresIn,
       algorithm: "HS256",
     },
   );
@@ -203,4 +204,5 @@ module.exports = {
   register,
   login,
   logout,
+  createAuthenticationResponse,
 };
