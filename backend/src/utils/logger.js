@@ -3,9 +3,15 @@ function error(context, exception) {
     context,
     code: exception?.code,
     name: exception?.name,
+    type: exception?.type,
+    statusCode: exception?.statusCode,
   };
 
-  if (process.env.NODE_ENV !== "production") {
+  const isStripeError =
+    typeof exception?.type === "string" &&
+    exception.type.startsWith("Stripe");
+
+  if (process.env.NODE_ENV !== "production" || isStripeError) {
     details.message = exception?.message;
   }
 
