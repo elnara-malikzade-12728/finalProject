@@ -3,18 +3,19 @@ require("dotenv").config();
 const Stripe = require("stripe");
 const logger = require("../utils/logger");
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
+function getStripeClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
 
-function ensureStripeConfigured() {
-  if (!stripe) {
+  if (!secretKey) {
     const error = new Error(
       "Ödəniş provayderi konfiqurasiya edilməyib.",
     );
     error.status = 500;
+    error.code = "STRIPE_NOT_CONFIGURED";
     throw error;
   }
+
+  return new Stripe(secretKey);
 }
 
 async function createCheckoutSession({
@@ -24,7 +25,16 @@ async function createCheckoutSession({
   productName,
   metadata,
 }) {
-  ensureStripeConfigured();
+  const stripe = getStripeClient();
+  const successUrl = process.env.STRIPE_SUCCESS_URL?.trim();
+  const cancelUrl = process.env.STRIPE_CANCEL_URL?.trim();
+
+  if (!successUrl || !cancelUrl) {
+    const error = new Error("Stripe yönləndirmə URL-ləri təyin edilməyib.");
+    error.status = 500;
+    error.code = "STRIPE_URLS_NOT_CONFIGURED";
+    throw error;
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -40,8 +50,8 @@ async function createCheckoutSession({
         quantity: 1,
       },
     ],
-    success_url: `${process.env.STRIPE_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: process.env.STRIPE_CANCEL_URL,
+    success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelUrl,
     metadata,
   });
 
@@ -49,7 +59,7 @@ async function createCheckoutSession({
 }
 
 function verifyWebhookSignature(rawBody, signatureHeader) {
-  ensureStripeConfigured();
+  const stripe = getStripeClient();
 
   return stripe.webhooks.constructEvent(
     rawBody,
@@ -61,4 +71,5 @@ function verifyWebhookSignature(rawBody, signatureHeader) {
 module.exports = {
   createCheckoutSession,
   verifyWebhookSignature,
+  getStripeClient,
 };

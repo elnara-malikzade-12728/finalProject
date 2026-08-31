@@ -6,6 +6,25 @@ const {
   addYears,
   parsePositiveInteger,
 } = require("../src/controllers/paymentController");
+const { getStripeClient } = require("../src/services/paymentService");
+
+test("Stripe client reads its secret from the runtime environment", () => {
+  const previousSecret = process.env.STRIPE_SECRET_KEY;
+
+  try {
+    delete process.env.STRIPE_SECRET_KEY;
+    assert.throws(
+      () => getStripeClient(),
+      (error) => error.code === "STRIPE_NOT_CONFIGURED",
+    );
+
+    process.env.STRIPE_SECRET_KEY = "sk_test_runtime_value";
+    assert.ok(getStripeClient());
+  } finally {
+    if (previousSecret === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = previousSecret;
+  }
+});
 
 test("addMonths advances a monthly subscription by exactly one month", () => {
   const start = new Date("2026-01-15T00:00:00.000Z");
