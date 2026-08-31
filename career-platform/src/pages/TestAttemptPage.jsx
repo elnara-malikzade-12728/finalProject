@@ -18,6 +18,7 @@ function TestAttemptPage() {
     const [notification, setNotification] = useState(null);
     const [remainingSeconds, setRemainingSeconds] = useState(null);
     const autoSubmitStarted = useRef(false);
+    const resultRef = useRef(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -74,6 +75,14 @@ function TestAttemptPage() {
         autoSubmitStarted.current = true;
         handleSubmit({ automatic: true });
     }, [remainingSeconds, attempt]);
+
+    useEffect(() => {
+        if (attempt?.status !== "SUBMITTED") return;
+        window.requestAnimationFrame(() => {
+            resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            resultRef.current?.focus({ preventScroll: true });
+        });
+    }, [attempt?.status]);
 
     function handleOptionChange(questionId, optionValue) {
         setAnswers((current) => ({
@@ -137,7 +146,7 @@ function TestAttemptPage() {
         <section className="section">
             <div className="container test-attempt-layout">
                 <div className="content-card test-attempt-card">
-                    <div className="test-attempt-header">
+                    <div ref={resultRef} tabIndex="-1" className="test-attempt-header">
                         <div>
                             <span className="tag">{contextTitle}</span>
                             <h1>{attempt.test?.title}</h1>
