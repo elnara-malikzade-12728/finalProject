@@ -46,21 +46,11 @@ function CorporatePage() {
             </div>
           </div>
 
-          <div className="jobs-list">
+          <div className="simple-card-grid">
             {benefits.map((benefit) => (
-              <article key={benefit} className="job-card">
-                <div className="job-card-main">
-                  <div className="job-card-content">
-                    <div className="job-card-heading">
-                      <div>
-                        <h3>
-                          <CheckCircle2 size={18} aria-hidden="true" />{" "}
-                          {benefit}
-                        </h3>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <article key={benefit} className="simple-card">
+                <CheckCircle2 size={22} aria-hidden="true" />
+                <h3>{benefit}</h3>
               </article>
             ))}
           </div>

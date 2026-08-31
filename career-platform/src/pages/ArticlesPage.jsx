@@ -94,32 +94,20 @@ function ArticlesPage() {
               message="Hələ heç bir məqalə dərc edilməyib."
             />
           ) : (
-            <div className="jobs-list">
+            <div className="simple-card-grid article-card-grid">
               {articles.map((article) => (
-                <article key={article.id} className="job-card">
-                  <div className="job-card-main">
-                    <div className="job-card-content">
-                      <div className="job-card-heading">
-                        <div>
-                          <h3>
-                            <Link to={`/articles/${article.slug}`}>
-                              {article.title}
-                            </Link>
-                          </h3>
+                <article key={article.id} className="simple-card article-card">
+                  <h3>
+                    <Link to={`/articles/${article.slug}`}>
+                      {article.title}
+                    </Link>
+                  </h3>
 
-                          {article.summary && (
-                            <p className="company-name">{article.summary}</p>
-                          )}
-                        </div>
-                      </div>
+                  {article.summary && <p>{article.summary}</p>}
 
-                      <div className="job-meta">
-                        <span>
-                          <CalendarDays size={16} aria-hidden="true" />
-                          {formatDate(article.publishedAt)}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="article-card-date">
+                    <CalendarDays size={16} aria-hidden="true" />
+                    {formatDate(article.publishedAt)}
                   </div>
                 </article>
               ))}

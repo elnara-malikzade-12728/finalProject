@@ -1294,6 +1294,61 @@ ol {
   gap: 18px;
 }
 
+.simple-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.simple-card {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(44, 26, 14, 0.05);
+}
+
+.simple-card > svg {
+  flex: 0 0 auto;
+  color: var(--success);
+}
+
+.simple-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.45;
+}
+
+.article-card-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.article-card {
+  flex-direction: column;
+}
+
+.article-card h3 a:hover {
+  color: var(--primary);
+}
+
+.article-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.article-card-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .job-card {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -1777,6 +1832,11 @@ ol {
 
   .section {
     padding: 62px 0;
+  }
+
+  .simple-card-grid,
+  .article-card-grid {
+    grid-template-columns: 1fr;
   }
 
   .mobile-menu-button {
