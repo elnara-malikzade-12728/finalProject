@@ -1,6 +1,9 @@
 const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
 
+const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'REMOTE', 'INTERNSHIP', 'FREELANCE'];
+const EXPERIENCE_LEVELS = ['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR', 'LEAD_MANAGER'];
+
 const jobCareerSelect = {
   id: true,
   title: true,
@@ -80,11 +83,11 @@ function buildJobFilters(query = {}) {
   }
   if (courseId) where.courseId = courseId;
 
-  if (['FULL_TIME', 'PART_TIME', 'INTERNSHIP'].includes(employmentType)) {
+  if (EMPLOYMENT_TYPES.includes(employmentType)) {
     where.employmentType = employmentType;
   }
 
-  if (['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR'].includes(experienceLevel)) {
+  if (EXPERIENCE_LEVELS.includes(experienceLevel)) {
     where.experienceLevel = experienceLevel;
   }
 
@@ -194,7 +197,7 @@ function validateJobPayload(body = {}, { partial = false } = {}) {
 
   if (!partial || hasField('employmentType')) {
     const value = body.employmentType || 'FULL_TIME';
-    if (!['FULL_TIME', 'PART_TIME', 'INTERNSHIP'].includes(value)) {
+    if (!EMPLOYMENT_TYPES.includes(value)) {
       return { error: 'İş növü yanlışdır.' };
     }
     data.employmentType = value;
@@ -202,7 +205,7 @@ function validateJobPayload(body = {}, { partial = false } = {}) {
 
   if (!partial || hasField('experienceLevel')) {
     const value = body.experienceLevel || null;
-    if (value && !['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR'].includes(value)) {
+    if (value && !EXPERIENCE_LEVELS.includes(value)) {
       return { error: 'Təcrübə səviyyəsi yanlışdır.' };
     }
     data.experienceLevel = value;
@@ -265,7 +268,7 @@ async function listJobs(req, res) {
     const jobs = await prisma.job.findMany({
       where: buildJobFilters(req.query),
       include: jobInclude,
-      orderBy: { id: 'desc' },
+      orderBy: [{ isPriority: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
     });

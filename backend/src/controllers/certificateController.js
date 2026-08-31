@@ -1,5 +1,6 @@
 const prisma = require("../lib/prisma");
 const { listCertificatesForUser, getCertificateByCode } = require("../services/certificateService");
+const { createCertificatePdf } = require("../services/certificatePdfService");
 function createHttpError(statusCode, message) {
     const error = new Error(message);
     error.statusCode = statusCode;
@@ -62,16 +63,12 @@ async function downloadCertificate(req, res, next) {
             throw createHttpError(403, "Bu sertifikatə baxma icazəniz yoxdur.");
         }
 
-        return res.status(200).json({
-            id: certificate.id,
-            code: certificate.code,
-            userName: certificate.user.name,
-            courseTitle: certificate.course.title,
-            finalScore: certificate.finalScore,
-            issuedAt: certificate.issuedAt,
-            downloadUrl: `/api/certificates/${certificate.id}/download`,
-            verificationUrl: `/api/certificates/${certificate.code}/verify`,
-        });
+        const pdf = await createCertificatePdf(certificate, process.env.FRONTEND_URL);
+        const safeCode = certificate.code.replace(/[^a-zA-Z0-9_-]/g, "");
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="synex-certificate-${safeCode}.pdf"`);
+        res.setHeader("Content-Length", String(pdf.length));
+        return res.status(200).send(pdf);
     } catch (error) {
         return next(error);
     }

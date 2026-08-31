@@ -2,7 +2,7 @@ const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
 
 const structureInclude = {
-  category: true,
+  category: { include: { parent: true } },
   modules: {
     orderBy: { order: 'asc' },
     include: { lessons: { orderBy: { order: 'asc' } } },
@@ -33,7 +33,10 @@ function sortOrder(value, fallback = 0) {
 async function listCourseStructure(_req, res) {
   try {
     const [categories, courses] = await Promise.all([
-      prisma.courseCategory.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] }),
+      prisma.courseCategory.findMany({
+        include: { parent: true, children: { orderBy: [{ order: 'asc' }, { name: 'asc' }] } },
+        orderBy: [{ parentId: 'asc' }, { order: 'asc' }, { name: 'asc' }],
+      }),
       prisma.course.findMany({ include: structureInclude, orderBy: { createdAt: 'desc' } }),
     ]);
     return res.json({ categories, courses });
@@ -48,7 +51,7 @@ async function listPublishedCourses(_req, res) {
     const courses = await prisma.course.findMany({
       where: { published: true },
       include: {
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, parent: { select: { id: true, name: true } } } },
         modules: {
           select: {
             id: true,
@@ -235,8 +238,10 @@ async function createCategory(req, res) {
   try {
     const name = requiredText(req.body.name, 100);
     if (!name) return res.status(400).json({ error: 'Kateqoriya adı 1–100 simvol olmalıdır.' });
+    const parentId = req.body.parentId ? id(req.body.parentId) : null;
+    if (req.body.parentId && !parentId) return res.status(400).json({ error: 'Ana kateqoriya ID-si yanlışdır.' });
     const result = await prisma.courseCategory.create({
-      data: { name, description: optionalText(req.body.description), order: sortOrder(req.body.order) },
+      data: { name, description: optionalText(req.body.description), order: sortOrder(req.body.order), parentId },
     });
     return res.status(201).json(result);
   } catch (error) {
@@ -257,6 +262,11 @@ async function updateCategory(req, res) {
     }
     if ('description' in req.body) data.description = optionalText(req.body.description);
     if ('order' in req.body) data.order = sortOrder(req.body.order);
+    if ('parentId' in req.body) {
+      data.parentId = req.body.parentId ? id(req.body.parentId) : null;
+      if (req.body.parentId && !data.parentId) return res.status(400).json({ error: 'Ana kateqoriya ID-si yanlışdır.' });
+      if (data.parentId === categoryId) return res.status(400).json({ error: 'Kateqoriya öz ana kateqoriyası ola bilməz.' });
+    }
     return res.json(await prisma.courseCategory.update({ where: { id: categoryId }, data }));
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ error: 'Kateqoriya tapılmadı.' });

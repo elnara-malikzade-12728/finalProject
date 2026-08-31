@@ -6,7 +6,7 @@ import { createAdminQuestion, createAdminTest, deleteAdminQuestion, deleteAdminT
 import { getApiErrorMessage } from "../api/client.js";
 import PageLoader from "../components/common/PageLoader.jsx";
 
-const emptyTest = { title: "", type: "LESSON", targetId: "", passScorePercent: 60, timeLimitMinutes: 15 };
+const emptyTest = { title: "", type: "LESSON", targetId: "", passScorePercent: 60, timeLimitMinutes: 1 };
 const emptyQuestion = { questionText: "", options: ["", "", "", ""], correctIndex: 0 };
 
 function AdminTestsPage() {
@@ -95,15 +95,15 @@ function AdminTestsPage() {
       <form className="course-admin-form" onSubmit={submitTest}>
         <h2><Plus size={20} /> Yeni test</h2>
         <input required placeholder="Testin adı" value={testForm.title} onChange={(e) => setTestForm({ ...testForm, title: e.target.value })} />
-        <select value={testForm.type} onChange={(e) => setTestForm({ ...testForm, type: e.target.value, targetId: "", passScorePercent: e.target.value === "FINAL" ? 70 : 60 })}>
+        <select value={testForm.type} onChange={(e) => setTestForm({ ...testForm, type: e.target.value, targetId: "", passScorePercent: e.target.value === "FINAL" ? 70 : 60, timeLimitMinutes: e.target.value === "FINAL" ? 30 : 1 })}>
           <option value="LESSON">Dərs testi (3–5 sual)</option><option value="FINAL">Yekun test (20–30 sual)</option>
         </select>
         <select required value={testForm.targetId} onChange={(e) => setTestForm({ ...testForm, targetId: e.target.value })}>
           <option value="">{testForm.type === "FINAL" ? "Kurs seçin" : "Dərs seçin"}</option>
           {targetOptions.map((item) => <option key={item.id} value={item.id}>{testForm.type === "FINAL" ? item.title : `${item.courseTitle} — ${item.moduleTitle} — ${item.title}`}</option>)}
         </select>
-        <label>Keçid faizi<input type="number" min="0" max="100" value={testForm.passScorePercent} onChange={(e) => setTestForm({ ...testForm, passScorePercent: e.target.value })} /></label>
-        <label>Vaxt limiti (dəqiqə)<input type="number" min="1" value={testForm.timeLimitMinutes} onChange={(e) => setTestForm({ ...testForm, timeLimitMinutes: e.target.value })} /></label>
+        <label>Keçid faizi<input type="number" value={testForm.passScorePercent} readOnly /></label>
+        <label>Vaxt limiti (dəqiqə)<input type="number" min={testForm.type === "FINAL" ? 30 : 1} max={testForm.type === "FINAL" ? 45 : 5} value={testForm.timeLimitMinutes} readOnly={testForm.type === "LESSON"} onChange={(e) => setTestForm({ ...testForm, timeLimitMinutes: e.target.value })} /><small>{testForm.type === "LESSON" ? "Yayımlanarkən hər suala 1 dəqiqə hesablanır." : "30–45 dəqiqə"}</small></label>
         <button className="button button-primary" type="submit">Test yarat</button>
       </form>
       <div className="assessment-test-list">

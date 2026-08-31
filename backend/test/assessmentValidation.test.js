@@ -5,6 +5,7 @@ const {
     normalizePositiveInt,
     normalizePercent,
     buildQuestionPayload,
+    getAssessmentRules,
 } = require("../src/controllers/testController");
 const { createCvSignedUrl } = require("../src/services/cvStorageService");
 
@@ -38,6 +39,16 @@ test("buildQuestionPayload validates and normalizes question fields", () => {
 
     assert.throws(() => buildQuestionPayload({ options: ["A"] }), /questionText/);
     assert.throws(() => buildQuestionPayload({ questionText: "Q", options: ["A"] }), /at least 2/);
+});
+
+test("assessment rules enforce specification scores and timers", () => {
+    assert.deepEqual(getAssessmentRules("LESSON"), { passScorePercent: 60, timeLimitMinutes: 1 });
+    assert.deepEqual(getAssessmentRules("FINAL"), { passScorePercent: 70, timeLimitMinutes: 30 });
+    assert.deepEqual(getAssessmentRules("FINAL", { timeLimitMinutes: 45 }), { passScorePercent: 70, timeLimitMinutes: 45 });
+    assert.throws(() => getAssessmentRules("LESSON", { passScorePercent: 70 }), /60%/);
+    assert.throws(() => getAssessmentRules("FINAL", { passScorePercent: 60 }), /70%/);
+    assert.throws(() => getAssessmentRules("FINAL", { timeLimitMinutes: 29 }), /30–45/);
+    assert.throws(() => getAssessmentRules("FINAL", { timeLimitMinutes: 46 }), /30–45/);
 });
 
 test("createCvSignedUrl returns a short-lived private link", async () => {

@@ -136,6 +136,9 @@ const CorporatePage = lazy(
 const CorporateContactPage = lazy(
   () => import("./pages/CorporateContactPage.jsx"),
 );
+const CompanyDashboardPage = lazy(
+  () => import("./pages/CompanyDashboardPage.jsx"),
+);
 const ArticlesPage = lazy(
   () => import("./pages/ArticlesPage.jsx"),
 );
@@ -255,6 +258,7 @@ function App() {
             />
 
             <Route element={<ProtectedRoute />}>
+              <Route path="corporate/dashboard" element={<CompanyDashboardPage />} />
               <Route
                 path="roadmap/:careerId"
                 element={<RoadmapPage />}

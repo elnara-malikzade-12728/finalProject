@@ -54,6 +54,7 @@ async function createCheckout(req, res) {
     let currency;
     let productName;
     let metadata;
+    let billingPeriod = "ONE_TIME";
 
     if (planId) {
       const id = parsePositiveInteger(planId);
@@ -71,6 +72,11 @@ async function createCheckout(req, res) {
         });
       }
 
+      const activeSubscription = await prisma.subscription.findFirst({
+        where: { userId: user.id, status: "ACTIVE", cancelledAt: null, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      });
+      if (activeSubscription) return res.status(409).json({ error: "Artıq aktiv, avtomatik yenilənən abunəliyiniz var." });
+
       amount = plan.price;
       currency = plan.currency;
       productName = plan.name;
@@ -79,6 +85,7 @@ async function createCheckout(req, res) {
         type: "subscription",
         planId: String(plan.id),
       };
+      billingPeriod = plan.billingPeriod;
     } else {
       const cId = parsePositiveInteger(courseId);
       if (!cId) return res.status(400).json({ error: "courseId yanlışdır." });
@@ -121,6 +128,7 @@ async function createCheckout(req, res) {
       currency,
       productName,
       metadata,
+      billingPeriod,
     });
 
     return res.status(200).json({ url: session.url });
@@ -150,9 +158,37 @@ async function handleWebhook(req, res) {
   }
 
   try {
-    if (event.type !== "checkout.session.completed") {
+    if (["invoice.paid", "invoice.payment_failed"].includes(event.type)) {
+      const invoice = event.data.object;
+      const providerSubscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      if (!providerSubscriptionId) return res.status(200).json({ received: true });
+      const subscription = await prisma.subscription.findUnique({ where: { providerReference: providerSubscriptionId } });
+      if (!subscription) return res.status(200).json({ received: true });
+      const paid = event.type === "invoice.paid";
+      const periodEnd = invoice.lines?.data?.reduce((latest, line) => Math.max(latest, line.period?.end || 0), 0);
+      await prisma.$transaction(async (tx) => {
+        await tx.subscription.update({ where: { id: subscription.id }, data: { status: paid ? "ACTIVE" : "PAYMENT_FAILED", ...(periodEnd ? { expiresAt: new Date(periodEnd * 1000) } : {}) } });
+        if (invoice.billing_reason !== "subscription_create") {
+          await tx.payment.upsert({
+            where: { providerReference: invoice.id },
+            update: { status: paid ? "SUCCEEDED" : "FAILED" },
+            create: { userId: subscription.userId, subscriptionId: subscription.id, providerReference: invoice.id, amount: (invoice.amount_paid || invoice.amount_due || 0) / 100, currency: (invoice.currency || "azn").toUpperCase(), status: paid ? "SUCCEEDED" : "FAILED" },
+          });
+        }
+      });
       return res.status(200).json({ received: true });
     }
+
+    if (event.type === "customer.subscription.deleted") {
+      const providerSubscription = event.data.object;
+      await prisma.subscription.updateMany({
+        where: { providerReference: providerSubscription.id },
+        data: { status: "CANCELLED", cancelledAt: new Date(), expiresAt: new Date((providerSubscription.current_period_end || Math.floor(Date.now() / 1000)) * 1000) },
+      });
+      return res.status(200).json({ received: true });
+    }
+
+    if (event.type !== "checkout.session.completed") return res.status(200).json({ received: true });
 
     const session = event.data.object;
     const providerReference = session.id;
@@ -189,15 +225,20 @@ async function handleWebhook(req, res) {
 
         if (paymentStatus === "SUCCEEDED" && plan) {
           const now = new Date();
-          const expiresAt =
-            plan.billingPeriod === "YEARLY"
-              ? addYears(now, 1)
-              : addMonths(now, 1);
+          const providerSubscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+          const providerSubscription = providerSubscriptionId ? await paymentService.getProviderSubscription(providerSubscriptionId) : null;
+          const expiresAt = providerSubscription?.current_period_end
+            ? new Date(providerSubscription.current_period_end * 1000)
+            : plan.billingPeriod === "YEARLY" ? addYears(now, 1) : addMonths(now, 1);
 
-          const subscription = await tx.subscription.create({
-            data: {
+          const subscription = await tx.subscription.upsert({
+            where: { providerReference: providerSubscriptionId || `checkout:${session.id}` },
+            update: { status: "ACTIVE", expiresAt, cancelledAt: null },
+            create: {
               userId,
               planId: plan.id,
+              providerCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
+              providerReference: providerSubscriptionId || `checkout:${session.id}`,
               status: "ACTIVE",
               startedAt: now,
               expiresAt,

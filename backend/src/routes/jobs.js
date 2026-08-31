@@ -24,11 +24,11 @@ const {
  *     parameters:
  *       - in: query
  *         name: employmentType
- *         schema: { type: string, enum: [FULL_TIME, PART_TIME, INTERNSHIP] }
+ *         schema: { type: string, enum: [FULL_TIME, PART_TIME, REMOTE, INTERNSHIP, FREELANCE] }
  *         description: İş növünə görə filtr
  *       - in: query
  *         name: experienceLevel
- *         schema: { type: string, enum: [ENTRY_LEVEL, JUNIOR, MID_LEVEL, SENIOR] }
+ *         schema: { type: string, enum: [ENTRY_LEVEL, JUNIOR, MID_LEVEL, SENIOR, LEAD_MANAGER] }
  *         description: Təcrübə səviyyəsinə görə filtr
  *     responses:
  *       200:

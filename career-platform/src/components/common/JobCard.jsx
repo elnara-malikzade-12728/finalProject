@@ -5,8 +5,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const employmentLabels = { FULL_TIME: "Tam ştat", PART_TIME: "Yarım ştat", INTERNSHIP: "Təcrübə proqramı" };
-const experienceLabels = { ENTRY_LEVEL: "Başlanğıc", JUNIOR: "Junior", MID_LEVEL: "Mid-level", SENIOR: "Senior" };
+const employmentLabels = { FULL_TIME: "Tam ştat", PART_TIME: "Yarım ştat", REMOTE: "Uzaqdan", INTERNSHIP: "Təcrübə proqramı", FREELANCE: "Frilans" };
+const experienceLabels = { ENTRY_LEVEL: "Başlanğıc", JUNIOR: "Junior", MID_LEVEL: "Middle", SENIOR: "Senior", LEAD_MANAGER: "Lead / Manager" };
 
 function formatSalary(job) {
   if (job.salaryMin == null && job.salaryMax == null) return null;
@@ -54,6 +54,7 @@ function JobCard({ job }) {
                 </div>
               )}
               <div className="job-tags">
+                {job.isPriority && <span className="tag">Prioritet</span>}
                 <span className="tag">{employmentLabels[job.employmentType] || "Tam ştat"}</span>
                 {job.experienceLevel && <span className="tag">{experienceLabels[job.experienceLevel]}</span>}
               </div>

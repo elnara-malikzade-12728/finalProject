@@ -31,11 +31,12 @@ The deployed application now includes the core learner, administrator, assessmen
 - Frontend loading, validation, success, error, and empty states
 - Mock API fallback for frontend-only demonstrations
 - Timed lesson and final assessments with automatic submission
-- Verifiable certificates with public verification links and QR codes
+- Downloadable PDF certificates with embedded QR verification links
 - CV upload and lifecycle management
-- Stripe Checkout payments and signed webhook processing
+- Stripe recurring monthly/yearly subscriptions, one-time course checkout, renewals, cancellation, and signed webhook processing
 - Subscription plans, user subscription status, and payment history
-- Public articles and corporate training inquiries
+- Four-level Synex training taxonomy with dynamically managed subcategories
+- Public articles, corporate training inquiries, and a company dashboard with employee statistics and priority vacancy publishing
 
 ## Sprint Progress
 
@@ -73,6 +74,10 @@ The deployed application now includes the core learner, administrator, assessmen
 - Added automatic certificate issuance, public verification, copyable codes, and QR verification.
 - Added Stripe Checkout, webhook verification, payment history, plans, and subscription access periods.
 - Added public articles, corporate inquiries, and their administrator management workflows.
+- Added the specification-defined 4 parent training categories and 14 flexible subcategories.
+- Added real QR-coded PDF certificate downloads and strict lesson/final assessment rules.
+- Added recurring Stripe Billing renewals and end-of-period cancellation.
+- Added the corporate company panel, employee learning statistics, and priority vacancies.
 - Expanded responsive navigation and production error handling across desktop, tablet, and mobile.
 
 ## Technology Stack
@@ -323,6 +328,7 @@ The frontend normally runs at `http://localhost:5173/`.
 | `POST` | `/api/attempts/:attemptId/submit` | User | Submit answers and calculate the result |
 | `GET` | `/api/certificates/me` | User | List the current user's certificates |
 | `GET` | `/api/certificates/verify/:code` | No | Verify a certificate publicly |
+| `GET` | `/api/certificates/:id/download` | User | Download the QR-coded PDF certificate |
 | `GET` | `/api/plans` | No | List active subscription plans |
 | `POST` | `/api/payments/checkout` | User | Create a Stripe Checkout session |
 | `POST` | `/api/payments/webhook` | Stripe | Process signed Stripe events |
@@ -332,6 +338,10 @@ The frontend normally runs at `http://localhost:5173/`.
 | `GET` | `/api/articles` | No | List published articles |
 | `POST` | `/api/articles` | Admin | Create an article |
 | `POST` | `/api/corporate-inquiries` | No | Submit a corporate training inquiry |
+| `GET` | `/api/companies/me` | Yes | Get the company dashboard and employee statistics |
+| `PUT` | `/api/companies/me` | Yes | Create or update a company profile |
+| `POST` | `/api/companies/me/employees` | Yes | Add an employee by Synex account email |
+| `POST` | `/api/companies/me/jobs` | Yes | Publish a priority company vacancy |
 
 Authenticated requests use:
 
@@ -388,6 +398,7 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/articles/:slug` | Public | Article details |
 | `/corporate` | Public | Corporate training offer |
 | `/corporate/contact` | Public | Corporate inquiry form |
+| `/corporate/dashboard` | Authenticated | Company profile, employee statistics, and priority vacancies |
 | `/profile` | Authenticated | User profile |
 | `/admin` | Administrator | Administration dashboard |
 | `/admin/jobs` | Administrator | Vacancy management |
@@ -458,6 +469,8 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Loading, empty, validation, and error states display correctly.
 - Responsive navigation and pages work on mobile and desktop.
 - Stripe sandbox checkout completes and the signed webhook activates the subscription.
+- Monthly/yearly Stripe subscriptions renew through `invoice.paid`, record payment failures, and cancel at period end.
+- The Stripe webhook listens for `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, and `customer.subscription.deleted`.
 - Final tests issue exactly one verifiable certificate after a passing score.
 - Certificate QR codes open the public verification route.
 - Test timers count down after an attempt starts and auto-submit at zero.
@@ -478,13 +491,11 @@ VITE_SUPABASE_VIDEO_BUCKET=course-videos
 
 Configure the deployed backend with the database, JWT, Supabase/video variables, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL`, and `STRIPE_CANCEL_URL`. Redeploy after changing environment variables. `localhost` must never be used as the API URL for a public deployment.
 
-## Known Limitations and Follow-up
+## Production Follow-up
 
-- Automated backend validation tests exist; broader integration and end-to-end coverage is still being expanded.
-- Custom video display titles and original filenames are not yet stored.
-- The current paid access period is activated from Stripe Checkout; automatic recurring Stripe Billing and a customer portal are not yet implemented.
-- Employer self-service workflows, mentoring, and AI recommendations remain future work.
-- Production launch still requires live Stripe credentials and a final security/accessibility review.
+- Run the new Prisma migrations before deploying the API.
+- Add the recurring subscription event types listed above to the Stripe webhook destination.
+- Complete a final production security, accessibility, responsive-layout, and end-to-end payment review before switching Stripe from sandbox to live credentials.
 
 ## Security
 

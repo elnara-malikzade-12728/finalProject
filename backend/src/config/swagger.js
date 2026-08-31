@@ -6,9 +6,9 @@ const options = {
 
     info: {
       title: "Synex Academy API",
-      version: "1.1.0",
+      version: "1.2.0",
       description:
-        "Synex Academy API for authentication, learning, assessments, certificates, jobs, profiles, secure video, payments, subscriptions, articles and corporate inquiries.",
+        "Synex Academy API for authentication, hierarchical learning, strict assessments, PDF certificates, jobs, profiles, secure video, recurring payments, articles and corporate company management.",
     },
 
     servers: [
@@ -57,7 +57,7 @@ const options = {
       },
             {
         name: "Corporate",
-        description: "Korporativ B2B müraciətlərinin idarə edilməsi",
+        description: "Korporativ B2B müraciətləri, şirkət paneli, əməkdaş statistikası və prioritet vakansiyalar",
       },
       {
         name: "Applications",
@@ -403,8 +403,8 @@ const options = {
               type: "integer",
               example: 1,
             },
-            employmentType: { type: "string", enum: ["FULL_TIME", "PART_TIME", "INTERNSHIP"], example: "FULL_TIME" },
-            experienceLevel: { type: "string", nullable: true, enum: ["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR"], example: "JUNIOR" },
+            employmentType: { type: "string", enum: ["FULL_TIME", "PART_TIME", "REMOTE", "INTERNSHIP", "FREELANCE"], example: "FULL_TIME" },
+            experienceLevel: { type: "string", nullable: true, enum: ["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR", "LEAD_MANAGER"], example: "JUNIOR" },
             salaryMin: { type: "integer", nullable: true, minimum: 0, example: 1000 },
             salaryMax: { type: "integer", nullable: true, minimum: 0, example: 1800 },
             salaryCurrency: { type: "string", example: "AZN" },
@@ -453,8 +453,8 @@ const options = {
               example: 1,
               description: "Administrator tərəfindən idarə olunan kurs identifikatoru",
             },
-            employmentType: { type: "string", enum: ["FULL_TIME", "PART_TIME", "INTERNSHIP"], default: "FULL_TIME" },
-            experienceLevel: { type: "string", nullable: true, enum: ["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR"] },
+            employmentType: { type: "string", enum: ["FULL_TIME", "PART_TIME", "REMOTE", "INTERNSHIP", "FREELANCE"], default: "FULL_TIME" },
+            experienceLevel: { type: "string", nullable: true, enum: ["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR", "LEAD_MANAGER"] },
             salaryMin: { type: "integer", nullable: true, minimum: 0, example: 1000 },
             salaryMax: { type: "integer", nullable: true, minimum: 0, example: 1800 },
             salaryCurrency: { type: "string", minLength: 3, maxLength: 3, example: "AZN" },

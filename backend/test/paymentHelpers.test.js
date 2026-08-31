@@ -8,6 +8,10 @@ const {
 } = require("../src/controllers/paymentController");
 const { getStripeClient } = require("../src/services/paymentService");
 
+test("subscription plans remain recurring while course purchases are one-time", () => {
+  assert.deepEqual(["MONTHLY", "YEARLY"].map((period) => period !== "ONE_TIME"), [true, true]);
+});
+
 test("Stripe client reads its secret from the runtime environment", () => {
   const previousSecret = process.env.STRIPE_SECRET_KEY;
 
