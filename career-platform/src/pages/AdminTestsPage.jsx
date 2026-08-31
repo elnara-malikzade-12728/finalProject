@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, ListChecks, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ListChecks, Plus, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getCourseStructure } from "../api/adminCoursesApi.js";
 import { createAdminQuestion, createAdminTest, deleteAdminQuestion, deleteAdminTest, getAdminTests, getTestById, setAdminTestPublished } from "../api/testsApi.js";
@@ -87,8 +87,10 @@ function AdminTestsPage() {
 
   return <section className="admin-page assessment-admin">
     <header className="admin-page-header"><div><span className="admin-page-eyebrow">Qiymətləndirmə</span><h1>Testlər</h1><p>Testləri yaradın, sualları əlavə edin və hazır olduqda yayımlayın.</p></div></header>
-    {error && <div className="notification notification-error">{error}</div>}
-    {message && <div className="notification notification-success">{message}</div>}
+    {(error || message) && <div className={`assessment-floating-feedback notification ${error ? "notification-error" : "notification-success"}`} role="alert" aria-live="assertive">
+      <span>{error || message}</span>
+      <button type="button" onClick={() => { setError(""); setMessage(""); }} aria-label="Bildirişi bağla"><X size={19} /></button>
+    </div>}
     <div className="assessment-admin-grid">
       <form className="course-admin-form" onSubmit={submitTest}>
         <h2><Plus size={20} /> Yeni test</h2>
@@ -107,7 +109,7 @@ function AdminTestsPage() {
       <div className="assessment-test-list">
         {tests.length === 0 && <p>Hələ test yaradılmayıb.</p>}
         {tests.map((test) => <article className={`assessment-test-card ${selected?.id === test.id ? "assessment-test-card-selected" : ""}`} key={test.id}>
-          <button className="assessment-test-select" type="button" onClick={() => selectTest(test.id)}><ListChecks size={20} /><span><strong>{test.title}</strong><small>ID: {test.id} · {test.type === "FINAL" ? "Yekun test" : "Dərs testi"} · {test._count?.questions || 0} sual</small></span></button>
+          <button className="assessment-test-select" type="button" onClick={() => selectTest(test.id)}><ListChecks size={20} /><span><strong>{test.title}</strong><small>ID: {test.id} · {test.type === "FINAL" ? test.course?.title || "Yekun imtahan" : test.lesson?.title || "Dərs seçilməyib"} · {test._count?.questions || 0} sual</small></span></button>
           <span className={test.published ? "status-badge status-badge-success" : "status-badge"}>{test.published ? "Yayımlanıb" : "Qaralama"}</span>
           <button className="admin-icon-button admin-icon-button-danger" type="button" onClick={() => removeTest(test.id)} aria-label="Testi sil"><Trash2 size={17} /></button>
         </article>)}
