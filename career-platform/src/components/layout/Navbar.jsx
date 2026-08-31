@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   BriefcaseBusiness,
   Building2,
+  ChevronDown,
   CreditCard,
   FileText,
   LogOut,
@@ -128,43 +129,39 @@ function Navbar() {
                     <FileText size={18} />
                     Müraciətlərim
                   </NavLink>
-                  <NavLink
-                    to="/profile/subscription"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <CreditCard size={18} />
-                    Abunəliyim
-                  </NavLink>
                 </>
               )}
 
-              <NavLink
-                to="/pricing"
-                className={getNavLinkClass}
-                onClick={closeMenu}
-              >
-                <CreditCard size={18} />
-                Qiymətlər
-              </NavLink>
-
-              <NavLink
-                to="/articles"
-                className={getNavLinkClass}
-                onClick={closeMenu}
-              >
-                <Newspaper size={18} />
-                Məqalələr
-              </NavLink>
-
-              <NavLink
-                to="/corporate"
-                className={getNavLinkClass}
-                onClick={closeMenu}
-              >
-                <Building2 size={18} />
-                Korporativ
-              </NavLink>
+              <details className="nav-more-menu">
+                <summary className="nav-link">
+                  Daha çox
+                  <ChevronDown size={16} />
+                </summary>
+                <div className="nav-more-dropdown">
+                  {isAuthenticated && user?.role !== "ADMIN" && (
+                    <NavLink
+                      to="/profile/subscription"
+                      className={getNavLinkClass}
+                      onClick={closeMenu}
+                    >
+                      <CreditCard size={18} />
+                      Abunəliyim
+                    </NavLink>
+                  )}
+                  <NavLink to="/pricing" className={getNavLinkClass} onClick={closeMenu}>
+                    <CreditCard size={18} />
+                    Qiymətlər
+                  </NavLink>
+                  <NavLink to="/articles" className={getNavLinkClass} onClick={closeMenu}>
+                    <Newspaper size={18} />
+                    Məqalələr
+                  </NavLink>
+                  <NavLink to="/corporate" className={getNavLinkClass} onClick={closeMenu}>
+                    <Building2 size={18} />
+                    Korporativ
+                  </NavLink>
+                </div>
+              </details>
             </div>
           )}
 
