@@ -37,6 +37,7 @@ module.exports = async function auth(req, res, next) {
       select: {
         id: true,
         role: true,
+        isCorporate: true,
         isActive: true,
         tokenVersion: true,
       },

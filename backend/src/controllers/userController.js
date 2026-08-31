@@ -12,6 +12,7 @@ const publicUserFields = {
   name: true,
   email: true,
   role: true,
+  isCorporate: true,
   education: true,
   location: true,
   bio: true,

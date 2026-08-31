@@ -35,6 +35,7 @@ function createAuthenticationResponse(user) {
       name: user.name,
       email: user.email,
       role: user.role,
+      isCorporate: user.isCorporate,
       education: user.education,
       location: user.location,
       bio: user.bio,

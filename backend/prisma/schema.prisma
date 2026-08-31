@@ -26,6 +26,7 @@ model User {
   password           String
   role               UserRole         @default(USER)
   isActive           Boolean          @default(true)
+  isCorporate        Boolean          @default(false)
   tokenVersion       Int              @default(0)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
@@ -393,6 +394,7 @@ enum PaymentStatus {
 enum InquiryStatus {
   NEW
   CONTACTED
+  APPROVED
   CLOSED
 }
 

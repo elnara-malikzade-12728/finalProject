@@ -1,5 +1,6 @@
 const express = require("express");
 const auth = require("../middleware/auth");
+const requireCorporate = require("../middleware/requireCorporate");
 const { saveCompany, dashboard, addEmployee, removeEmployee, createPriorityJob } = require("../controllers/companyController");
 const router = express.Router();
 
@@ -39,6 +40,7 @@ const router = express.Router();
  */
 
 router.use(auth);
+router.use(requireCorporate);
 router.get("/me", dashboard);
 router.put("/me", saveCompany);
 router.post("/me/employees", addEmployee);
