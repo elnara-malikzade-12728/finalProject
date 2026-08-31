@@ -24,8 +24,8 @@ import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const employmentLabels = { FULL_TIME: "Tam ştat", PART_TIME: "Yarım ştat", INTERNSHIP: "Təcrübə proqramı" };
-const experienceLabels = { ENTRY_LEVEL: "Başlanğıc", JUNIOR: "Junior", MID_LEVEL: "Mid-level", SENIOR: "Senior" };
+const employmentLabels = { FULL_TIME: "Tam ştat", PART_TIME: "Yarım ştat", REMOTE: "Uzaqdan", INTERNSHIP: "Təcrübə proqramı", FREELANCE: "Frilans" };
+const experienceLabels = { ENTRY_LEVEL: "Başlanğıc", JUNIOR: "Junior", MID_LEVEL: "Middle", SENIOR: "Senior", LEAD_MANAGER: "Lead / Manager" };
 
 function JobDetailsPage() {
   const { id } = useParams();

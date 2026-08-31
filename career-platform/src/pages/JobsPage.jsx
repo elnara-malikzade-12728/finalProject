@@ -212,7 +212,9 @@ function JobsPage() {
                 <option value="">Bütün növlər</option>
                 <option value="FULL_TIME">Tam ştat</option>
                 <option value="PART_TIME">Yarım ştat</option>
+                <option value="REMOTE">Uzaqdan</option>
                 <option value="INTERNSHIP">Təcrübə proqramı</option>
+                <option value="FREELANCE">Frilans</option>
               </select>
             </div>
 
@@ -224,6 +226,7 @@ function JobsPage() {
                 <option value="JUNIOR">Junior</option>
                 <option value="MID_LEVEL">Mid-level</option>
                 <option value="SENIOR">Senior</option>
+                <option value="LEAD_MANAGER">Lead / Manager</option>
               </select>
             </div>
 

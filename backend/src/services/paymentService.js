@@ -24,6 +24,7 @@ async function createCheckoutSession({
   currency,
   productName,
   metadata,
+  billingPeriod,
 }) {
   const stripe = getStripeClient();
   const successUrl = process.env.STRIPE_SUCCESS_URL?.trim();
@@ -36,8 +37,9 @@ async function createCheckoutSession({
     throw error;
   }
 
+  const recurring = billingPeriod === "MONTHLY" || billingPeriod === "YEARLY";
   const session = await stripe.checkout.sessions.create({
-    mode: "payment",
+    mode: recurring ? "subscription" : "payment",
     payment_method_types: ["card"],
     customer_email: user.email,
     line_items: [
@@ -46,6 +48,7 @@ async function createCheckoutSession({
           currency: currency.toLowerCase(),
           product_data: { name: productName },
           unit_amount: Math.round(Number(amount) * 100),
+          ...(recurring ? { recurring: { interval: billingPeriod === "YEARLY" ? "year" : "month" } } : {}),
         },
         quantity: 1,
       },
@@ -53,9 +56,18 @@ async function createCheckoutSession({
     success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
     metadata,
+    ...(recurring ? { subscription_data: { metadata } } : {}),
   });
 
   return session;
+}
+
+async function getProviderSubscription(subscriptionId) {
+  return getStripeClient().subscriptions.retrieve(subscriptionId);
+}
+
+async function cancelProviderSubscriptionAtPeriodEnd(subscriptionId) {
+  return getStripeClient().subscriptions.update(subscriptionId, { cancel_at_period_end: true });
 }
 
 function verifyWebhookSignature(rawBody, signatureHeader) {
@@ -72,4 +84,6 @@ module.exports = {
   createCheckoutSession,
   verifyWebhookSignature,
   getStripeClient,
+  getProviderSubscription,
+  cancelProviderSubscriptionAtPeriodEnd,
 };

@@ -35,6 +35,9 @@ function CorporatePage() {
             <Mail size={16} aria-hidden="true" />
             Bizimlə əlaqə saxlayın
           </button>
+          <button type="button" className="button button-secondary" onClick={() => navigate("/corporate/dashboard")}>
+            <Building2 size={16} aria-hidden="true" /> Şirkət panelinə keçin
+          </button>
         </div>
       </section>
 

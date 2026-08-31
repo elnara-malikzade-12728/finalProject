@@ -24,6 +24,7 @@ const initialCourse = { title: '', description: '', categoryId: '', published: f
 function AdminCoursesPage() {
   const [data, setData] = useState({ categories: [], courses: [] });
   const [categoryName, setCategoryName] = useState('');
+  const [categoryParentId, setCategoryParentId] = useState('');
   const [courseForm, setCourseForm] = useState(initialCourse);
   const [moduleDrafts, setModuleDrafts] = useState({});
   const [lessonDrafts, setLessonDrafts] = useState({});
@@ -69,8 +70,8 @@ function AdminCoursesPage() {
 
   async function submitCategory(event) {
     event.preventDefault();
-    const ok = await perform(() => createCategory({ name: categoryName }), 'Kateqoriya yaradıldı.');
-    if (ok) setCategoryName('');
+    const ok = await perform(() => createCategory({ name: categoryName, parentId: categoryParentId ? Number(categoryParentId) : null }), 'Kateqoriya yaradıldı.');
+    if (ok) { setCategoryName(''); setCategoryParentId(''); }
   }
 
   async function submitCourse(event) {
@@ -126,11 +127,15 @@ function AdminCoursesPage() {
           <h2><FolderTree size={20} /> Yeni kateqoriya</h2>
           <div className="course-admin-inline">
             <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Məsələn: Proqramlaşdırma" maxLength={100} required />
+            <select value={categoryParentId} onChange={(event) => setCategoryParentId(event.target.value)}>
+              <option value="">Ana kateqoriya</option>
+              {data.categories.filter((category) => !category.parentId).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
             <button className="button button-primary" disabled={saving}><Plus size={17} /> Əlavə et</button>
           </div>
           <div className="course-category-list">
             {data.categories.map((category) => (
-              <span key={category.id}>{category.name}<button type="button" onClick={() => confirmDelete(`“${category.name}” kateqoriyası silinsin?`, () => deleteCategory(category.id), 'Kateqoriya silindi.')} aria-label="Kateqoriyanı sil"><Trash2 size={14} /></button></span>
+              <span key={category.id}>{category.parent ? `${category.parent.name} / ` : ''}{category.name}<button type="button" onClick={() => confirmDelete(`“${category.name}” kateqoriyası silinsin?`, () => deleteCategory(category.id), 'Kateqoriya silindi.')} aria-label="Kateqoriyanı sil"><Trash2 size={14} /></button></span>
             ))}
           </div>
         </form>
@@ -141,7 +146,7 @@ function AdminCoursesPage() {
           <textarea value={courseForm.description} onChange={(event) => setCourseForm({ ...courseForm, description: event.target.value })} placeholder="Qısa təsvir" rows={2} />
           <select value={courseForm.categoryId} onChange={(event) => setCourseForm({ ...courseForm, categoryId: event.target.value })}>
             <option value="">Kateqoriyasız</option>
-            {data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            {data.categories.filter((category) => category.parentId).map((category) => <option key={category.id} value={category.id}>{category.parent?.name} / {category.name}</option>)}
           </select>
           <label className="course-publish-check"><input type="checkbox" checked={courseForm.published} onChange={(event) => setCourseForm({ ...courseForm, published: event.target.checked })} /> Dərhal yayımla</label>
           <button className="button button-primary" disabled={saving}><Plus size={17} /> Kurs yarat</button>
@@ -155,7 +160,7 @@ function AdminCoursesPage() {
           {data.courses.map((course) => (
             <details className="course-tree-course" key={course.id} open>
               <summary>
-                <span><ChevronDown size={18} /><strong>{course.title}</strong><small>{course.category?.name || 'Kateqoriyasız'} · {course.published ? 'Yayımdadır' : 'Qaralama'}</small></span>
+                <span><ChevronDown size={18} /><strong>{course.title}</strong><small>{course.category?.parent ? `${course.category.parent.name} / ` : ''}{course.category?.name || 'Kateqoriyasız'} · {course.published ? 'Yayımdadır' : 'Qaralama'}</small></span>
                 <span className="course-tree-actions">
                   <button type="button" onClick={(event) => { event.preventDefault(); perform(() => updateCourse(course.id, { published: !course.published }), course.published ? 'Kurs qaralamaya keçirildi.' : 'Kurs yayımlandı.'); }}>{course.published ? 'Gizlət' : 'Yayımla'}</button>
                   <button type="button" className="danger" onClick={(event) => { event.preventDefault(); confirmDelete(`“${course.title}” kursu və bütün dərsləri silinsin?`, () => deleteCourse(course.id), 'Kurs silindi.'); }}><Trash2 size={16} /></button>

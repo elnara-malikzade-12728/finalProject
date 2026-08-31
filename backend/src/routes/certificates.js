@@ -49,7 +49,11 @@ router.get("/:code/verify", verifyCertificate);
  *         required: true
  *         schema: { type: integer }
  *     responses:
- *       200: { description: Sertifikat məlumatı }
+ *       200:
+ *         description: QR kodlu PDF sertifikat
+ *         content:
+ *           application/pdf:
+ *             schema: { type: string, format: binary }
  *       403: { description: Bu sertifikatə baxma icazəniz yoxdur }
  *       404: { description: Sertifikat tapılmadı }
  */

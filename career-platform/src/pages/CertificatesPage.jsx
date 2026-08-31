@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Award, CalendarDays, CheckCircle2, Copy, ExternalLink, LoaderCircle, Printer, UserRound } from "lucide-react";
+import { Award, CalendarDays, CheckCircle2, Copy, Download, ExternalLink, LoaderCircle, Printer, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import QRCode from "react-qr-code";
-import { getMyCertificates, verifyCertificate } from "../api/certificatesApi.js";
+import { downloadCertificate, getMyCertificates, verifyCertificate } from "../api/certificatesApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
@@ -15,6 +15,26 @@ function CertificatesPage() {
     const [isVerifying, setIsVerifying] = useState(false);
     const [error, setError] = useState("");
     const [copiedCode, setCopiedCode] = useState("");
+    const [downloadingId, setDownloadingId] = useState(null);
+
+    async function handleDownload(certificate) {
+        try {
+            setDownloadingId(certificate.id);
+            const blob = await downloadCertificate(certificate.id);
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = `synex-certificate-${certificate.code}.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError));
+        } finally {
+            setDownloadingId(null);
+        }
+    }
 
     async function handleCopy(code) {
         await navigator.clipboard?.writeText(code);
@@ -110,6 +130,7 @@ function CertificatesPage() {
                                     <div className="certificate-actions no-print">
                                         <button type="button" className="button button-secondary" onClick={() => handleCopy(certificate.code)}><Copy size={17} />{copiedCode === certificate.code ? "Kopyalandı" : "Kodu kopyala"}</button>
                                         <Link className="button button-secondary" to={`/certificates/${certificate.code}/verify`}><ExternalLink size={17} />Açıq yoxlama</Link>
+                                        <button type="button" className="button button-primary" onClick={() => handleDownload(certificate)} disabled={downloadingId === certificate.id}><Download size={17} />{downloadingId === certificate.id ? "Hazırlanır..." : "PDF yüklə"}</button>
                                         <button type="button" className="button button-primary" onClick={() => window.print()}><Printer size={17} />Çap et / PDF saxla</button>
                                     </div>
                                 </article>

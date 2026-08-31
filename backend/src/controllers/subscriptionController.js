@@ -1,5 +1,6 @@
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
+const paymentService = require("../services/paymentService");
 
 function parsePositiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
@@ -57,6 +58,12 @@ async function cancelMySubscription(req, res) {
     if (!subscription) {
       return res.status(404).json({ error: "Aktiv abunəlik tapılmadı." });
     }
+
+    if (!subscription.providerReference || subscription.providerReference.startsWith("checkout:")) {
+      return res.status(409).json({ error: "Bu abunəliyin avtomatik yenilənməsi Stripe üzərindən idarə edilmir." });
+    }
+
+    await paymentService.cancelProviderSubscriptionAtPeriodEnd(subscription.providerReference);
 
     // Qeyd: statusu CANCELLED etmirik ki, courseAccessService girişi
     // dərhal kəsməsin — "ödənilmiş müddət bitənə qədər aktiv qalır" qaydasına

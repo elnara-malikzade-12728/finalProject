@@ -37,6 +37,29 @@ function validateTestType(type) {
     return safeType;
 }
 
+function getAssessmentRules(type, { passScorePercent, timeLimitMinutes } = {}) {
+    const safeType = validateTestType(type);
+    const requiredPassScore = safeType === "FINAL" ? 70 : 60;
+
+    if (passScorePercent != null && normalizePercent(passScorePercent) !== requiredPassScore) {
+        throw createHttpError(400, `${safeType} testi üçün keçid balı ${requiredPassScore}% olmalıdır.`);
+    }
+
+    if (safeType === "FINAL") {
+        const finalTime = timeLimitMinutes == null
+            ? 30
+            : normalizePositiveInt(timeLimitMinutes, "timeLimitMinutes");
+
+        if (finalTime < 30 || finalTime > 45) {
+            throw createHttpError(400, "Yekun testin vaxt limiti 30–45 dəqiqə olmalıdır.");
+        }
+
+        return { passScorePercent: requiredPassScore, timeLimitMinutes: finalTime };
+    }
+
+    return { passScorePercent: requiredPassScore, timeLimitMinutes: 1 };
+}
+
 function buildQuestionPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
         throw createHttpError(400, "Question payload must be an object.");
@@ -131,14 +154,7 @@ async function createTest(req, res, next) {
 
         await ensureCourseOrLessonExists(courseId, lessonId);
 
-        const defaultPassScore = type === "FINAL" ? 70 : 60;
-        const passScorePercent = body.passScorePercent == null
-            ? defaultPassScore
-            : normalizePercent(body.passScorePercent);
-
-        const timeLimitMinutes = body.timeLimitMinutes == null
-            ? null
-            : normalizePositiveInt(body.timeLimitMinutes, "timeLimitMinutes");
+        const rules = getAssessmentRules(type, body);
 
         const test = await prisma.test.create({
             data: {
@@ -146,8 +162,8 @@ async function createTest(req, res, next) {
                 type,
                 lessonId,
                 courseId,
-                passScorePercent,
-                timeLimitMinutes,
+                passScorePercent: rules.passScorePercent,
+                timeLimitMinutes: rules.timeLimitMinutes,
                 published: Boolean(body.published),
             },
         });
@@ -253,19 +269,16 @@ async function updateTest(req, res, next) {
             updates.title = body.title.trim();
         }
 
-        if (body.type !== undefined) {
-            updates.type = validateTestType(body.type);
-        }
-
-        if (body.passScorePercent !== undefined) {
-            updates.passScorePercent = normalizePercent(body.passScorePercent);
-        }
-
-        if (body.timeLimitMinutes !== undefined) {
-            updates.timeLimitMinutes = body.timeLimitMinutes == null
-                ? null
-                : normalizePositiveInt(body.timeLimitMinutes, "timeLimitMinutes");
-        }
+        const effectiveType = body.type !== undefined ? validateTestType(body.type) : existing.type;
+        if (body.type !== undefined) updates.type = effectiveType;
+        const rules = getAssessmentRules(effectiveType, {
+            passScorePercent: body.passScorePercent,
+            timeLimitMinutes: body.timeLimitMinutes !== undefined
+                ? body.timeLimitMinutes
+                : effectiveType === existing.type ? existing.timeLimitMinutes : undefined,
+        });
+        updates.passScorePercent = rules.passScorePercent;
+        updates.timeLimitMinutes = rules.timeLimitMinutes;
 
         if (body.lessonId !== undefined && body.courseId !== undefined) {
             throw createHttpError(400, "Test həm lesson, həm də course-a aid ola bilməz.");
@@ -336,9 +349,15 @@ async function publishTest(req, res, next) {
             }
         }
 
+        const ruleUpdates = publishedValue
+            ? test.type === "LESSON"
+                ? { passScorePercent: 60, timeLimitMinutes: test.questions.length }
+                : { passScorePercent: 70, timeLimitMinutes: getAssessmentRules("FINAL", { timeLimitMinutes: test.timeLimitMinutes }).timeLimitMinutes }
+            : {};
+
         const updated = await prisma.test.update({
             where: { id },
-            data: { published: publishedValue },
+            data: { published: publishedValue, ...ruleUpdates },
         });
 
         return res.status(200).json(updated);
@@ -351,6 +370,7 @@ module.exports = {
     normalizePositiveInt,
     normalizePercent,
     validateTestType,
+    getAssessmentRules,
     buildQuestionPayload,
     listTests,
     listPublishedTests,

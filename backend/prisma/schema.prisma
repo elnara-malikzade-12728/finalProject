@@ -20,31 +20,33 @@ enum AttemptStatus {
 }
 
 model User {
-  id             Int              @id @default(autoincrement())
-  name           String
-  email          String           @unique
-  password       String
-  role           UserRole         @default(USER)
-  isActive       Boolean          @default(true)
-  tokenVersion   Int              @default(0)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  education      String?
-  location       String?
-  bio            String?
-  interests      String[]         @default([])
-  skills         String[]         @default([])
-  cvFilePath     String?
-  cvOriginalName String?
-  progress       Progress[]
-  lessonProgress LessonProgress[]
-  enrollments    Enrollment[]
-  applications   Application[]
-  testAttempts   TestAttempt[]
-  certificates   Certificate[]
-  subscriptions   Subscription[]
-  payments        Payment[]
-  coursePurchases CoursePurchase[]
+  id                 Int              @id @default(autoincrement())
+  name               String
+  email              String           @unique
+  password           String
+  role               UserRole         @default(USER)
+  isActive           Boolean          @default(true)
+  tokenVersion       Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  education          String?
+  location           String?
+  bio                String?
+  interests          String[]         @default([])
+  skills             String[]         @default([])
+  cvFilePath         String?
+  cvOriginalName     String?
+  progress           Progress[]
+  lessonProgress     LessonProgress[]
+  enrollments        Enrollment[]
+  applications       Application[]
+  testAttempts       TestAttempt[]
+  certificates       Certificate[]
+  subscriptions      Subscription[]
+  payments           Payment[]
+  coursePurchases    CoursePurchase[]
+  ownedCompany       Company?         @relation("CompanyOwner")
+  companyMemberships CompanyMember[]
 }
 
 enum UserRole {
@@ -83,33 +85,64 @@ model Progress {
 }
 
 model Job {
-  id              Int              @id @default(autoincrement())
-  title           String
-  company         String?
-  location        String?
-  description     String?
-  url             String?
-  employmentType  EmploymentType   @default(FULL_TIME)
-  experienceLevel ExperienceLevel?
-  salaryMin       Int?
-  salaryMax       Int?
-  salaryCurrency  String           @default("AZN")
-  companyLogoUrl  String?
-  career          Career?          @relation(fields: [careerId], references: [id], onDelete: SetNull)
-  careerId        Int?
-  course          Course?          @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  courseId        Int?
-  applications    Application[]
+  id               Int              @id @default(autoincrement())
+  title            String
+  company          String?
+  location         String?
+  description      String?
+  url              String?
+  employmentType   EmploymentType   @default(FULL_TIME)
+  experienceLevel  ExperienceLevel?
+  salaryMin        Int?
+  salaryMax        Int?
+  salaryCurrency   String           @default("AZN")
+  companyLogoUrl   String?
+  career           Career?          @relation(fields: [careerId], references: [id], onDelete: SetNull)
+  careerId         Int?
+  course           Course?          @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  courseId         Int?
+  applications     Application[]
+  companyAccount   Company?         @relation(fields: [companyAccountId], references: [id], onDelete: SetNull)
+  companyAccountId Int?
+  isPriority       Boolean          @default(false)
 
   @@index([employmentType])
   @@index([experienceLevel])
   @@index([courseId])
+  @@index([companyAccountId])
+  @@index([isPriority])
+}
+
+model Company {
+  id        Int             @id @default(autoincrement())
+  name      String
+  logoUrl   String?
+  owner     User            @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId   Int             @unique
+  members   CompanyMember[]
+  jobs      Job[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model CompanyMember {
+  id        Int      @id @default(autoincrement())
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  joinedAt  DateTime @default(now())
+
+  @@unique([companyId, userId])
+  @@index([userId])
 }
 
 enum EmploymentType {
   FULL_TIME
   PART_TIME
+  REMOTE
   INTERNSHIP
+  FREELANCE
 }
 
 enum ExperienceLevel {
@@ -117,6 +150,7 @@ enum ExperienceLevel {
   JUNIOR
   MID_LEVEL
   SENIOR
+  LEAD_MANAGER
 }
 
 enum ApplicationStatus {
@@ -127,16 +161,16 @@ enum ApplicationStatus {
 }
 
 model Application {
-  id                     Int               @id @default(autoincrement())
-  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                 Int
-  job                    Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId                  Int
-  status                 ApplicationStatus @default(PENDING)
+  id                      Int               @id @default(autoincrement())
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                  Int
+  job                     Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId                   Int
+  status                  ApplicationStatus @default(PENDING)
   cvFilePathAtApplication String?
-  coverLetter            String?
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  coverLetter             String?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   @@unique([userId, jobId])
   @@index([userId])
@@ -145,18 +179,18 @@ model Application {
 }
 
 model Test {
-  id               Int          @id @default(autoincrement())
+  id               Int           @id @default(autoincrement())
   title            String
   type             TestType
   lessonId         Int?
   courseId         Int?
   passScorePercent Int
   timeLimitMinutes Int?
-  published        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  lesson           Lesson?      @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  course           Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  published        Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  lesson           Lesson?       @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  course           Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
   questions        Question[]
   attempts         TestAttempt[]
 
@@ -166,14 +200,14 @@ model Test {
 }
 
 model Question {
-  id            Int         @id @default(autoincrement())
-  testId        Int
-  questionText  String
-  options       Json
-  correctValue  Json
-  order         Int
-  test          Test        @relation(fields: [testId], references: [id], onDelete: Cascade)
-  answers       TestAnswer[]
+  id           Int          @id @default(autoincrement())
+  testId       Int
+  questionText String
+  options      Json
+  correctValue Json
+  order        Int
+  test         Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers      TestAnswer[]
 
   @@index([testId, order])
 }
@@ -209,47 +243,52 @@ model TestAnswer {
 }
 
 model Certificate {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  userId    Int
-  courseId  Int
-  issuedAt  DateTime @default(now())
-  pdfPath   String?
+  id         Int      @id @default(autoincrement())
+  code       String   @unique
+  userId     Int
+  courseId   Int
+  issuedAt   DateTime @default(now())
+  pdfPath    String?
   finalScore Float?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([courseId])
 }
 
 model Course {
-  id          Int             @id @default(autoincrement())
-  title       String
-  description String?
-  published   Boolean         @default(false)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  modules     CourseModule[]
-  enrollments Enrollment[]
-  tests       Test[]
+  id           Int              @id @default(autoincrement())
+  title        String
+  description  String?
+  published    Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  modules      CourseModule[]
+  enrollments  Enrollment[]
+  tests        Test[]
   certificates Certificate[]
-  category    CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId  Int?
-  jobs        Job[]
-  purchases   CoursePurchase[]
+  category     CourseCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId   Int?
+  jobs         Job[]
+  purchases    CoursePurchase[]
 
   @@index([categoryId])
 }
 
 model CourseCategory {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
   description String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   courses     Course[]
+  parent      CourseCategory?  @relation("CourseCategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId    Int?
+  children    CourseCategory[] @relation("CourseCategoryTree")
+
+  @@index([parentId])
 }
 
 model CourseModule {
@@ -269,20 +308,20 @@ model CourseModule {
 }
 
 model Lesson {
-  id              Int      @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   title           String
   description     String?
   order           Int
-  published       Boolean  @default(false)
-  videoPath       String?  @unique
+  published       Boolean        @default(false)
+  videoPath       String?        @unique
   videoProvider   VideoProvider?
-  videoProviderId String?  @unique
+  videoProviderId String?        @unique
   videoMimeType   String?
   videoSizeBytes  Int?
   durationSeconds Int?
-  isFreePreview   Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isFreePreview   Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   module   CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId Int
@@ -294,11 +333,11 @@ model Lesson {
 }
 
 model LessonProgress {
-  id        Int      @id @default(autoincrement())
-  completed Boolean  @default(false)
-  watchedPercentage Int      @default(0)
-  lastPositionSeconds Int    @default(0)
-  updatedAt DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  completed           Boolean  @default(false)
+  watchedPercentage   Int      @default(0)
+  lastPositionSeconds Int      @default(0)
+  updatedAt           DateTime @updatedAt
 
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   Int
@@ -358,14 +397,14 @@ enum InquiryStatus {
 }
 
 model Plan {
-  id            Int             @id @default(autoincrement())
+  id            Int            @id @default(autoincrement())
   name          String
-  code          String          @unique
+  code          String         @unique
   description   String?
   price         Decimal
-  currency      String          @default("AZN")
+  currency      String         @default("AZN")
   billingPeriod BillingPeriod
-  active        Boolean         @default(true)
+  active        Boolean        @default(true)
   subscriptions Subscription[]
 }
 
@@ -387,31 +426,31 @@ model Subscription {
 }
 
 model Payment {
-  id                Int           @id @default(autoincrement())
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                Int             @id @default(autoincrement())
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId            Int
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscription      Subscription?   @relation(fields: [subscriptionId], references: [id])
   subscriptionId    Int?
   coursePurchase    CoursePurchase? @relation("PaymentToCoursePurchase")
-  providerReference String        @unique
+  providerReference String          @unique
   amount            Decimal
   currency          String
   status            PaymentStatus
-  createdAt         DateTime      @default(now())
+  createdAt         DateTime        @default(now())
 
   @@index([userId])
 }
 
 model CoursePurchase {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course    @relation(fields: [courseId], references: [id])
   courseId  Int
-  payment   Payment? @relation("PaymentToCoursePurchase", fields: [paymentId], references: [id])
+  payment   Payment?  @relation("PaymentToCoursePurchase", fields: [paymentId], references: [id])
   paymentId Int?      @unique
   expiresAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@unique([userId, courseId])
 }
