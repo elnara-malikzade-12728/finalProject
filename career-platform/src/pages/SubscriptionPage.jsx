@@ -139,7 +139,10 @@ function SubscriptionPage() {
         <dl className="subscription-details">
           <div>
             <dt>Başlama tarixi</dt>
-            <dd>{formatDate(subscription.startedAt)}</dd>
+            <dd>
+              <CalendarClock size={14} aria-hidden="true" />{" "}
+              {formatDate(subscription.startedAt)}
+            </dd>
           </div>
           <div>
             <dt>Bitmə tarixi</dt>
