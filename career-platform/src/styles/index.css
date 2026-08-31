@@ -355,7 +355,7 @@ ol {
 }
 
 @media (max-width: 1180px) {
-  .mobile-menu-button {
+  .navbar .mobile-menu-button {
     display: inline-flex;
   }
 
