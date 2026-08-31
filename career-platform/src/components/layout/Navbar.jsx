@@ -162,6 +162,31 @@ function Navbar() {
                   </NavLink>
                 </div>
               </details>
+
+              <div className="mobile-extra-links">
+                {isAuthenticated && user?.role !== "ADMIN" && (
+                  <NavLink
+                    to="/profile/subscription"
+                    className={getNavLinkClass}
+                    onClick={closeMenu}
+                  >
+                    <CreditCard size={18} />
+                    Abunəliyim
+                  </NavLink>
+                )}
+                <NavLink to="/pricing" className={getNavLinkClass} onClick={closeMenu}>
+                  <CreditCard size={18} />
+                  Qiymətlər
+                </NavLink>
+                <NavLink to="/articles" className={getNavLinkClass} onClick={closeMenu}>
+                  <Newspaper size={18} />
+                  Məqalələr
+                </NavLink>
+                <NavLink to="/corporate" className={getNavLinkClass} onClick={closeMenu}>
+                  <Building2 size={18} />
+                  Korporativ
+                </NavLink>
+              </div>
             </div>
           )}
 

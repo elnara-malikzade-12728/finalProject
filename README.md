@@ -10,7 +10,7 @@ Synex Academy is a youth employment and career-development platform created as a
 
 ## Current Status
 
-Sprint 3 expands the integrated application toward 75% completion:
+The deployed application now includes the core learner, administrator, assessment, certification, and monetization flows:
 
 - Responsive React frontend
 - Express REST API
@@ -30,6 +30,12 @@ Sprint 3 expands the integrated application toward 75% completion:
 - Swagger/OpenAPI documentation for all current API endpoints
 - Frontend loading, validation, success, error, and empty states
 - Mock API fallback for frontend-only demonstrations
+- Timed lesson and final assessments with automatic submission
+- Verifiable certificates with public verification links and QR codes
+- CV upload and lifecycle management
+- Stripe Checkout payments and signed webhook processing
+- Subscription plans, user subscription status, and payment history
+- Public articles and corporate training inquiries
 
 ## Sprint Progress
 
@@ -61,6 +67,14 @@ Sprint 3 expands the integrated application toward 75% completion:
 - Improved Prisma resilience when Supabase closes idle pooled connections.
 - Updated production deployment configuration and API documentation.
 
+### Sprint 4 – Assessment, Certification, and Monetization
+
+- Added lesson and final tests with question management, timers, scoring, and attempt history.
+- Added automatic certificate issuance, public verification, copyable codes, and QR verification.
+- Added Stripe Checkout, webhook verification, payment history, plans, and subscription access periods.
+- Added public articles, corporate inquiries, and their administrator management workflows.
+- Expanded responsive navigation and production error handling across desktop, tablet, and mobile.
+
 ## Technology Stack
 
 ### Frontend
@@ -85,6 +99,8 @@ Sprint 3 expands the integrated application toward 75% completion:
 - Swagger UI Express
 - swagger-jsdoc
 - Supabase Storage
+- Stripe Checkout and Webhooks
+- QR code certificate verification
 
 ## Project Structure
 
@@ -189,6 +205,10 @@ SUPABASE_VIDEO_BUCKET=course-videos
 SUPABASE_CV_BUCKET=user-cvs
 VIDEO_SIGNED_URL_TTL=600
 MAX_VIDEO_SIZE_BYTES=524288000
+STRIPE_SECRET_KEY=sk_test_replace_me
+STRIPE_WEBHOOK_SECRET=whsec_replace_me
+STRIPE_SUCCESS_URL=http://localhost:5173/payment/success
+STRIPE_CANCEL_URL=http://localhost:5173/payment/cancel
 ```
 
 `DATABASE_URL` is used by the running API through the transaction pooler. `DIRECT_URL` is used by Prisma schema operations through the session pooler. Never commit `backend/.env` or expose the database password, JWT secret, or Supabase service-role key.
@@ -297,6 +317,21 @@ The frontend normally runs at `http://localhost:5173/`.
 | `POST` | `/api/lessons/:lessonId/video/complete` | Admin | Verify the upload and save lesson metadata |
 | `GET` | `/api/lessons/:lessonId/video` | Yes | Get a temporary signed playback URL |
 | `DELETE` | `/api/lessons/:lessonId/video` | Admin | Delete a lesson video and clear its metadata |
+| `GET` | `/api/tests` | Yes | List available assessments |
+| `POST` | `/api/tests` | Admin | Create an assessment |
+| `POST` | `/api/tests/:testId/attempts` | User | Start an assessment attempt |
+| `POST` | `/api/attempts/:attemptId/submit` | User | Submit answers and calculate the result |
+| `GET` | `/api/certificates/me` | User | List the current user's certificates |
+| `GET` | `/api/certificates/verify/:code` | No | Verify a certificate publicly |
+| `GET` | `/api/plans` | No | List active subscription plans |
+| `POST` | `/api/payments/checkout` | User | Create a Stripe Checkout session |
+| `POST` | `/api/payments/webhook` | Stripe | Process signed Stripe events |
+| `GET` | `/api/payments/me` | User | List the current user's payments |
+| `GET` | `/api/subscriptions/me` | User | Get the current subscription |
+| `POST` | `/api/subscriptions/me/cancel` | User | Cancel access after the paid term |
+| `GET` | `/api/articles` | No | List published articles |
+| `POST` | `/api/articles` | Admin | Create an article |
+| `POST` | `/api/corporate-inquiries` | No | Submit a corporate training inquiry |
 
 Authenticated requests use:
 
@@ -318,7 +353,7 @@ The raw OpenAPI 3.0 specification is available at:
 http://localhost:4000/api/docs.json
 ```
 
-The specification covers authentication, user profiles, careers, roadmaps, jobs, progress tracking, and secure lesson video operations.
+The specification covers authentication, profiles, careers, courses, jobs, applications, progress, videos, assessments, certificates, CVs, plans, payments, subscriptions, articles, and corporate inquiries.
 
 To test a protected endpoint:
 
@@ -343,6 +378,16 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/courses/:courseId` | Public/User | Course programme, enrollment, video playback, and progress |
 | `/roadmap/:careerId` | Authenticated | Interactive roadmap |
 | `/jobs` | Public | Jobs and internships |
+| `/tests` | Authenticated | Available assessments |
+| `/certificates` | Authenticated | Earned certificates and QR verification |
+| `/certificates/:verificationCode/verify` | Public | Public certificate verification |
+| `/pricing` | Public | Subscription plans and checkout |
+| `/profile/subscription` | Authenticated | Current subscription management |
+| `/profile/payments` | Authenticated | Payment history |
+| `/articles` | Public | Published articles |
+| `/articles/:slug` | Public | Article details |
+| `/corporate` | Public | Corporate training offer |
+| `/corporate/contact` | Public | Corporate inquiry form |
 | `/profile` | Authenticated | User profile |
 | `/admin` | Administrator | Administration dashboard |
 | `/admin/jobs` | Administrator | Vacancy management |
@@ -350,6 +395,12 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/admin/jobs/:jobId/edit` | Administrator | Edit a vacancy |
 | `/admin/applications` | Administrator | Application management |
 | `/admin/videos` | Administrator | Lesson video management |
+| `/admin/tests` | Administrator | Test and question management |
+| `/admin/plans` | Administrator | Subscription plan management |
+| `/admin/subscriptions` | Administrator | Subscription management |
+| `/admin/payments` | Administrator | Payment monitoring |
+| `/admin/articles` | Administrator | Article publishing |
+| `/admin/corporate-inquiries` | Administrator | Corporate inquiry management |
 
 ## Commands
 
@@ -406,6 +457,10 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Deleting a video removes it from storage and clears database metadata.
 - Loading, empty, validation, and error states display correctly.
 - Responsive navigation and pages work on mobile and desktop.
+- Stripe sandbox checkout completes and the signed webhook activates the subscription.
+- Final tests issue exactly one verifiable certificate after a passing score.
+- Certificate QR codes open the public verification route.
+- Test timers count down after an attempt starts and auto-submit at zero.
 
 ## Deployment
 
@@ -421,13 +476,15 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_PUBLISHABLE_KEY
 VITE_SUPABASE_VIDEO_BUCKET=course-videos
 ```
 
-Configure the deployed backend with `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_VIDEO_BUCKET`, `VIDEO_SIGNED_URL_TTL`, and `MAX_VIDEO_SIZE_BYTES`. Redeploy after changing environment variables. `localhost` must never be used as the API URL for a public deployment.
+Configure the deployed backend with the database, JWT, Supabase/video variables, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL`, and `STRIPE_CANCEL_URL`. Redeploy after changing environment variables. `localhost` must never be used as the API URL for a public deployment.
 
 ## Known Limitations and Follow-up
 
 - Automated backend validation tests exist; broader integration and end-to-end coverage is still being expanded.
 - Custom video display titles and original filenames are not yet stored.
-- Employer workflows, CV uploads, mentoring, and AI recommendations remain future work.
+- The current paid access period is activated from Stripe Checkout; automatic recurring Stripe Billing and a customer portal are not yet implemented.
+- Employer self-service workflows, mentoring, and AI recommendations remain future work.
+- Production launch still requires live Stripe credentials and a final security/accessibility review.
 
 ## Security
 

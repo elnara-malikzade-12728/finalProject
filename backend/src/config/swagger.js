@@ -6,9 +6,9 @@ const options = {
 
     info: {
       title: "Synex Academy API",
-      version: "1.0.0",
+      version: "1.1.0",
       description:
-        "Synex Academy authentication, careers, jobs, user profiles, progress and secure lesson video API.",
+        "Synex Academy API for authentication, learning, assessments, certificates, jobs, profiles, secure video, payments, subscriptions, articles and corporate inquiries.",
     },
 
     servers: [
@@ -496,6 +496,72 @@ const options = {
             user: {
               $ref: "#/components/schemas/User",
             },
+          },
+        },
+
+        Article: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            title: { type: "string", example: "Kibertəhlükəsizlikdə ilk addımlar" },
+            slug: { type: "string", example: "kibertehlukesizlikde-ilk-addimlar" },
+            summary: { type: "string", nullable: true },
+            content: { type: "string" },
+            published: { type: "boolean", example: true },
+            publishedAt: { type: "string", format: "date-time", nullable: true },
+          },
+        },
+
+        Plan: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            name: { type: "string", example: "Aylıq Premium" },
+            code: { type: "string", example: "monthly-premium" },
+            price: { type: "number", format: "decimal", example: 19.9 },
+            currency: { type: "string", example: "AZN" },
+            interval: { type: "string", example: "MONTHLY" },
+            active: { type: "boolean", example: true },
+          },
+        },
+
+        Payment: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            amount: { type: "number", format: "decimal", example: 19.9 },
+            currency: { type: "string", example: "AZN" },
+            status: { type: "string", example: "SUCCEEDED" },
+            provider: { type: "string", example: "STRIPE" },
+            createdAt: { type: "string", format: "date-time" },
+            plan: { $ref: "#/components/schemas/Plan" },
+          },
+        },
+
+        Subscription: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            status: { type: "string", example: "ACTIVE" },
+            startsAt: { type: "string", format: "date-time" },
+            endsAt: { type: "string", format: "date-time" },
+            cancelAtPeriodEnd: { type: "boolean", example: false },
+            plan: { $ref: "#/components/schemas/Plan" },
+          },
+        },
+
+        CorporateInquiry: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 1 },
+            companyName: { type: "string", example: "Synex MMC" },
+            contactName: { type: "string", example: "Aysel Məmmədova" },
+            email: { type: "string", format: "email" },
+            phone: { type: "string", nullable: true },
+            employeeCount: { type: "integer", nullable: true, example: 25 },
+            message: { type: "string" },
+            status: { type: "string", enum: ["NEW", "CONTACTED", "CLOSED"] },
+            createdAt: { type: "string", format: "date-time" },
           },
         },
       },
