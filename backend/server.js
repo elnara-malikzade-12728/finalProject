@@ -25,12 +25,7 @@ const allowedOrigins = new Set(
 );
 
 app.set("trust proxy", 1);
-app.use(
-  helmet({
-    // Swagger UI uses CDN assets and an inline initializer.
-    contentSecurityPolicy: false,
-  }),
-);
+app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
@@ -68,7 +63,17 @@ app.get("/api/docs.json", (req, res) => {
   res.status(200).json(swaggerSpec);
 });
 
-app.get("/api/docs", (req, res) => {
+app.get("/api/docs", helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+    },
+  },
+}), (req, res) => {
   res.type("html").send(`
     <!DOCTYPE html>
     <html lang="az">
