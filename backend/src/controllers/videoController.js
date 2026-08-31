@@ -48,6 +48,16 @@ function parsePositiveInteger(value) {
   return parsedValue;
 }
 
+function validateBunnyUploadBinding(lesson, videoId, now = new Date()) {
+  if (!lesson.pendingVideoProviderId || lesson.pendingVideoProviderId !== videoId) {
+    return { status: 400, error: "Bu Bunny videosu həmin dərs üçün yaradılmayıb." };
+  }
+  if (!lesson.pendingVideoExpiresAt || new Date(lesson.pendingVideoExpiresAt) <= now) {
+    return { status: 410, error: "Video yükləmə sessiyasının vaxtı bitib. Yeni yükləmə keçidi yaradın." };
+  }
+  return null;
+}
+
 async function createLessonUploadUrl(req, res) {
   const lessonId = parsePositiveInteger(
     req.params.lessonId,
@@ -112,6 +122,19 @@ async function createLessonUploadUrl(req, res) {
 
     if (useBunnyStream()) {
       const video = await bunny.createVideo(`${lesson.module.courseId}-${lesson.id}-${lesson.title}`);
+      const pendingVideoExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      try {
+        await prisma.lesson.update({
+          where: { id: lessonId },
+          data: { pendingVideoProviderId: video.guid, pendingVideoExpiresAt },
+        });
+      } catch (error) {
+        await bunny.deleteVideo(video.guid).catch((cleanupError) => logger.error("Yarımçıq Bunny videosu silinərkən xəta:", cleanupError));
+        throw error;
+      }
+      if (lesson.pendingVideoProviderId && lesson.pendingVideoProviderId !== video.guid) {
+        await bunny.deleteVideo(lesson.pendingVideoProviderId).catch((error) => logger.error("Əvvəlki yarımçıq Bunny videosu silinərkən xəta:", error));
+      }
       return res.status(201).json({
         provider: "BUNNY",
         videoId: video.guid,
@@ -194,11 +217,11 @@ async function completeLessonVideoUpload(req, res) {
     const videoId = typeof req.body.videoId === "string" ? req.body.videoId.trim() : "";
     if (!videoId) return res.status(400).json({ error: "Bunny video identifikatoru daxil edilməyib." });
     try {
-      const [lesson, video] = await Promise.all([
-        prisma.lesson.findUnique({ where: { id: lessonId } }),
-        bunny.getVideo(videoId),
-      ]);
+      const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
       if (!lesson) return res.status(404).json({ error: "Dərs tapılmadı." });
+      const bindingError = validateBunnyUploadBinding(lesson, videoId);
+      if (bindingError) return res.status(bindingError.status).json({ error: bindingError.error });
+      const video = await bunny.getVideo(videoId);
       if (video.status === 5) {
         return res.status(422).json({ error: "Bunny Stream videonu emal edə bilmədi.", status: video.status });
       }
@@ -207,7 +230,7 @@ async function completeLessonVideoUpload(req, res) {
       }
       const updatedLesson = await prisma.lesson.update({
         where: { id: lessonId },
-        data: { videoProvider: "BUNNY", videoProviderId: videoId, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: Number(video.length) || Number(req.body.durationSeconds) || null },
+        data: { videoProvider: "BUNNY", videoProviderId: videoId, pendingVideoProviderId: null, pendingVideoExpiresAt: null, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: Number(video.length) || Number(req.body.durationSeconds) || null },
       });
       return res.status(200).json(updatedLesson);
     } catch (error) {
@@ -587,4 +610,5 @@ module.exports = {
   completeLessonVideoUpload,
   getLessonVideoUrl,
   deleteLessonVideo,
+  validateBunnyUploadBinding,
 };

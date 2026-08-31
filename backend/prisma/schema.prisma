@@ -309,20 +309,22 @@ model CourseModule {
 }
 
 model Lesson {
-  id              Int            @id @default(autoincrement())
-  title           String
-  description     String?
-  order           Int
-  published       Boolean        @default(false)
-  videoPath       String?        @unique
-  videoProvider   VideoProvider?
-  videoProviderId String?        @unique
-  videoMimeType   String?
-  videoSizeBytes  Int?
-  durationSeconds Int?
-  isFreePreview   Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                     Int            @id @default(autoincrement())
+  title                  String
+  description            String?
+  order                  Int
+  published              Boolean        @default(false)
+  videoPath              String?        @unique
+  videoProvider          VideoProvider?
+  videoProviderId        String?        @unique
+  pendingVideoProviderId String?        @unique
+  pendingVideoExpiresAt  DateTime?
+  videoMimeType          String?
+  videoSizeBytes         Int?
+  durationSeconds        Int?
+  isFreePreview          Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
   module   CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId Int
