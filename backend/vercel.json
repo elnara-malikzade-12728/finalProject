@@ -1,13 +1,7 @@
 {
   "functions": {
     "server.js": {
-      "includeFiles": [
-        "node_modules/@fontsource/inter/files/**",
-        "node_modules/pdfkit/js/data/**",
-        "node_modules/fontkit/**",
-        "node_modules/linebreak/**",
-        "node_modules/unicode-properties/**"
-      ]
+      "includeFiles": "node_modules/{@fontsource/inter/files/**,pdfkit/js/data/**,fontkit/**,linebreak/**,unicode-properties/**}"
     }
   }
 }
