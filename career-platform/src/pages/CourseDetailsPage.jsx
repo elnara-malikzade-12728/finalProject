@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, CheckCircle2, Clock3, Layers3, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client.js";
@@ -25,6 +25,7 @@ function CourseDetailsPage() {
   const [updatingLessonId, setUpdatingLessonId] = useState(null);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState(null);
+  const videoPlayerRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,6 +52,11 @@ function CourseDetailsPage() {
       });
     return () => controller.abort();
   }, [courseId, isAuthenticated, isInitializing]);
+
+  useEffect(() => {
+    if (!video || !selectedLesson || !videoPlayerRef.current) return;
+    videoPlayerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [video, selectedLesson]);
 
   const completedLessonIds = useMemo(
     () => new Set(learningState.completedLessonIds || []),
@@ -194,7 +200,7 @@ function CourseDetailsPage() {
             </section>
           )}
           {video && selectedLesson && (
-            <section className="course-video-player">
+            <section ref={videoPlayerRef} className="course-video-player">
               <div className="content-card-heading"><PlayCircle size={25} /><div><h2>{selectedLesson.title}</h2><p>Video keçidi təhlükəsizlik üçün məhdud müddət ərzində etibarlıdır.</p></div></div>
               <div className="secure-video-frame">
                 {video.playbackType === "embed" ? (
