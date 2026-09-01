@@ -52,6 +52,29 @@ async function startTestAttempt(req, res, next) {
 
         const test = await ensureTestIsAvailable(testId);
 
+        if (test.type === "LESSON" && test.lessonId) {
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: test.lessonId },
+                select: { module: { select: { courseId: true } } },
+            });
+            const [enrollment, progress] = await Promise.all([
+                lesson ? prisma.enrollment.findUnique({
+                    where: { userId_courseId: { userId: req.user.id, courseId: lesson.module.courseId } },
+                    select: { id: true },
+                }) : null,
+                prisma.lessonProgress.findUnique({
+                    where: { userId_lessonId: { userId: req.user.id, lessonId: test.lessonId } },
+                    select: { completed: true },
+                }),
+            ]);
+            if (!enrollment) {
+                throw createHttpError(403, "Dərs testinə başlamaq üçün kursa qeydiyyatdan keçməlisiniz.");
+            }
+            if (!progress?.completed) {
+                throw createHttpError(403, "Dərs testinə başlamaq üçün əvvəlcə videonu tamamlayın.");
+            }
+        }
+
         const activeAttempt = await prisma.testAttempt.findFirst({
             where: {
                 userId: req.user.id,

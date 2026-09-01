@@ -31,6 +31,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Frontend loading, validation, success, error, and empty states
 - Mock API fallback for frontend-only demonstrations
 - Timed lesson and final assessments with automatic submission
+- Sequential lesson locking: video completion enables the lesson test, and a passing lesson test unlocks the next lesson
 - Downloadable PDF certificates with embedded QR verification links
 - CV upload and lifecycle management
 - Stripe recurring monthly/yearly subscriptions, one-time course checkout, renewals, cancellation, and signed webhook processing
@@ -76,6 +77,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Added public articles, corporate inquiries, and their administrator management workflows.
 - Added the specification-defined 4 parent training categories and 14 flexible subcategories.
 - Added real QR-coded PDF certificate downloads and strict lesson/final assessment rules.
+- Added backend-enforced sequential lesson access and lesson-test unlock controls in the course programme.
 - Added recurring Stripe Billing renewals and end-of-period cancellation.
 - Added the corporate company panel, employee learning statistics, and priority vacancies.
 - Expanded responsive navigation and production error handling across desktop, tablet, and mobile.

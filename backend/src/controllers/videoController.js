@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
+const { isLessonUnlockedForUser } = require("../services/lessonUnlockService");
 const {
   getSupabaseAdmin,
   getVideoBucket,
@@ -465,8 +466,7 @@ async function getLessonVideoUrl(req, res) {
         });
       }
 
-      if (!lesson.isFreePreview) {
-        const enrollment = await prisma.enrollment.findUnique({
+      const enrollment = user ? await prisma.enrollment.findUnique({
           where: {
             userId_courseId: {
               userId: req.user.id,
@@ -476,14 +476,21 @@ async function getLessonVideoUrl(req, res) {
           select: {
             id: true,
           },
-        });
+        }) : null;
 
+      if (!lesson.isFreePreview) {
         if (!enrollment) {
           return res.status(403).json({
             error:
               "Bu videoya baxmaq üçün kursa qeydiyyatdan keçməlisiniz.",
           });
         }
+      }
+
+      if (enrollment && !(await isLessonUnlockedForUser(req.user.id, lesson.module.courseId, lesson.id))) {
+        return res.status(403).json({
+          error: "Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.",
+        });
       }
     }
 

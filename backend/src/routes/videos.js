@@ -147,7 +147,7 @@ router.post(
  *   get:
  *     tags: [Videos]
  *     summary: Dərs videosu üçün qorunan izləmə keçidi əldə et
- *     description: Bunny Stream üçün tokenli embed, köhnə Supabase videoları üçün imzalanmış URL qaytarır. Pulsuz preview dərsləri açıqdır; digər dərslər üçün kurs qeydiyyatı tələb olunur.
+ *     description: Bunny Stream üçün tokenli embed, köhnə Supabase videoları üçün imzalanmış URL qaytarır. Pulsuz preview dərsləri açıqdır; digər dərslər üçün kurs qeydiyyatı və ardıcıl dərs kilidinin açılması tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -168,7 +168,7 @@ router.post(
  *       401:
  *         description: Autentifikasiya tokeni yoxdur və ya yanlışdır
  *       403:
- *         description: Kurs qeydiyyatı tələb olunur və ya dərs yayımlanmayıb
+ *         description: Kurs qeydiyyatı tələb olunur, dərs yayımlanmayıb və ya əvvəlki dərs/test tamamlanmadığı üçün kilidlidir
  *       404:
  *         description: Dərs və ya video tapılmadı
  *       500:

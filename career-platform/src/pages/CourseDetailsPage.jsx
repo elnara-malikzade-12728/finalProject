@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle2, Clock3, Layers3, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Clock3, Layers3, ListChecks, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
 import playerjs from "player.js";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client.js";
@@ -10,7 +10,7 @@ import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const emptyLearningState = { enrolled: false, completedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
+const emptyLearningState = { enrolled: false, completedLessonIds: [], lockedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
 
 function CourseDetailsPage() {
   const { courseId } = useParams();
@@ -91,6 +91,10 @@ function CourseDetailsPage() {
     () => new Set(learningState.completedLessonIds || []),
     [learningState.completedLessonIds],
   );
+  const lockedLessonIds = useMemo(
+    () => new Set(learningState.lockedLessonIds || []),
+    [learningState.lockedLessonIds],
+  );
 
   async function handleEnroll() {
     if (!isAuthenticated) {
@@ -111,6 +115,10 @@ function CourseDetailsPage() {
   }
 
   async function handleOpenLesson(lesson) {
+    if (lockedLessonIds.has(lesson.id)) {
+      setNotification({ type: "info", message: "Bu dərsi açmaq üçün əvvəlki dərsi və onun testini tamamlayın." });
+      return;
+    }
     if (!lesson.hasVideo) {
       setNotification({ type: "info", message: "Bu dərs üçün video hələ əlavə edilməyib." });
       return;
@@ -181,7 +189,9 @@ function CourseDetailsPage() {
     const percentage = learningState.lessonProgress?.[lesson.id]?.watchedPercentage || 0;
     return percentage > 0 && !completedLessonIds.has(lesson.id);
   });
-  const nextLesson = inProgressLesson || orderedLessons.find((lesson) => !completedLessonIds.has(lesson.id)) || orderedLessons[0];
+  const nextLesson = inProgressLesson
+    || orderedLessons.find((lesson) => !completedLessonIds.has(lesson.id) && !lockedLessonIds.has(lesson.id))
+    || orderedLessons.find((lesson) => !lockedLessonIds.has(lesson.id));
 
   return (
     <>
@@ -248,16 +258,18 @@ function CourseDetailsPage() {
               {module.description && <p>{module.description}</p>}
               <ul>{module.lessons.map((lesson) => {
                 const completed = completedLessonIds.has(lesson.id);
+                const locked = learningState.enrolled && !isAdmin && lockedLessonIds.has(lesson.id);
                 const watchedPercentage = learningState.lessonProgress?.[lesson.id]?.watchedPercentage || 0;
-                const lessonStatus = completed ? "Tamamlandı" : watchedPercentage > 0 ? `Davam edir · ${watchedPercentage}%` : "Başlanmayıb";
+                const lessonStatus = locked ? "Kilidlidir" : completed ? "Tamamlandı" : watchedPercentage > 0 ? `Davam edir · ${watchedPercentage}%` : "Başlanmayıb";
+                const lessonTest = lesson.tests?.[0];
                 return (
-                  <li key={lesson.id} className={completed ? "course-lesson-completed" : ""}>
-                    <button type="button" className="course-lesson-open" onClick={() => handleOpenLesson(lesson)} disabled={isLoadingVideo}>
-                      {lesson.hasVideo ? <PlayCircle size={17} /> : <LockKeyhole size={17} />}
+                  <li key={lesson.id} className={`${completed && !locked ? "course-lesson-completed" : ""} ${locked ? "course-lesson-locked" : ""}`}>
+                    <button type="button" className="course-lesson-open" onClick={() => handleOpenLesson(lesson)} disabled={isLoadingVideo || locked}>
+                      {locked || !lesson.hasVideo ? <LockKeyhole size={17} /> : <PlayCircle size={17} />}
                       <span>{lesson.order}. {lesson.title}</span>
                     </button>
                     {lesson.durationSeconds && <small><Clock3 size={14} /> {Math.ceil(lesson.durationSeconds / 60)} dəq.</small>}
-                    {learningState.enrolled && !isAdmin && (completed ? (
+                    {learningState.enrolled && !isAdmin && (completed && !locked ? (
                       <button
                         type="button"
                         className="course-lesson-status is-complete"
@@ -269,14 +281,19 @@ function CourseDetailsPage() {
                         <CheckCircle2 size={15} aria-hidden="true" /> Tamamlandı
                       </button>
                     ) : (
-                      <span className={`course-lesson-status ${watchedPercentage > 0 ? "is-progress" : ""}`}>
+                      <span className={`course-lesson-status ${locked ? "is-locked" : watchedPercentage > 0 ? "is-progress" : ""}`}>
                         {lessonStatus}
                       </span>
                     ))}
-                    {learningState.enrolled && !isAdmin && !completed && (
+                    {learningState.enrolled && !isAdmin && !completed && !locked && (
                       <button type="button" className="course-lesson-complete" onClick={() => handleCompletion(lesson)} disabled={updatingLessonId === lesson.id}>
                         <CheckCircle2 size={17} /> Tamamla
                       </button>
+                    )}
+                    {learningState.enrolled && !isAdmin && completed && !locked && lessonTest && (
+                      <Link className="course-lesson-test" to={`/tests/${lessonTest.id}`}>
+                        <ListChecks size={17} /> Dərs testi
+                      </Link>
                     )}
                   </li>
                 );
