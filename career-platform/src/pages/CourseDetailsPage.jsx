@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, CheckCircle2, Clock3, Layers3, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
+import playerjs from "player.js";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client.js";
 import { enrollInCourse, getMyCourseState, getPublishedCourse, updateLessonProgress } from "../api/coursesApi.js";
@@ -26,6 +27,7 @@ function CourseDetailsPage() {
   const [error, setError] = useState("");
   const [notification, setNotification] = useState(null);
   const videoPlayerRef = useRef(null);
+  const bunnyIframeRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,6 +59,33 @@ function CourseDetailsPage() {
     if (!video || !selectedLesson || !videoPlayerRef.current) return;
     videoPlayerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [video, selectedLesson]);
+
+  useEffect(() => {
+    if (video?.playbackType !== "embed" || !selectedLesson || !bunnyIframeRef.current || !learningState.enrolled || user?.role === "ADMIN") return undefined;
+
+    const player = new playerjs.Player(bunnyIframeRef.current);
+    let active = true;
+    const handleEnded = async () => {
+      if (!active) return;
+      setUpdatingLessonId(selectedLesson.id);
+      try {
+        await updateLessonProgress(selectedLesson.id, 100, 0);
+        if (!active) return;
+        setLearningState(await getMyCourseState(courseId));
+        if (active) setNotification({ type: "success", message: "Video tamamlandı və dərs tamamlanmış kimi qeyd edildi." });
+      } catch (requestError) {
+        if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+      } finally {
+        if (active) setUpdatingLessonId(null);
+      }
+    };
+
+    player.on("ended", handleEnded);
+    return () => {
+      active = false;
+      player.off("ended", handleEnded);
+    };
+  }, [courseId, learningState.enrolled, selectedLesson, user?.role, video]);
 
   const completedLessonIds = useMemo(
     () => new Set(learningState.completedLessonIds || []),
@@ -204,7 +233,7 @@ function CourseDetailsPage() {
               <div className="content-card-heading"><PlayCircle size={25} /><div><h2>{selectedLesson.title}</h2><p>Video keçidi təhlükəsizlik üçün məhdud müddət ərzində etibarlıdır.</p></div></div>
               <div className="secure-video-frame">
                 {video.playbackType === "embed" ? (
-                  <iframe key={video.url} src={video.url} title={selectedLesson.title} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+                  <iframe ref={bunnyIframeRef} key={video.url} src={video.url} title={selectedLesson.title} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
                 ) : (
                   <video key={video.url} controls preload="metadata" src={video.url} onLoadedMetadata={handleVideoLoaded} onTimeUpdate={handleVideoProgress}>Brauzeriniz video elementini dəstəkləmir.</video>
                 )}
