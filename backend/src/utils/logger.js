@@ -15,6 +15,10 @@ function error(context, exception) {
     details.message = exception?.message;
   }
 
+  if (exception?.code === "MODULE_NOT_FOUND") {
+    details.missingModule = exception?.message;
+  }
+
   console.error(details);
 }
 
