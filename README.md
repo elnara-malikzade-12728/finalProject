@@ -35,6 +35,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Downloadable PDF certificates with embedded QR verification links
 - CV upload and lifecycle management
 - Stripe recurring monthly/yearly subscriptions, one-time course checkout, renewals, cancellation, and signed webhook processing
+- Backend-enforced course entitlements for active subscriptions and valid one-time course purchases
 - Subscription plans, user subscription status, and payment history
 - Four-level Synex training taxonomy with dynamically managed subcategories
 - Public articles, corporate training inquiries, and a company dashboard with employee statistics and priority vacancy publishing

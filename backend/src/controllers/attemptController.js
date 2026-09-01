@@ -1,6 +1,7 @@
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
 const { createCertificateForUser } = require("../services/certificateService");
+const { canAccessCourse } = require("../services/courseAccessService");
 
 function createHttpError(statusCode, message) {
     const error = new Error(message);
@@ -69,6 +70,9 @@ async function startTestAttempt(req, res, next) {
             ]);
             if (!enrollment) {
                 throw createHttpError(403, "Dərs testinə başlamaq üçün kursa qeydiyyatdan keçməlisiniz.");
+            }
+            if (!(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+                throw createHttpError(403, "Dərs testinə başlamaq üçün aktiv abunəlik və ya kurs alışı tələb olunur.");
             }
             if (!progress?.completed) {
                 throw createHttpError(403, "Dərs testinə başlamaq üçün əvvəlcə videonu tamamlayın.");

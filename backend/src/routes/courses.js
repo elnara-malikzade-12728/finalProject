@@ -21,7 +21,7 @@ router.get('/:id', controller.getPublishedCourse);
  *     responses:
  *       201: { description: Kurs qeydiyyatı yaradıldı }
  *       200: { description: İstifadəçi artıq kursa qeydiyyatdan keçib }
- *       403: { description: Administrator kursa qeydiyyatdan keçə bilməz }
+ *       403: { description: Administrator qeydiyyatı qadağandır və ya aktiv abunəlik/kurs alışı yoxdur }
  *       404: { description: Kurs tapılmadı }
  * /api/courses/{id}/me:
  *   get:
@@ -54,7 +54,7 @@ router.get('/:id', controller.getPublishedCourse);
  *               lastPositionSeconds: { type: integer, minimum: 0, example: 135 }
  *     responses:
  *       200: { description: Dərs irəliləyişi saxlanıldı }
- *       403: { description: Kurs qeydiyyatı tələb olunur və ya dərs hələ kilidlidir }
+ *       403: { description: Kurs qeydiyyatı, aktiv abunəlik/kurs alışı tələb olunur və ya dərs hələ kilidlidir }
  *       404: { description: Dərs tapılmadı }
  */
 router.post('/:id/enroll', auth, controller.enrollInCourse);
