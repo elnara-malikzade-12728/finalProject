@@ -27,11 +27,12 @@ router.get('/:id', controller.getPublishedCourse);
  *   get:
  *     tags: [Learning]
  *     summary: Kurs qeydiyyatını və dərs irəliləyişini əldə et
+ *     description: Tamamlanmış dərslərlə yanaşı, əvvəlki dərs və test nəticəsinə əsasən kilidli dərslərin ID-lərini qaytarır.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { in: path, name: id, required: true, schema: { type: integer } }
  *     responses:
- *       200: { description: Qeydiyyat və tamamlanmış dərslər }
+ *       200: { description: Qeydiyyat, irəliləyiş və kilidli dərslər }
  *       404: { description: Kurs tapılmadı }
  * /api/courses/lessons/{id}/progress:
  *   put:
@@ -53,7 +54,7 @@ router.get('/:id', controller.getPublishedCourse);
  *               lastPositionSeconds: { type: integer, minimum: 0, example: 135 }
  *     responses:
  *       200: { description: Dərs irəliləyişi saxlanıldı }
- *       403: { description: Kurs qeydiyyatı tələb olunur }
+ *       403: { description: Kurs qeydiyyatı tələb olunur və ya dərs hələ kilidlidir }
  *       404: { description: Dərs tapılmadı }
  */
 router.post('/:id/enroll', auth, controller.enrollInCourse);

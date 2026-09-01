@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
+const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../services/lessonUnlockService');
 
 const structureInclude = {
   category: { include: { parent: true } },
@@ -91,7 +92,11 @@ async function getPublishedCourse(req, res) {
             lessons: {
               where: { published: true },
               orderBy: { order: 'asc' },
-              select: { id: true, title: true, description: true, order: true, durationSeconds: true, videoPath: true, videoProviderId: true, isFreePreview: true },
+              select: {
+                id: true, title: true, description: true, order: true, durationSeconds: true,
+                videoPath: true, videoProviderId: true, isFreePreview: true,
+                tests: { where: { published: true, type: 'LESSON' }, select: { id: true, title: true } },
+              },
             },
           },
         },
@@ -178,10 +183,14 @@ async function getMyCourseState(req, res) {
       : [];
     const completedLessonIds = progress.filter((item) => item.completed).map((item) => item.lessonId);
     const lessonProgress = Object.fromEntries(progress.map((item) => [item.lessonId, { watchedPercentage: item.watchedPercentage, lastPositionSeconds: item.lastPositionSeconds }]));
+    const { lockedLessonIds } = enrolled && req.user.role !== 'ADMIN'
+      ? await getCourseLessonUnlockState(req.user.id, courseId)
+      : { lockedLessonIds: [] };
 
     return res.json({
       enrolled,
       completedLessonIds,
+      lockedLessonIds,
       lessonProgress,
       completedLessons: completedLessonIds.length,
       totalLessons: lessonIds.length,
@@ -220,6 +229,10 @@ async function updateLessonProgress(req, res) {
     });
     if (!enrollment) {
       return res.status(403).json({ error: 'İrəliləyişi saxlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
+    }
+
+    if (!(await isLessonUnlockedForUser(req.user.id, lesson.module.courseId, lessonId))) {
+      return res.status(403).json({ error: 'Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.' });
     }
 
     const progress = await prisma.lessonProgress.upsert({

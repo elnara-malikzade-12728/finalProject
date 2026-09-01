@@ -3449,6 +3449,7 @@ a.admin-action-card:hover {
 .course-lesson-status { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; border: 0; border-radius: 999px; padding: 5px 9px; background: #eee8e3; color: var(--muted); font: inherit; font-size: .76rem; font-weight: 700; }
 .course-lesson-status.is-progress { background: var(--primary-soft); color: var(--primary-dark); }
 .course-lesson-status.is-complete { background: #dff5e8; color: #187948; }
+.course-lesson-status.is-locked { background: #eee8e3; color: #806b5d; }
 button.course-lesson-status.is-complete { cursor: pointer; }
 button.course-lesson-status.is-complete:hover { background: #ccefdc; }
 .course-video-player { display: grid; gap: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; background: var(--surface); }
@@ -3459,14 +3460,19 @@ button.course-lesson-status.is-complete:hover { background: #ccefdc; }
 .course-lesson-open span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .course-lesson-complete { flex: 0 0 auto; border-radius: 9px; padding: 7px 10px; color: var(--primary-dark); font-size: .8rem; font-weight: 700; }
 .course-lesson-complete:hover { background: var(--primary-soft); }
+.course-lesson-test { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; border-radius: 9px; padding: 7px 10px; color: var(--primary-dark); font-size: .8rem; font-weight: 700; text-decoration: none; }
+.course-lesson-test:hover { background: var(--primary-soft); }
 .course-lesson-completed { background: #effbf4 !important; }
 .course-lesson-completed .course-lesson-open span { text-decoration: line-through; text-decoration-color: rgba(24, 121, 72, .45); }
+.course-lesson-locked { opacity: .72; }
+.course-lesson-open:disabled { cursor: not-allowed; }
 
 @media (max-width: 760px) {
   .course-public-module li { align-items: stretch; flex-direction: column; }
   .course-public-module li small { margin-left: 25px; }
   .course-lesson-status { align-self: flex-start; margin-left: 25px; }
   .course-lesson-complete { align-self: flex-start; margin-left: 17px; }
+  .course-lesson-test { align-self: flex-start; margin-left: 17px; }
 }
 
 /* Admin course structure */
