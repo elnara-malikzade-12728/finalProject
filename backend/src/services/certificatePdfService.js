@@ -1,9 +1,9 @@
 const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 
-// Static resolution lets Vercel trace and bundle these font files with the function.
-const regularFont = require.resolve("@fontsource/inter/files/inter-latin-ext-400-normal.woff");
-const boldFont = require.resolve("@fontsource/inter/files/inter-latin-ext-700-normal.woff");
+// TrueType fonts render Azerbaijani glyphs reliably in PDF viewers.
+const regularFont = require.resolve("dejavu-fonts-ttf/ttf/DejaVuSans.ttf");
+const boldFont = require.resolve("dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf");
 
 function formatDate(date) {
   return new Intl.DateTimeFormat("az-AZ", {

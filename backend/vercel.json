@@ -1,7 +1,7 @@
 {
   "functions": {
     "server.js": {
-      "includeFiles": "node_modules/{@fontsource/inter/files/**,pdfkit/js/data/**,pdfkit/js/standard-fonts/**,fontkit/**,linebreak/**,unicode-properties/**}"
+      "includeFiles": "node_modules/{dejavu-fonts-ttf/ttf/**,pdfkit/js/data/**,pdfkit/js/standard-fonts/**,fontkit/**,linebreak/**,unicode-properties/**}"
     }
   }
 }
