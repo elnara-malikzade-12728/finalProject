@@ -26,6 +26,7 @@ function CourseDetailsPage() {
   const [updatingLessonId, setUpdatingLessonId] = useState(null);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState(null);
+  const notificationRef = useRef(null);
   const videoPlayerRef = useRef(null);
   const bunnyIframeRef = useRef(null);
 
@@ -118,22 +119,37 @@ function CourseDetailsPage() {
     }
   }
 
+  function showLessonNotification(type, message) {
+    setNotification({ type, message });
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        notificationRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+  }
+
   async function handleOpenLesson(lesson) {
     if (lockedLessonIds.has(lesson.id)) {
-      setNotification({ type: "info", message: "Bu dərsi açmaq üçün əvvəlki dərsi və onun testini tamamlayın." });
+      showLessonNotification("info", "Bu dərsi açmaq üçün əvvəlki dərsi və onun testini tamamlayın.");
       return;
     }
     if (!lesson.hasVideo) {
-      setNotification({ type: "info", message: "Bu dərs üçün video hələ əlavə edilməyib." });
+      showLessonNotification("info", "Bu dərs üçün video hələ əlavə edilməyib.");
       return;
     }
     if (!isAuthenticated && !lesson.isFreePreview) {
       navigate("/login", { state: { from: `/courses/${courseId}`, message: "Video dərsə baxmaq üçün daxil olun." } });
       return;
     }
-    if (user?.role !== "ADMIN" && !learningState.enrolled && !lesson.isFreePreview) {
-      setNotification({ type: "info", message: "Video dərsə baxmaq üçün əvvəlcə kursa qeydiyyatdan keçin." });
-      return;
+    if (user?.role !== "ADMIN" && !lesson.isFreePreview) {
+      if (!learningState.hasAccess) {
+        showLessonNotification("info", "Bu videoya baxmaq üçün aktiv abunəlik və ya kurs alışı tələb olunur.");
+        return;
+      }
+      if (!learningState.enrolled) {
+        showLessonNotification("info", "Video dərsə baxmaq üçün əvvəlcə kursa qeydiyyatdan keçin.");
+        return;
+      }
     }
     setIsLoadingVideo(true);
     setNotification(null);
@@ -142,7 +158,7 @@ function CourseDetailsPage() {
       setSelectedLesson(lesson);
       setVideo(response);
     } catch (requestError) {
-      setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+      showLessonNotification("error", getApiErrorMessage(requestError));
     } finally {
       setIsLoadingVideo(false);
     }
@@ -221,7 +237,11 @@ function CourseDetailsPage() {
 
       <section className="section">
         <div className="container course-public-modules">
-          {notification && <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />}
+          {notification && (
+            <div ref={notificationRef}>
+              <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />
+            </div>
+          )}
           {learningState.enrolled && !isAdmin && (
             <section className="course-progress-card" aria-label="Kurs irəliləyişi">
               <div className="course-progress-heading">
