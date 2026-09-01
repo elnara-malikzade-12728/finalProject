@@ -10,7 +10,7 @@ import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const emptyLearningState = { enrolled: false, completedLessonIds: [], lockedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
+const emptyLearningState = { enrolled: false, hasAccess: false, completedLessonIds: [], lockedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
 
 function CourseDetailsPage() {
   const { courseId } = useParams();
@@ -99,6 +99,10 @@ function CourseDetailsPage() {
   async function handleEnroll() {
     if (!isAuthenticated) {
       navigate("/login", { state: { from: `/courses/${courseId}`, message: "Kursa başlamaq üçün daxil olun." } });
+      return;
+    }
+    if (!learningState.hasAccess) {
+      navigate("/pricing", { state: { courseId: Number(courseId) } });
       return;
     }
     setIsEnrolling(true);
@@ -203,7 +207,7 @@ function CourseDetailsPage() {
             {!isAdmin && !learningState.enrolled && (
               <button type="button" className="button button-primary button-large" onClick={handleEnroll} disabled={isEnrolling || isInitializing}>
                 {isEnrolling && <LoaderCircle className="loading-spinner" size={18} />}
-                {isAuthenticated ? "Kursa qeydiyyatdan keç" : "Kursa başla"}
+                {isAuthenticated ? learningState.hasAccess ? "Kursa qeydiyyatdan keç" : "Giriş əldə et" : "Kursa başla"}
               </button>
             )}
           </div>

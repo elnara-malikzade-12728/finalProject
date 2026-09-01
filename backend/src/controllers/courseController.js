@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
 const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../services/lessonUnlockService');
+const { canAccessCourse } = require('../services/courseAccessService');
 
 const structureInclude = {
   category: { include: { parent: true } },
@@ -135,6 +136,10 @@ async function enrollInCourse(req, res) {
     });
     if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
 
+    if (!(await canAccessCourse(req.user.id, courseId))) {
+      return res.status(403).json({ error: 'Kursa qeydiyyat üçün aktiv abunəlik və ya bu kursun alışı tələb olunur.' });
+    }
+
     const existing = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId: req.user.id, courseId } },
     });
@@ -174,7 +179,8 @@ async function getMyCourseState(req, res) {
       : await prisma.enrollment.findUnique({
           where: { userId_courseId: { userId: req.user.id, courseId } },
         });
-    const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment);
+    const hasAccess = req.user.role === 'ADMIN' || await canAccessCourse(req.user.id, courseId);
+    const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment && hasAccess);
     const progress = enrolled && lessonIds.length
       ? await prisma.lessonProgress.findMany({
           where: { userId: req.user.id, lessonId: { in: lessonIds } },
@@ -189,6 +195,7 @@ async function getMyCourseState(req, res) {
 
     return res.json({
       enrolled,
+      hasAccess,
       completedLessonIds,
       lockedLessonIds,
       lessonProgress,
@@ -229,6 +236,10 @@ async function updateLessonProgress(req, res) {
     });
     if (!enrollment) {
       return res.status(403).json({ error: 'İrəliləyişi saxlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
+    }
+
+    if (!(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+      return res.status(403).json({ error: 'Aktiv abunəliyiniz və ya bu kurs üçün etibarlı alışınız yoxdur.' });
     }
 
     if (!(await isLessonUnlockedForUser(req.user.id, lesson.module.courseId, lessonId))) {

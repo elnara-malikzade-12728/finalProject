@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
 const { isLessonUnlockedForUser } = require("../services/lessonUnlockService");
+const { canAccessCourse } = require("../services/courseAccessService");
 const {
   getSupabaseAdmin,
   getVideoBucket,
@@ -483,6 +484,11 @@ async function getLessonVideoUrl(req, res) {
           return res.status(403).json({
             error:
               "Bu videoya baxmaq üçün kursa qeydiyyatdan keçməlisiniz.",
+          });
+        }
+        if (!(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+          return res.status(403).json({
+            error: "Bu videoya baxmaq üçün aktiv abunəlik və ya kurs alışı tələb olunur.",
           });
         }
       }

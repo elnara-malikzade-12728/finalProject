@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, ShoppingCart, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getPlans } from "../api/plansApi.js";
 import { createCheckout } from "../api/paymentsApi.js";
 import { getPublishedCourses } from "../api/coursesApi.js";
@@ -19,6 +19,7 @@ const BILLING_LABELS = {
 function PricingPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [plans, setPlans] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -47,7 +48,8 @@ function PricingPage() {
       setCourses(courseList);
 
       if (courseList.length > 0) {
-        setSelectedCourseId(String(courseList[0].id));
+        const requestedCourse = courseList.find((course) => course.id === Number(location.state?.courseId));
+        setSelectedCourseId(String(requestedCourse?.id || courseList[0].id));
       }
     } catch (requestError) {
       if (requestError.name !== "AbortError") {
@@ -58,7 +60,7 @@ function PricingPage() {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [location.state?.courseId]);
 
   useEffect(() => {
     const controller = new AbortController();

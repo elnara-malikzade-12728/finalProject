@@ -147,7 +147,7 @@ router.post(
  *   get:
  *     tags: [Videos]
  *     summary: Dərs videosu üçün qorunan izləmə keçidi əldə et
- *     description: Bunny Stream üçün tokenli embed, köhnə Supabase videoları üçün imzalanmış URL qaytarır. Pulsuz preview dərsləri açıqdır; digər dərslər üçün kurs qeydiyyatı və ardıcıl dərs kilidinin açılması tələb olunur.
+ *     description: Bunny Stream üçün tokenli embed, köhnə Supabase videoları üçün imzalanmış URL qaytarır. Pulsuz preview dərsləri açıqdır; digər dərslər üçün kurs qeydiyyatı, aktiv abunəlik və ya kurs alışı, həmçinin ardıcıl dərs kilidinin açılması tələb olunur.
  *     security:
  *       - bearerAuth: []
  *     parameters:
