@@ -107,6 +107,7 @@ function CourseDetailsPage() {
     try {
       await updateLessonProgress(lesson.id, completed ? 100 : 0, 0);
       setLearningState(await getMyCourseState(courseId));
+      setNotification({ type: "success", message: completed ? "Dərs tamamlandı." : "Dərs başlanmamış kimi qeyd edildi." });
     } catch (requestError) {
       setNotification({ type: "error", message: getApiErrorMessage(requestError) });
     } finally {
@@ -221,12 +222,22 @@ function CourseDetailsPage() {
                       <span>{lesson.order}. {lesson.title}</span>
                     </button>
                     {lesson.durationSeconds && <small><Clock3 size={14} /> {Math.ceil(lesson.durationSeconds / 60)} dəq.</small>}
-                    {learningState.enrolled && !isAdmin && (
-                      <span className={`course-lesson-status ${completed ? "is-complete" : watchedPercentage > 0 ? "is-progress" : ""}`}>
-                        {completed && <CheckCircle2 size={15} aria-hidden="true" />}
+                    {learningState.enrolled && !isAdmin && (completed ? (
+                      <button
+                        type="button"
+                        className="course-lesson-status is-complete"
+                        title="Başlanmayıb kimi qeyd et"
+                        aria-label={`${lesson.title} dərsini başlanmayıb kimi qeyd et`}
+                        onClick={() => handleCompletion(lesson)}
+                        disabled={updatingLessonId === lesson.id}
+                      >
+                        <CheckCircle2 size={15} aria-hidden="true" /> Tamamlandı
+                      </button>
+                    ) : (
+                      <span className={`course-lesson-status ${watchedPercentage > 0 ? "is-progress" : ""}`}>
                         {lessonStatus}
                       </span>
-                    )}
+                    ))}
                     {learningState.enrolled && !isAdmin && !completed && (
                       <button type="button" className="course-lesson-complete" onClick={() => handleCompletion(lesson)} disabled={updatingLessonId === lesson.id}>
                         <CheckCircle2 size={17} /> Tamamla
