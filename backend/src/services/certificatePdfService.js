@@ -1,9 +1,9 @@
-const path = require("path");
 const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 
-const regularFont = path.join(__dirname, "../../node_modules/@fontsource/inter/files/inter-latin-ext-400-normal.woff");
-const boldFont = path.join(__dirname, "../../node_modules/@fontsource/inter/files/inter-latin-ext-700-normal.woff");
+// Static resolution lets Vercel trace and bundle these font files with the function.
+const regularFont = require.resolve("@fontsource/inter/files/inter-latin-ext-400-normal.woff");
+const boldFont = require.resolve("@fontsource/inter/files/inter-latin-ext-700-normal.woff");
 
 function formatDate(date) {
   return new Intl.DateTimeFormat("az-AZ", {
