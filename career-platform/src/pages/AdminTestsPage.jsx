@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ListChecks, Plus, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getCourseStructure } from "../api/adminCoursesApi.js";
@@ -18,6 +18,7 @@ function AdminTestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const editorRef = useRef(null);
 
   async function load() {
     setIsLoading(true);
@@ -35,9 +36,18 @@ function AdminTestsPage() {
     (module.lessons || []).map((lesson) => ({ ...lesson, courseTitle: course.title, moduleTitle: module.title })),
   ));
 
-  async function selectTest(id) {
+  async function selectTest(id, revealEditor = false) {
     setError("");
-    try { setSelected(await getTestById(id)); } catch (requestError) { setError(getApiErrorMessage(requestError)); }
+    try {
+      setSelected(await getTestById(id));
+      if (revealEditor) {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      }
+    } catch (requestError) { setError(getApiErrorMessage(requestError)); }
   }
 
   async function submitTest(event) {
@@ -48,7 +58,7 @@ function AdminTestsPage() {
         [isFinal ? "courseId" : "lessonId"]: Number(testForm.targetId),
         passScorePercent: Number(testForm.passScorePercent),
         timeLimitMinutes: testForm.timeLimitMinutes ? Number(testForm.timeLimitMinutes) : null });
-      setTestForm(emptyTest); setMessage("Test yaradıldı."); await load(); await selectTest(created.id);
+      setTestForm(emptyTest); setMessage("Test yaradıldı."); await load(); await selectTest(created.id, true);
     } catch (requestError) { setError(getApiErrorMessage(requestError)); }
   }
 
@@ -109,13 +119,13 @@ function AdminTestsPage() {
       <div className="assessment-test-list">
         {tests.length === 0 && <p>Hələ test yaradılmayıb.</p>}
         {tests.map((test) => <article className={`assessment-test-card ${selected?.id === test.id ? "assessment-test-card-selected" : ""}`} key={test.id}>
-          <button className="assessment-test-select" type="button" onClick={() => selectTest(test.id)}><ListChecks size={20} /><span><strong>{test.title}</strong><small>ID: {test.id} · {test.type === "FINAL" ? test.course?.title || "Yekun imtahan" : test.lesson?.title || "Dərs seçilməyib"} · {test._count?.questions || 0} sual</small></span></button>
+          <button className="assessment-test-select" type="button" onClick={() => selectTest(test.id, true)}><ListChecks size={20} /><span><strong>{test.title}</strong><small>ID: {test.id} · {test.type === "FINAL" ? test.course?.title || "Yekun imtahan" : test.lesson?.title || "Dərs seçilməyib"} · {test._count?.questions || 0} sual</small></span></button>
           <span className={test.published ? "status-badge status-badge-success" : "status-badge"}>{test.published ? "Yayımlanıb" : "Qaralama"}</span>
           <button className="admin-icon-button admin-icon-button-danger" type="button" onClick={() => removeTest(test.id)} aria-label="Testi sil"><Trash2 size={17} /></button>
         </article>)}
       </div>
     </div>
-    {selected && <section className="assessment-editor">
+    {selected && <section ref={editorRef} className="assessment-editor">
       <header><div><h2>{selected.title}</h2><p>ID: {selected.id} · {selected.questions.length} sual · keçid {selected.passScorePercent}%</p></div><div className="assessment-editor-actions">{selected.published && <Link className="button button-secondary" to={`/tests/${selected.id}`}>İstifadəçi kimi bax</Link>}<button className="button button-secondary" type="button" onClick={() => togglePublished(selected)}><CheckCircle2 size={18} />{selected.published ? "Qaralamaya keçir" : "Yayımla"}</button></div></header>
       <div className="assessment-question-list">{selected.questions.map((question) => <article key={question.id}><strong>{question.order}. {question.questionText}</strong><ul>{question.options.map((option) => <li key={option} className={option === question.correctValue ? "assessment-correct-answer" : ""}>{option}</li>)}</ul><button className="admin-icon-button admin-icon-button-danger" type="button" onClick={() => removeQuestion(question.id)}><Trash2 size={16} /> Sualı sil</button></article>)}</div>
       <form className="course-admin-form assessment-question-form" onSubmit={submitQuestion}>
