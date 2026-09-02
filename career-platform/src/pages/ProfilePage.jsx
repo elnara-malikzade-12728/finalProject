@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
+  Award,
   CheckCircle2,
   FileUp,
   GraduationCap,
@@ -12,6 +13,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   completeCvUpload,
   deleteMyCv,
@@ -223,6 +225,15 @@ function ProfilePage() {
       <section className="section">
         <div className="container profile-layout">
           <aside className="profile-sidebar">
+            {user?.role !== "ADMIN" && (
+              <div className="sidebar-card">
+                <h2>Hesabım</h2>
+                <Link className="button button-secondary" to="/certificates">
+                  <Award size={18} aria-hidden="true" />
+                  Sertifikatlarım
+                </Link>
+              </div>
+            )}
             <div className="sidebar-card">
               <h2>Hesab məlumatları</h2>
 

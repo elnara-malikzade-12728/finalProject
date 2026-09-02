@@ -109,7 +109,7 @@ function AdminCoursesPage() {
 
   async function submitLessonEdit(event) {
     event.preventDefault();
-    const ok = await perform(() => updateLesson(lessonEdit.id, { title: lessonEdit.title, description: lessonEdit.description, order: Number(lessonEdit.order), published: lessonEdit.published, isFreePreview: lessonEdit.isFreePreview }), 'Dərs yeniləndi.');
+    const ok = await perform(() => updateLesson(lessonEdit.id, { title: lessonEdit.title, description: lessonEdit.description, order: Number(lessonEdit.order), published: lessonEdit.published }), 'Dərs yeniləndi.');
     if (ok) setLessonEdit(null);
   }
 
@@ -127,10 +127,10 @@ function AdminCoursesPage() {
     event.preventDefault();
     const draft = lessonDrafts[moduleId] || {};
     const ok = await perform(
-      () => createLesson(moduleId, { title: draft.title, order: Number(draft.order), published: true, isFreePreview: draft.isFreePreview === true }),
+      () => createLesson(moduleId, { title: draft.title, order: Number(draft.order), published: true }),
       'Dərs yaradıldı.',
     );
-    if (ok) setLessonDrafts((current) => ({ ...current, [moduleId]: { title: '', order: '', isFreePreview: false } }));
+    if (ok) setLessonDrafts((current) => ({ ...current, [moduleId]: { title: '', order: '' } }));
   }
 
   function confirmDelete(message, action, successMessage) {
@@ -146,7 +146,7 @@ function AdminCoursesPage() {
         <div>
           <span className="admin-page-eyebrow">Təlim idarəetməsi</span>
           <h1>Kurslar</h1>
-          <p>Kateqoriya, kurs, modul və dərsləri vahid strukturda idarə edin.</p>
+          <p>Kateqoriya, kurs, modul və dərsləri vahid strukturda idarə edin. Hər kursun ilk iki yayımlanmış dərsi avtomatik pulsuzdur.</p>
         </div>
       </div>
 
@@ -208,12 +208,11 @@ function AdminCoursesPage() {
                     <header><span><Layers3 size={17} /><strong>{module.order}. {module.title}</strong></span><span className="course-item-icon-actions"><button type="button" title="Modulu redaktə et" aria-label="Modulu redaktə et" onClick={() => setModuleEdit({ id: module.id, title: module.title, description: module.description || '', order: module.order })}><Pencil size={16} /></button><button type="button" className="danger" title="Modulu sil" aria-label="Modulu sil" onClick={() => confirmDelete(`“${module.title}” modulu silinsin?`, () => deleteModule(module.id), 'Modul silindi.')}><Trash2 size={15} /></button></span></header>
                     {moduleEdit?.id === module.id && <form className="course-inline-editor" onSubmit={submitModuleEdit}><input type="number" min="0" value={moduleEdit.order} onChange={(event) => setModuleEdit({ ...moduleEdit, order: event.target.value })} required /><input value={moduleEdit.title} onChange={(event) => setModuleEdit({ ...moduleEdit, title: event.target.value })} required /><textarea value={moduleEdit.description} onChange={(event) => setModuleEdit({ ...moduleEdit, description: event.target.value })} placeholder="Modulun təsviri" rows={2} /><div className="course-edit-actions"><button className="button button-primary" disabled={saving}><Save size={16} /> Saxla</button><button type="button" className="button button-secondary" onClick={() => setModuleEdit(null)}><X size={16} /> Ləğv et</button></div></form>}
                     <ul>
-                      {module.lessons.map((lesson) => lessonEdit?.id === lesson.id ? <li className="course-lesson-edit-item" key={lesson.id}><form className="course-inline-editor" onSubmit={submitLessonEdit}><div className="course-edit-row"><input type="number" min="0" value={lessonEdit.order} onChange={(event) => setLessonEdit({ ...lessonEdit, order: event.target.value })} required /><input value={lessonEdit.title} onChange={(event) => setLessonEdit({ ...lessonEdit, title: event.target.value })} required /></div><textarea value={lessonEdit.description} onChange={(event) => setLessonEdit({ ...lessonEdit, description: event.target.value })} placeholder="Dərsin təsviri" rows={2} /><div className="course-edit-checks"><label><input type="checkbox" checked={lessonEdit.published} onChange={(event) => setLessonEdit({ ...lessonEdit, published: event.target.checked })} /> Yayımla</label><label><input type="checkbox" checked={lessonEdit.isFreePreview} onChange={(event) => setLessonEdit({ ...lessonEdit, isFreePreview: event.target.checked })} /> Pulsuz preview</label></div><div className="course-edit-actions"><button className="button button-primary" disabled={saving}><Save size={16} /> Saxla</button><button type="button" className="button button-secondary" onClick={() => setLessonEdit(null)}><X size={16} /> Ləğv et</button></div></form></li> : <li key={lesson.id}><span>{lesson.order}. {lesson.title} {lesson.isFreePreview && <small>· Pulsuz baxış</small>} {!lesson.published && <small>· Qaralama</small>}</span><span><button type="button" onClick={() => perform(() => updateLesson(lesson.id, { isFreePreview: !lesson.isFreePreview }), lesson.isFreePreview ? 'Pulsuz baxış söndürüldü.' : 'Pulsuz baxış aktiv edildi.')}>{lesson.isFreePreview ? 'Preview söndür' : 'Pulsuz preview'}</button><span className="course-item-icon-actions"><button type="button" title="Dərsi redaktə et" aria-label="Dərsi redaktə et" onClick={() => setLessonEdit({ id: lesson.id, title: lesson.title, description: lesson.description || '', order: lesson.order, published: lesson.published, isFreePreview: lesson.isFreePreview })}><Pencil size={16} /></button><button type="button" className="danger" title="Dərsi sil" aria-label="Dərsi sil" onClick={() => confirmDelete(`“${lesson.title}” dərsi silinsin?`, () => deleteLesson(lesson.id), 'Dərs silindi.')}><Trash2 size={14} /></button></span></span></li>)}
+                      {module.lessons.map((lesson) => lessonEdit?.id === lesson.id ? <li className="course-lesson-edit-item" key={lesson.id}><form className="course-inline-editor" onSubmit={submitLessonEdit}><div className="course-edit-row"><input type="number" min="0" value={lessonEdit.order} onChange={(event) => setLessonEdit({ ...lessonEdit, order: event.target.value })} required /><input value={lessonEdit.title} onChange={(event) => setLessonEdit({ ...lessonEdit, title: event.target.value })} required /></div><textarea value={lessonEdit.description} onChange={(event) => setLessonEdit({ ...lessonEdit, description: event.target.value })} placeholder="Dərsin təsviri" rows={2} /><div className="course-edit-checks"><label><input type="checkbox" checked={lessonEdit.published} onChange={(event) => setLessonEdit({ ...lessonEdit, published: event.target.checked })} /> Yayımla</label></div><div className="course-edit-actions"><button className="button button-primary" disabled={saving}><Save size={16} /> Saxla</button><button type="button" className="button button-secondary" onClick={() => setLessonEdit(null)}><X size={16} /> Ləğv et</button></div></form></li> : <li key={lesson.id}><span>{lesson.order}. {lesson.title} {lesson.isFreePreview && <small>· İlk iki dərsdən biri · Pulsuz baxış</small>} {!lesson.published && <small>· Qaralama</small>}</span><span className="course-item-icon-actions"><button type="button" title="Dərsi redaktə et" aria-label="Dərsi redaktə et" onClick={() => setLessonEdit({ id: lesson.id, title: lesson.title, description: lesson.description || '', order: lesson.order, published: lesson.published })}><Pencil size={16} /></button><button type="button" className="danger" title="Dərsi sil" aria-label="Dərsi sil" onClick={() => confirmDelete(`“${lesson.title}” dərsi silinsin?`, () => deleteLesson(lesson.id), 'Dərs silindi.')}><Trash2 size={14} /></button></span></li>)}
                     </ul>
                     <form className="course-tree-add" onSubmit={(event) => submitLesson(event, module.id)}>
                       <input value={lessonDrafts[module.id]?.order || ''} onChange={(event) => setLessonDrafts({ ...lessonDrafts, [module.id]: { ...lessonDrafts[module.id], order: event.target.value } })} type="number" min="0" placeholder="Sıra" required />
                       <input value={lessonDrafts[module.id]?.title || ''} onChange={(event) => setLessonDrafts({ ...lessonDrafts, [module.id]: { ...lessonDrafts[module.id], title: event.target.value } })} placeholder="Yeni dərsin adı" required />
-                      <label><input type="checkbox" checked={lessonDrafts[module.id]?.isFreePreview || false} onChange={(event) => setLessonDrafts({ ...lessonDrafts, [module.id]: { ...lessonDrafts[module.id], isFreePreview: event.target.checked } })} /> Pulsuz preview</label>
                       <button className="button button-secondary" disabled={saving}><Plus size={16} /> Dərs</button>
                     </form>
                   </section>

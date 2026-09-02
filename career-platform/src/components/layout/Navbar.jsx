@@ -5,6 +5,7 @@ import {
   ChevronDown,
   CreditCard,
   FileText,
+  Info,
   LogOut,
   Map,
   Menu,
@@ -98,15 +99,6 @@ function Navbar() {
                     <ListChecks size={18} />
                     Testlər
                   </NavLink>
-                  <NavLink
-                    to="/certificates"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <FileText size={18} />
-                    Sertifikatlar
-                  </NavLink>
-
                 </>
               )}
 
@@ -160,6 +152,10 @@ function Navbar() {
                     <Building2 size={18} />
                     Korporativ
                   </NavLink>
+                  <NavLink to="/about" className={getNavLinkClass} onClick={closeMenu}>
+                    <Info size={18} />
+                    Haqqımızda
+                  </NavLink>
                 </div>
               </details>
 
@@ -185,6 +181,10 @@ function Navbar() {
                 <NavLink to="/corporate" className={getNavLinkClass} onClick={closeMenu}>
                   <Building2 size={18} />
                   Korporativ
+                </NavLink>
+                <NavLink to="/about" className={getNavLinkClass} onClick={closeMenu}>
+                  <Info size={18} />
+                  Haqqımızda
                 </NavLink>
               </div>
             </div>
