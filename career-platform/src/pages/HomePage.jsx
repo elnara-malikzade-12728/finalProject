@@ -187,7 +187,7 @@ function HomePage() {
         <div className="container">
           <div className="centered-heading">
             <span className="eyebrow">Necə işləyir?</span>
-            <h2>Karyerana üç sadə addımla başla</h2>
+            <h2>Karyerana üç addımla başla</h2>
             <p>
               Məqsədini müəyyənləşdir, inkişaf yolunu izlə və yeni
               imkanlara hazırlaş.

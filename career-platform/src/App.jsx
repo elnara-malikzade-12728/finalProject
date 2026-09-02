@@ -16,6 +16,10 @@ const HomePage = lazy(
   () => import("./pages/HomePage.jsx"),
 );
 
+const AboutPage = lazy(
+  () => import("./pages/AboutPage.jsx"),
+);
+
 const LoginPage = lazy(
   () => import("./pages/LoginPage.jsx"),
 );
@@ -177,6 +181,11 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
+
+            <Route
+              path="about"
+              element={<AboutPage />}
+            />
 
             <Route
               path="login"

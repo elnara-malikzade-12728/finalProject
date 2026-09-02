@@ -58,9 +58,38 @@ async function canAccessCourse(userId, courseId) {
   return false;
 }
 
+function getFreePreviewLessonIds(modules = [], limit = 2) {
+  return modules
+    .flatMap((module) => module.lessons || [])
+    .slice(0, limit)
+    .map((lesson) => lesson.id);
+}
+
+async function isFreePreviewLesson(courseId, lessonId) {
+  if (!courseId || !lessonId) return false;
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      modules: {
+        orderBy: [{ order: "asc" }, { id: "asc" }],
+        select: {
+          lessons: {
+            where: { published: true },
+            orderBy: [{ order: "asc" }, { id: "asc" }],
+            select: { id: true },
+          },
+        },
+      },
+    },
+  });
+
+  return getFreePreviewLessonIds(course?.modules).includes(lessonId);
+}
+
 /**
  * İstifadəçinin verilmiş dərsə (lesson) girişi var mı?
- * Pulsuz preview dərslər hər kəsə açıqdır.
+ * Hər kursun ilk iki yayımlanmış dərsi hər kəsə açıqdır.
  */
 async function canAccessLesson(userId, lessonId) {
   if (!lessonId) return false;
@@ -68,7 +97,6 @@ async function canAccessLesson(userId, lessonId) {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     select: {
-      isFreePreview: true,
       module: {
         select: { courseId: true },
       },
@@ -76,7 +104,7 @@ async function canAccessLesson(userId, lessonId) {
   });
 
   if (!lesson) return false;
-  if (lesson.isFreePreview) return true;
+  if (await isFreePreviewLesson(lesson.module.courseId, lessonId)) return true;
   if (!userId) return false;
 
   return canAccessCourse(userId, lesson.module.courseId);
@@ -85,4 +113,6 @@ async function canAccessLesson(userId, lessonId) {
 module.exports = {
   canAccessCourse,
   canAccessLesson,
+  getFreePreviewLessonIds,
+  isFreePreviewLesson,
 };

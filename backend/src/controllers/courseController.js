@@ -1,15 +1,29 @@
 const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
 const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../services/lessonUnlockService');
-const { canAccessCourse } = require('../services/courseAccessService');
+const { canAccessCourse, getFreePreviewLessonIds } = require('../services/courseAccessService');
 
 const structureInclude = {
   category: { include: { parent: true } },
   modules: {
-    orderBy: { order: 'asc' },
-    include: { lessons: { orderBy: { order: 'asc' } } },
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
+    include: { lessons: { orderBy: [{ order: 'asc' }, { id: 'asc' }] } },
   },
 };
+
+function withAutomaticFreePreviews(course) {
+  const freePreviewLessonIds = new Set(getFreePreviewLessonIds(course.modules));
+  return {
+    ...course,
+    modules: course.modules.map((module) => ({
+      ...module,
+      lessons: module.lessons.map((lesson) => ({
+        ...lesson,
+        isFreePreview: freePreviewLessonIds.has(lesson.id),
+      })),
+    })),
+  };
+}
 
 function id(value) {
   const parsed = Number(value);
@@ -41,7 +55,7 @@ async function listCourseStructure(_req, res) {
       }),
       prisma.course.findMany({ include: structureInclude, orderBy: { createdAt: 'desc' } }),
     ]);
-    return res.json({ categories, courses });
+    return res.json({ categories, courses: courses.map(withAutomaticFreePreviews) });
   } catch (error) {
     logger.error('Kurs strukturu alınarkən xəta', error);
     return res.status(500).json({ error: 'Kurs strukturunu yükləmək mümkün olmadı.' });
@@ -88,11 +102,11 @@ async function getPublishedCourse(req, res) {
       include: {
         category: true,
         modules: {
-          orderBy: { order: 'asc' },
+          orderBy: [{ order: 'asc' }, { id: 'asc' }],
           include: {
             lessons: {
               where: { published: true },
-              orderBy: { order: 'asc' },
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
               select: {
                 id: true, title: true, description: true, order: true, durationSeconds: true,
                 videoPath: true, videoProviderId: true, isFreePreview: true,
@@ -105,12 +119,15 @@ async function getPublishedCourse(req, res) {
     });
 
     if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    const freePreviewLessonIds = new Set(getFreePreviewLessonIds(course.modules));
+
     return res.json({
       ...course,
       modules: course.modules.map((module) => ({
         ...module,
         lessons: module.lessons.map(({ videoPath, videoProviderId, ...lesson }) => ({
           ...lesson,
+          isFreePreview: freePreviewLessonIds.has(lesson.id),
           hasVideo: Boolean(videoPath || videoProviderId),
         })),
       })),

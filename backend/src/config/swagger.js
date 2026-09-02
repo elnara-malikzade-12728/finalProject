@@ -244,6 +244,7 @@ const options = {
             isFreePreview: {
               type: "boolean",
               example: false,
+              description: "Computed automatically: true for the first two published lessons in course order.",
             },
             videoMimeType: {
               type: "string",

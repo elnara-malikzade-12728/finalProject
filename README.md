@@ -27,6 +27,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Secure lesson video upload and deletion
 - Protected Bunny Stream HLS delivery with token authentication, referrer restrictions, and legacy Supabase fallback
 - Authenticated video playback for administrators and enrolled users
+- Automatic free access to the first two published lessons of every course; payment is required from lesson three onward
 - Swagger/OpenAPI documentation for all current API endpoints
 - Frontend loading, validation, success, error, and empty states
 - Mock API fallback for frontend-only demonstrations
@@ -390,6 +391,7 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/careers/:careerId` | Public | Career details |
 | `/courses` | Public | Published course catalogue |
 | `/courses/:courseId` | Public/User | Course programme, enrollment, video playback, and progress |
+| `/about` | Public | Synex Academy mission, learning model, certification, and corporate offering |
 | `/roadmap/:careerId` | Authenticated | Interactive roadmap |
 | `/jobs` | Public | Jobs and internships |
 | `/tests` | Authenticated | Available assessments |
@@ -465,6 +467,7 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Uploaded videos remain available after refresh and a new login.
 - Private videos play through expiring signed URLs.
 - Users can enroll in published courses and open their available lesson videos.
+- The first two published lessons of each course are free previews; lesson three and later require a valid subscription or course purchase.
 - Lesson watch percentage, last position, completion, and course progress persist after refresh and login.
 - Free-preview lessons open without enrollment; protected lessons reject unenrolled users.
 - Bunny playback uses expiring tokens and the configured library rejects non-whitelisted referrers.

@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
 const { isLessonUnlockedForUser } = require("../services/lessonUnlockService");
-const { canAccessCourse } = require("../services/courseAccessService");
+const { canAccessCourse, isFreePreviewLesson } = require("../services/courseAccessService");
 const {
   getSupabaseAdmin,
   getVideoBucket,
@@ -451,7 +451,9 @@ async function getLessonVideoUrl(req, res) {
       },
     }) : null;
 
-    if (!user && !lesson.isFreePreview) {
+    const isFreePreview = await isFreePreviewLesson(lesson.module.courseId, lesson.id);
+
+    if (!user && !isFreePreview) {
       return res.status(401).json({
         error: "İstifadəçi tapılmadı.",
       });
@@ -479,7 +481,7 @@ async function getLessonVideoUrl(req, res) {
           },
         }) : null;
 
-      if (!lesson.isFreePreview) {
+      if (!isFreePreview) {
         if (!enrollment) {
           return res.status(403).json({
             error:

@@ -1,7 +1,7 @@
 import {
   Github,
   Heart,
-  Mail,
+  Info,
   Map,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -31,9 +31,9 @@ function Footer() {
           </Link>
 
           <p>
-            Gənclərə uyğun kurs seçmək, bacarıqlarını inkişaf
-            etdirmək və karyera imkanları tapmaq üçün yaradılmış
-            platforma.
+            Synex Academy gəncləri praktiki təlim, qiymətləndirmə,
+            sertifikatlaşdırma və real karyera imkanları ilə birləşdirən
+            təhsil və məşğulluq platformasıdır.
           </p>
         </div>
 
@@ -76,10 +76,10 @@ function Footer() {
             </li>
 
             <li>
-              <a href="mailto:info@karyerayol.az">
-                <Mail size={17} />
-                Əlaqə
-              </a>
+              <Link to="/about">
+                <Info size={17} />
+                Haqqımızda
+              </Link>
             </li>
           </ul>
         </div>
