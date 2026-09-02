@@ -205,7 +205,7 @@ function Navbar() {
                   </span>
 
                   <span className="user-link-text">
-                    <small>Hesabım</small>
+                    <small>Şəxsi kabinet</small>
                     <strong>{user?.name}</strong>
                   </span>
                 </NavLink>
