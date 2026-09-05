@@ -6,6 +6,7 @@ export const createAdminTest = (body) => apiRequest("/tests", { method: "POST", 
 export const deleteAdminTest = (id) => apiRequest(`/tests/${id}`, { method: "DELETE" });
 export const setAdminTestPublished = (id, published) => apiRequest(`/tests/${id}/publish`, { method: "PATCH", body: { published } });
 export const createAdminQuestion = (testId, body) => apiRequest(`/tests/${testId}/questions`, { method: "POST", body });
+export const updateAdminQuestion = (id, body) => apiRequest(`/questions/${id}`, { method: "PATCH", body });
 export const deleteAdminQuestion = (id) => apiRequest(`/questions/${id}`, { method: "DELETE" });
 
 export async function startTestAttempt(testId, { signal } = {}) {

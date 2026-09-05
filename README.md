@@ -150,6 +150,8 @@ finalProject/
 - Git
 - A reachable PostgreSQL database
 
+For isolated QA and authorized penetration testing, use the Docker environment documented in [`DOCKER_TESTING.md`](DOCKER_TESTING.md). It runs a separate PostgreSQL database, backend API, and production-built frontend without touching Vercel production.
+
 Check the installed tools:
 
 ```bash

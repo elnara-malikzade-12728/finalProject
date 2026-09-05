@@ -1,0 +1,83 @@
+name: synex-test
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: synex_test
+      POSTGRES_USER: synex_test
+      POSTGRES_PASSWORD: synex_test_password
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - synex_test_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synex_test -d synex_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    environment:
+      DATABASE_URL: postgresql://synex_test:synex_test_password@db:5432/synex_test?schema=public
+      DIRECT_URL: postgresql://synex_test:synex_test_password@db:5432/synex_test?schema=public
+      JWT_SECRET: docker_test_only_secret_change_before_shared_use
+      JWT_EXPIRES_IN: 1h
+      NODE_ENV: development
+      PORT: 4000
+      FRONTEND_URL: http://localhost:8080
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_SUCCESS_URL: http://localhost:8080/payment/success
+      STRIPE_CANCEL_URL: http://localhost:8080/payment/cancel
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_VIDEO_BUCKET: ${SUPABASE_VIDEO_BUCKET:-course-videos-test}
+      SUPABASE_CV_BUCKET: ${SUPABASE_CV_BUCKET:-user-cvs-test}
+      VIDEO_PROVIDER: ${VIDEO_PROVIDER:-}
+      BUNNY_STREAM_LIBRARY_ID: ${BUNNY_STREAM_LIBRARY_ID:-}
+      BUNNY_STREAM_API_KEY: ${BUNNY_STREAM_API_KEY:-}
+      BUNNY_STREAM_TOKEN_KEY: ${BUNNY_STREAM_TOKEN_KEY:-}
+    ports:
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./career-platform
+      dockerfile: Dockerfile.test
+      args:
+        VITE_API_URL: /api
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  backend-tests:
+    profiles: ["tools"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    environment:
+      DATABASE_URL: postgresql://synex_test:synex_test_password@db:5432/synex_test?schema=public
+      DIRECT_URL: postgresql://synex_test:synex_test_password@db:5432/synex_test?schema=public
+      JWT_SECRET: docker_test_only_secret_change_before_shared_use
+      NODE_ENV: test
+    command: ["npm", "test"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  synex_test_db:
