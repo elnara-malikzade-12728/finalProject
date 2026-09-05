@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CreditCard,
   Pencil,
@@ -39,6 +39,7 @@ function AdminPlansPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const notificationRef = useRef(null);
 
   const loadPlans = useCallback(async (signal) => {
     setIsLoading(true);
@@ -63,6 +64,12 @@ function AdminPlansPage() {
     loadPlans(controller.signal);
     return () => controller.abort();
   }, [loadPlans]);
+
+  useEffect(() => {
+    if (notification) {
+      notificationRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [notification]);
 
   function openCreateForm() {
     setForm(emptyForm);
@@ -172,7 +179,9 @@ function AdminPlansPage() {
       </div>
 
       {notification && (
-        <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />
+        <div ref={notificationRef}>
+          <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />
+        </div>
       )}
 
       {isFormOpen && (

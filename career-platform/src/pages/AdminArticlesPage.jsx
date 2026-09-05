@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Newspaper,
   Pencil,
@@ -37,6 +37,7 @@ function AdminArticlesPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const notificationRef = useRef(null);
 
   const loadArticles = useCallback(async (signal) => {
     setIsLoading(true);
@@ -61,6 +62,12 @@ function AdminArticlesPage() {
     loadArticles(controller.signal);
     return () => controller.abort();
   }, [loadArticles]);
+
+  useEffect(() => {
+    if (notification) {
+      notificationRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [notification]);
 
   function openCreateForm() {
     setForm(emptyForm);
@@ -166,7 +173,9 @@ function AdminArticlesPage() {
       </div>
 
       {notification && (
-        <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />
+        <div ref={notificationRef}>
+          <Notification type={notification.type} message={notification.message} onClose={() => setNotification(null)} />
+        </div>
       )}
 
       {isFormOpen && (

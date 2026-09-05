@@ -12,6 +12,7 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 .env.*.local
+.env.docker.test
 
 # Vercel metadata
 .vercel/

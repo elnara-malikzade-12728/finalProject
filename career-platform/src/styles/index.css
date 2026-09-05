@@ -3504,6 +3504,8 @@ button.course-lesson-status.is-complete:hover { background: #ccefdc; }
 .assessment-question-list article { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); }
 .assessment-question-list ul { margin: 10px 0; }
 .assessment-correct-answer { color: #16803c; font-weight: 700; }
+.assessment-question-actions { display: flex; align-items: center; gap: 8px; }
+.assessment-question-edit-form { max-width: 760px; }
 .assessment-question-form { max-width: 760px; }
 .assessment-option-input { display: grid !important; grid-template-columns: auto 1fr; align-items: center; gap: 9px !important; }
 .assessment-option-input > input[type="radio"] { width: auto; }

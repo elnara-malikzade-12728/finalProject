@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ListChecks, Plus, Trash2, X } from "lucide-react";
+import { CheckCircle2, ListChecks, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getCourseStructure } from "../api/adminCoursesApi.js";
-import { createAdminQuestion, createAdminTest, deleteAdminQuestion, deleteAdminTest, getAdminTests, getTestById, setAdminTestPublished } from "../api/testsApi.js";
+import { createAdminQuestion, createAdminTest, deleteAdminQuestion, deleteAdminTest, getAdminTests, getTestById, setAdminTestPublished, updateAdminQuestion } from "../api/testsApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import PageLoader from "../components/common/PageLoader.jsx";
 
@@ -15,6 +15,7 @@ function AdminTestsPage() {
   const [selected, setSelected] = useState(null);
   const [testForm, setTestForm] = useState(emptyTest);
   const [questionForm, setQuestionForm] = useState(emptyQuestion);
+  const [questionEdit, setQuestionEdit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -92,6 +93,33 @@ function AdminTestsPage() {
     catch (requestError) { setError(getApiErrorMessage(requestError)); }
   }
 
+  function startQuestionEdit(question) {
+    const options = [...question.options];
+    while (options.length < 4) options.push("");
+    setQuestionEdit({
+      id: question.id,
+      questionText: question.questionText,
+      options,
+      correctIndex: Math.max(0, options.findIndex((option) => option === question.correctValue)),
+      order: question.order,
+    });
+  }
+
+  async function submitQuestionEdit(event) {
+    event.preventDefault();
+    const options = questionEdit.options.map((item) => item.trim()).filter(Boolean);
+    const correctValue = questionEdit.options[questionEdit.correctIndex]?.trim();
+    if (!correctValue || !options.includes(correctValue)) {
+      setError("Düzgün cavab boş ola bilməz.");
+      return;
+    }
+    setError(""); setMessage("");
+    try {
+      await updateAdminQuestion(questionEdit.id, { questionText: questionEdit.questionText, options, correctValue, order: questionEdit.order });
+      setQuestionEdit(null); setMessage("Sual yeniləndi."); await selectTest(selected.id); await load();
+    } catch (requestError) { setError(getApiErrorMessage(requestError)); }
+  }
+
   if (isLoading) return <PageLoader message="Testlər yüklənir..." />;
   const targetOptions = testForm.type === "FINAL" ? courses : lessons;
 
@@ -127,7 +155,13 @@ function AdminTestsPage() {
     </div>
     {selected && <section ref={editorRef} className="assessment-editor">
       <header><div><h2>{selected.title}</h2><p>ID: {selected.id} · {selected.questions.length} sual · keçid {selected.passScorePercent}%</p></div><div className="assessment-editor-actions">{selected.published && <Link className="button button-secondary" to={`/tests/${selected.id}`}>İstifadəçi kimi bax</Link>}<button className="button button-secondary" type="button" onClick={() => togglePublished(selected)}><CheckCircle2 size={18} />{selected.published ? "Qaralamaya keçir" : "Yayımla"}</button></div></header>
-      <div className="assessment-question-list">{selected.questions.map((question) => <article key={question.id}><strong>{question.order}. {question.questionText}</strong><ul>{question.options.map((option) => <li key={option} className={option === question.correctValue ? "assessment-correct-answer" : ""}>{option}</li>)}</ul><button className="admin-icon-button admin-icon-button-danger" type="button" onClick={() => removeQuestion(question.id)}><Trash2 size={16} /> Sualı sil</button></article>)}</div>
+      <div className="assessment-question-list">{selected.questions.map((question) => <article key={question.id}>
+        {questionEdit?.id === question.id ? <form className="course-admin-form assessment-question-edit-form" onSubmit={submitQuestionEdit}>
+          <textarea required value={questionEdit.questionText} onChange={(e) => setQuestionEdit({ ...questionEdit, questionText: e.target.value })} />
+          {questionEdit.options.map((option, index) => <label key={index} className="assessment-option-input"><input type="radio" name={`edit-correct-${question.id}`} checked={questionEdit.correctIndex === index} onChange={() => setQuestionEdit({ ...questionEdit, correctIndex: index })} /><input required={index < 2} value={option} onChange={(e) => { const options = [...questionEdit.options]; options[index] = e.target.value; setQuestionEdit({ ...questionEdit, options }); }} /></label>)}
+          <div className="assessment-question-actions"><button className="button button-primary" type="submit"><Save size={16} /> Saxla</button><button className="button button-secondary" type="button" onClick={() => setQuestionEdit(null)}><X size={16} /> Ləğv et</button></div>
+        </form> : <><strong>{question.order}. {question.questionText}</strong><ul>{question.options.map((option) => <li key={option} className={option === question.correctValue ? "assessment-correct-answer" : ""}>{option}</li>)}</ul><div className="assessment-question-actions"><button className="admin-icon-button" type="button" onClick={() => startQuestionEdit(question)} aria-label="Sualı redaktə et" title="Redaktə et"><Pencil size={16} /></button><button className="admin-icon-button admin-icon-button-danger" type="button" onClick={() => removeQuestion(question.id)} aria-label="Sualı sil" title="Sil"><Trash2 size={16} /></button></div></>}
+      </article>)}</div>
       <form className="course-admin-form assessment-question-form" onSubmit={submitQuestion}>
         <h3>Yeni sual əlavə et</h3><textarea required placeholder="Sual" value={questionForm.questionText} onChange={(e) => setQuestionForm({ ...questionForm, questionText: e.target.value })} />
         {questionForm.options.map((option, index) => <label key={index} className="assessment-option-input"><input type="radio" name="correct" checked={questionForm.correctIndex === index} onChange={() => setQuestionForm({ ...questionForm, correctIndex: index })} /><input required={index < 2} placeholder={`${index + 1}-ci cavab`} value={option} onChange={(e) => { const options = [...questionForm.options]; options[index] = e.target.value; setQuestionForm({ ...questionForm, options }); }} /></label>)}
