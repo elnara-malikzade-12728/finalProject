@@ -152,6 +152,8 @@ finalProject/
 
 For isolated QA and authorized penetration testing, use the Docker environment documented in [`DOCKER_TESTING.md`](DOCKER_TESTING.md). It runs a separate PostgreSQL database, backend API, and production-built frontend without touching Vercel production.
 
+The collaborator setup, scope, baseline restore, test accounts, and reporting process are documented in [`PENTEST_HANDOFF.md`](PENTEST_HANDOFF.md).
+
 Check the installed tools:
 
 ```bash
