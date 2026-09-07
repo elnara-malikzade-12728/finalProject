@@ -11,6 +11,7 @@ const {
 } = require("../utils/validation");
 const { createOneTimeToken, hashToken } = require("../services/authTokenService");
 const { sendVerificationEmail, sendPasswordResetEmail } = require("../services/emailService");
+const { passwordMatchesHash } = require("../services/passwordService");
 
 const GENERIC_REGISTRATION_MESSAGE = "Qeydiyyat məlumatları qəbul edildi. Hesab yaradıla bilərsə, təsdiq keçidi e-poçtunuza göndəriləcək.";
 const GENERIC_RESET_MESSAGE = "Bu e-poçtla hesab mövcuddursa, şifrə yeniləmə keçidi göndəriləcək.";
@@ -257,9 +258,12 @@ async function resetPassword(req, res) {
     if (passwordError) return res.status(400).json({ error: passwordError });
     const user = await prisma.user.findFirst({
       where: { passwordResetTokenHash: hashToken(token), passwordResetTokenExpiresAt: { gt: new Date() } },
-      select: { id: true },
+      select: { id: true, password: true },
     });
     if (!user) return res.status(400).json({ error: "Şifrə yeniləmə keçidi yanlışdır və ya vaxtı bitib." });
+    if (await passwordMatchesHash(req.body.password, user.password)) {
+      return res.status(400).json({ error: "Yeni şifrə əvvəlki şifrədən fərqli olmalıdır." });
+    }
     const password = await bcrypt.hash(req.body.password, 10);
     await prisma.user.update({
       where: { id: user.id },
