@@ -22,6 +22,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - PostgreSQL database through Prisma ORM
 - JWT authentication
 - Password hashing with bcrypt
+- Email verification and single-use password recovery links delivered through SMTP
 - User profile endpoints
 - Career and roadmap endpoints
 - Job listing endpoint
@@ -218,6 +219,12 @@ DIRECT_URL="postgresql://USER:PASSWORD@SESSION_POOLER:5432/DATABASE"
 JWT_SECRET="replace_with_a_long_random_secret"
 JWT_EXPIRES_IN=1h
 PORT=4000
+FRONTEND_URL=http://localhost:5173
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=YOUR_BREVO_SMTP_LOGIN
+SMTP_PASSWORD=YOUR_BREVO_SMTP_KEY
+EMAIL_FROM=Synex Academy <verified-sender@example.com>
 SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=YOUR_PRIVATE_SERVICE_ROLE_KEY
 SUPABASE_VIDEO_BUCKET=course-videos
@@ -230,7 +237,7 @@ STRIPE_SUCCESS_URL=http://localhost:5173/payment/success
 STRIPE_CANCEL_URL=http://localhost:5173/payment/cancel
 ```
 
-`DATABASE_URL` is used by the running API through the transaction pooler. `DIRECT_URL` is used by Prisma schema operations through the session pooler. Never commit `backend/.env` or expose the database password, JWT secret, or Supabase service-role key.
+`DATABASE_URL` is used by the running API through the transaction pooler. `DIRECT_URL` is used by Prisma schema operations through the session pooler. `FRONTEND_URL` is used to construct verification and reset links. For Brevo, `SMTP_USER` is the SMTP login shown by Brevo—not the sender address—and `SMTP_PASSWORD` is the SMTP key. Never commit `backend/.env` or expose database credentials, JWT secrets, SMTP keys, or Supabase service-role keys.
 
 ### Frontend
 
@@ -396,6 +403,9 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/` | Public | Landing page |
 | `/login` | Public | User login |
 | `/register` | Public | User registration |
+| `/verify-email` | Public | Verify a new account or resend its verification email |
+| `/forgot-password` | Public | Request a password-reset email |
+| `/reset-password` | Public | Set a new password using a single-use reset token |
 | `/careers` | Public | Career catalogue |
 | `/careers/:careerId` | Public | Career details |
 | `/courses` | Public | Published course catalogue |
@@ -505,7 +515,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_PUBLISHABLE_KEY
 VITE_SUPABASE_VIDEO_BUCKET=course-videos
 ```
 
-Configure the deployed backend with the database, JWT, Supabase/video variables, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL`, and `STRIPE_CANCEL_URL`. Redeploy after changing environment variables. `localhost` must never be used as the API URL for a public deployment.
+Configure the deployed backend with the database, JWT, Supabase/video, Stripe, and SMTP variables documented above. Set `FRONTEND_URL` to the public frontend origin and redeploy after changing environment variables. `localhost` must never be used as the API URL or frontend URL for a public deployment.
 
 ## Production Follow-up
 
