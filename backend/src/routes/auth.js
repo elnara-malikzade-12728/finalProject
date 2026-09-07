@@ -23,7 +23,7 @@ const {
  *     tags:
  *       - Authentication
  *     summary: Yeni istifadəçi qeydiyyatı
- *     description: Yeni hesab yaradır və JWT giriş tokeni qaytarır.
+ *     description: Yeni hesab yaradır və e-poçt təsdiq keçidi göndərir. Hesab təsdiqlənənədək giriş bağlıdır.
  *     requestBody:
  *       required: true
  *       content:
@@ -49,18 +49,15 @@ const {
  *                 maxLength: 72
  *                 example: Demo1234
  *     responses:
- *       201:
- *         description: İstifadəçi uğurla qeydiyyatdan keçdi
+ *       202:
+ *         description: Qeydiyyat sorğusu qəbul edildi
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 token:
+ *                 message:
  *                   type: string
- *                   description: JWT giriş tokeni
- *                 user:
- *                   $ref: '#/components/schemas/User'
  *       400:
  *         description: Ad, e-poçt ünvanı və şifrə daxil edilməyib
  *         content:
@@ -69,14 +66,6 @@ const {
  *               $ref: '#/components/schemas/Error'
  *             example:
  *               error: Ad, e-poçt ünvanı və şifrə mütləq daxil edilməlidir.
- *       409:
- *         description: E-poçt ünvanı artıq istifadə olunur
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *             example:
- *               error: Bu e-poçt ünvanı artıq qeydiyyatdan keçib.
  *       500:
  *         description: Server və ya verilənlər bazası xətası
  *         content:
@@ -142,6 +131,8 @@ router.post("/register", registerLimiter, register);
  *               $ref: '#/components/schemas/Error'
  *             example:
  *               error: E-poçt ünvanı və ya şifrə yanlışdır.
+ *       403:
+ *         description: Hesabın e-poçt ünvanı təsdiqlənməyib
  *       500:
  *         description: Server və ya verilənlər bazası xətası
  *         content:
@@ -150,6 +141,75 @@ router.post("/register", registerLimiter, register);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", loginLimiter, login);
+
+/**
+ * @openapi
+ * /api/auth/verify-email:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: E-poçt ünvanını təsdiqlə
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token]
+ *             properties:
+ *               token: { type: string }
+ *     responses:
+ *       200: { description: E-poçt ünvanı təsdiqləndi }
+ *       400: { description: Keçid yanlışdır və ya vaxtı bitib }
+ * /api/auth/resend-verification:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Təsdiq məktubunu yenidən göndər
+ *     description: Hesabın mövcudluğunu açıqlamayan ümumi cavab qaytarır.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200: { description: Sorğu qəbul edildi }
+ * /api/auth/forgot-password:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Şifrə yeniləmə keçidi istə
+ *     description: Hesabın mövcudluğunu açıqlamayan ümumi cavab qaytarır.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200: { description: Sorğu qəbul edildi }
+ * /api/auth/reset-password:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Şifrəni yenilə
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token: { type: string }
+ *               password: { type: string, format: password, minLength: 8, maxLength: 72 }
+ *     responses:
+ *       200: { description: Şifrə yeniləndi və əvvəlki sessiyalar ləğv edildi }
+ *       400: { description: Token və ya şifrə yanlışdır, yaxud yeni şifrə əvvəlki ilə eynidir }
+ */
 router.post("/verify-email", accountRecoveryLimiter, verifyEmail);
 router.post("/resend-verification", accountRecoveryLimiter, resendVerification);
 router.post("/forgot-password", accountRecoveryLimiter, forgotPassword);
