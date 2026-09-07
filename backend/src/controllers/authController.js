@@ -9,6 +9,11 @@ const {
   isValidEmail,
   normalizeEmail,
 } = require("../utils/validation");
+const { createOneTimeToken, hashToken } = require("../services/authTokenService");
+const { sendVerificationEmail, sendPasswordResetEmail } = require("../services/emailService");
+
+const GENERIC_REGISTRATION_MESSAGE = "Qeydiyyat məlumatları qəbul edildi. Hesab yaradıla bilərsə, təsdiq keçidi e-poçtunuza göndəriləcək.";
+const GENERIC_RESET_MESSAGE = "Bu e-poçtla hesab mövcuddursa, şifrə yeniləmə keçidi göndəriləcək.";
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
   "DummyPassword1",
@@ -37,6 +42,7 @@ function createAuthenticationResponse(user) {
       email: user.email,
       role: user.role,
       isCorporate: user.isCorporate,
+      emailVerifiedAt: user.emailVerifiedAt,
       education: user.education,
       location: user.location,
       bio: user.bio,
@@ -80,36 +86,39 @@ async function register(req, res) {
       });
     }
 
-    const existingUser =
-      await prisma.user.findUnique({
-        where: {
-          email,
-        },
-      });
-
-    if (existingUser) {
-      return res.status(409).json({
-        error:
-          "Bu e-poçt ünvanı artıq qeydiyyatdan keçib.",
-      });
-    }
-
     const hashedPassword = await bcrypt.hash(
       password,
       10,
     );
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      if (!existingUser.emailVerifiedAt) {
+        const { token, hash } = createOneTimeToken();
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { verificationTokenHash: hash, verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+        });
+        await sendVerificationEmail(existingUser, token);
+      }
+      return res.status(202).json({ message: GENERIC_REGISTRATION_MESSAGE });
+    }
+
+    const { token: verificationToken, hash: verificationTokenHash } = createOneTimeToken();
 
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        verificationTokenHash,
+        verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     });
 
-    return res
-      .status(201)
-      .json(createAuthenticationResponse(user));
+    await sendVerificationEmail(user, verificationToken);
+
+    return res.status(202).json({ message: GENERIC_REGISTRATION_MESSAGE });
   } catch (error) {
     logger.error(
       "İstifadəçi qeydiyyatı zamanı xəta:",
@@ -165,6 +174,10 @@ async function login(req, res) {
       });
     }
 
+    if (!user.emailVerifiedAt) {
+      return res.status(403).json({ error: "Daxil olmaq üçün əvvəlcə e-poçt ünvanınızı təsdiqləyin.", code: "EMAIL_NOT_VERIFIED" });
+    }
+
     return res
       .status(200)
       .json(createAuthenticationResponse(user));
@@ -178,6 +191,84 @@ async function login(req, res) {
       error:
         "Serverdə xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin.",
     });
+  }
+}
+
+async function verifyEmail(req, res) {
+  try {
+    const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+    if (!token) return res.status(400).json({ error: "Təsdiq tokeni tələb olunur." });
+    const user = await prisma.user.findFirst({
+      where: { verificationTokenHash: hashToken(token), verificationTokenExpiresAt: { gt: new Date() } },
+    });
+    if (!user) return res.status(400).json({ error: "Təsdiq keçidi yanlışdır və ya vaxtı bitib." });
+    const verifiedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date(), verificationTokenHash: null, verificationTokenExpiresAt: null },
+    });
+    return res.json(createAuthenticationResponse(verifiedUser));
+  } catch (error) {
+    logger.error("E-poçt təsdiqi zamanı xəta", error);
+    return res.status(500).json({ error: "E-poçt ünvanını təsdiqləmək mümkün olmadı." });
+  }
+}
+
+async function resendVerification(req, res) {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (isValidEmail(email)) {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user && !user.emailVerifiedAt) {
+        const { token, hash } = createOneTimeToken();
+        await prisma.user.update({ where: { id: user.id }, data: { verificationTokenHash: hash, verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } });
+        await sendVerificationEmail(user, token);
+      }
+    }
+    return res.json({ message: GENERIC_REGISTRATION_MESSAGE });
+  } catch (error) {
+    logger.error("Təsdiq e-poçtu yenidən göndərilərkən xəta", error);
+    return res.status(500).json({ error: "Sorğunu emal etmək mümkün olmadı." });
+  }
+}
+
+async function forgotPassword(req, res) {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (isValidEmail(email)) {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user?.isActive) {
+        const { token, hash } = createOneTimeToken();
+        await prisma.user.update({ where: { id: user.id }, data: { passwordResetTokenHash: hash, passwordResetTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
+        await sendPasswordResetEmail(user, token);
+      }
+    }
+    return res.json({ message: GENERIC_RESET_MESSAGE });
+  } catch (error) {
+    logger.error("Şifrə yeniləmə sorğusu zamanı xəta", error);
+    return res.status(500).json({ error: "Sorğunu emal etmək mümkün olmadı." });
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+    const passwordError = getPasswordValidationError(req.body?.password);
+    if (!token) return res.status(400).json({ error: "Şifrə yeniləmə tokeni tələb olunur." });
+    if (passwordError) return res.status(400).json({ error: passwordError });
+    const user = await prisma.user.findFirst({
+      where: { passwordResetTokenHash: hashToken(token), passwordResetTokenExpiresAt: { gt: new Date() } },
+      select: { id: true },
+    });
+    if (!user) return res.status(400).json({ error: "Şifrə yeniləmə keçidi yanlışdır və ya vaxtı bitib." });
+    const password = await bcrypt.hash(req.body.password, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password, passwordResetTokenHash: null, passwordResetTokenExpiresAt: null, tokenVersion: { increment: 1 } },
+    });
+    return res.json({ message: "Şifrəniz uğurla yeniləndi. Yeni şifrə ilə daxil ola bilərsiniz." });
+  } catch (error) {
+    logger.error("Şifrə yenilənərkən xəta", error);
+    return res.status(500).json({ error: "Şifrəni yeniləmək mümkün olmadı." });
   }
 }
 
@@ -205,4 +296,8 @@ module.exports = {
   login,
   logout,
   createAuthenticationResponse,
+  verifyEmail,
+  resendVerification,
+  forgotPassword,
+  resetPassword,
 };

@@ -22,6 +22,7 @@ import {
   uploadCvToStorage,
 } from "../api/cvApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { acceptCompanyInvitation, getMyCompanyInvitations } from "../api/companyApi.js";
 
 function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -42,6 +43,7 @@ function ProfilePage() {
   const [isCvLoading, setIsCvLoading] = useState(false);
   const [isCvUploading, setIsCvUploading] = useState(false);
   const [isCvDeleting, setIsCvDeleting] = useState(false);
+  const [companyInvitations, setCompanyInvitations] = useState([]);
 
   useEffect(() => {
     async function loadCv() {
@@ -62,6 +64,25 @@ function ProfilePage() {
 
     loadCv();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    const controller = new AbortController();
+    getMyCompanyInvitations({ signal: controller.signal })
+      .then((items) => setCompanyInvitations(Array.isArray(items) ? items : []))
+      .catch(() => setCompanyInvitations([]));
+    return () => controller.abort();
+  }, [user?.id]);
+
+  async function handleAcceptInvitation(invitationId) {
+    try {
+      await acceptCompanyInvitation(invitationId);
+      setCompanyInvitations((items) => items.filter((item) => item.id !== invitationId));
+      setSuccessMessage("Şirkət dəvəti qəbul edildi.");
+    } catch (error) {
+      setErrorMessage(error?.message || "Şirkət dəvətini qəbul etmək mümkün olmadı.");
+    }
+  }
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -225,6 +246,17 @@ function ProfilePage() {
       <section className="section">
         <div className="container profile-layout">
           <aside className="profile-sidebar">
+            {companyInvitations.length > 0 && (
+              <div className="sidebar-card">
+                <h2>Şirkət dəvətləri</h2>
+                {companyInvitations.map((invitation) => (
+                  <div key={invitation.id} className="profile-info-row">
+                    <div><strong>{invitation.company.name}</strong><span>Öyrənmə statistikanızı görmək üçün dəvət edir.</span></div>
+                    <button type="button" className="button button-primary" onClick={() => handleAcceptInvitation(invitation.id)}>Qəbul et</button>
+                  </div>
+                ))}
+              </div>
+            )}
             {user?.role !== "ADMIN" && (
               <div className="sidebar-card">
                 <h2>Hesabım</h2>
@@ -301,8 +333,7 @@ function ProfilePage() {
                     <a
                       className="button button-secondary"
                       href={cv.publicUrl || "#"}
-                      target={cv.publicUrl ? "_blank" : undefined}
-                      rel={cv.publicUrl ? "noreferrer" : undefined}
+                      download={cv.originalName || "cv"}
                     >
                       CV-ni aç
                     </a>

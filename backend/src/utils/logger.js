@@ -22,4 +22,8 @@ function error(context, exception) {
   console.error(details);
 }
 
-module.exports = { error };
+function info(message) {
+  if (process.env.NODE_ENV !== "production") console.info(message);
+}
+
+module.exports = { error, info };

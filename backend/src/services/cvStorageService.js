@@ -19,7 +19,6 @@ function validateCvDocument(fileName, contentType, fileSizeBytes) {
         "application/pdf",
         "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/octet-stream",
     ]);
 
     if (!allowedExtensions.has(extension)) {
@@ -109,6 +108,55 @@ async function completeCvUpload(req) {
     const bucket = process.env.SUPABASE_CV_BUCKET || "user-cvs";
     const supabase = getSupabaseAdmin();
 
+    validateCvDocument(fileName, contentType);
+
+    const pathParts = path.split("/");
+    const uploadedFileName = pathParts.pop();
+    const folderPath = pathParts.join("/");
+    const { data: storedFiles, error: listError } = await supabase.storage
+        .from(bucket)
+        .list(folderPath, { search: uploadedFileName, limit: 1 });
+    if (listError || !storedFiles?.some((file) => file.name === uploadedFileName)) {
+        throw createHttpError(400, "Yüklənmiş CV faylı tapılmadı.");
+    }
+
+    const { data: storedFile, error: downloadError } = await supabase.storage
+        .from(bucket)
+        .download(path);
+    if (downloadError || !storedFile) {
+        throw createHttpError(400, "Yüklənmiş CV faylını yoxlamaq mümkün olmadı.");
+    }
+
+    const fileBuffer = Buffer.from(await storedFile.arrayBuffer());
+    if (fileBuffer.length > 5 * 1024 * 1024) {
+        await supabase.storage.from(bucket).remove([path]);
+        throw createHttpError(400, "CV faylı 5 MB-dan böyük ola bilməz.");
+    }
+
+    const { fileTypeFromBuffer } = await import("file-type");
+    const detected = await fileTypeFromBuffer(fileBuffer);
+    const allowedDetectedTypes = new Set([
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/x-cfb",
+    ]);
+    if (!detected || !allowedDetectedTypes.has(detected.mime)) {
+        await supabase.storage.from(bucket).remove([path]);
+        throw createHttpError(400, "Fayl məzmunu bəyan edilən CV formatına uyğun deyil.");
+    }
+
+    const extension = normalizeExtension(fileName.split(".").pop());
+    const expectedExtensions = {
+        pdf: new Set(["pdf"]),
+        doc: new Set(["doc", "cfb"]),
+        docx: new Set(["docx"]),
+    };
+    if (!expectedExtensions[extension]?.has(detected.ext)) {
+        await supabase.storage.from(bucket).remove([path]);
+        throw createHttpError(400, "CV faylının uzantısı onun real məzmununa uyğun deyil.");
+    }
+
     const { signedUrl, expiresIn } = await createCvSignedUrl(supabase, bucket, path);
 
     await prisma.user.update({
@@ -128,7 +176,7 @@ async function completeCvUpload(req) {
         path,
         fileName,
         originalName: fileName,
-        contentType: contentType || null,
+        contentType: detected.mime,
         publicUrl: signedUrl,
         expiresIn,
     };

@@ -114,11 +114,9 @@ export function AuthProvider({ children }) {
     try {
       const data = await registerUser(userData);
 
-      setUser(data.user);
-
       return {
         success: true,
-        user: data.user,
+        message: data.message,
       };
     } catch (error) {
       return {

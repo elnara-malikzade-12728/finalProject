@@ -27,6 +27,9 @@ const LoginPage = lazy(
 const RegisterPage = lazy(
   () => import("./pages/RegisterPage.jsx"),
 );
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage.jsx"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage.jsx"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.jsx"));
 
 const CareersPage = lazy(
   () => import("./pages/CareersPage.jsx"),
@@ -196,6 +199,10 @@ function App() {
               path="register"
               element={<RegisterPage />}
             />
+
+            <Route path="verify-email" element={<VerifyEmailPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
 
             <Route
               path="careers"

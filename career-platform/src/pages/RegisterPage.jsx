@@ -143,9 +143,7 @@ function RegisterPage() {
         return;
       }
 
-      navigate("/courses", {
-        replace: true,
-      });
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`, { replace: true });
     } finally {
       setIsSubmitting(false);
     }

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const requireAdmin = require("../middleware/requireAdmin");
+const { corporateInquiryLimiter } = require("../middleware/rateLimiters");
 const {
   createInquiry,
   listInquiries,
@@ -48,7 +49,7 @@ const {
  *       401: { description: Autentifikasiya tələb olunur }
  *       403: { description: Administrator icazəsi tələb olunur }
  */
-router.post("/", createInquiry);
+router.post("/", corporateInquiryLimiter, createInquiry);
 router.get("/", auth, requireAdmin, listInquiries);
 
 /**

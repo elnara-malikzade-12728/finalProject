@@ -1,7 +1,7 @@
 const express = require("express");
 const auth = require("../middleware/auth");
 const requireCorporate = require("../middleware/requireCorporate");
-const { saveCompany, dashboard, addEmployee, removeEmployee, createPriorityJob } = require("../controllers/companyController");
+const { saveCompany, dashboard, addEmployee, listMyInvitations, acceptInvitation, removeEmployee, createPriorityJob } = require("../controllers/companyController");
 const router = express.Router();
 
 /**
@@ -39,6 +39,8 @@ const router = express.Router();
  *     responses: { 201: { description: Prioritet vakansiya yaradıldı } }
  */
 
+router.get("/invitations/me", auth, listMyInvitations);
+router.post("/invitations/:id/accept", auth, acceptInvitation);
 router.use(auth);
 router.use(requireCorporate);
 router.get("/me", dashboard);

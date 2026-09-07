@@ -28,8 +28,22 @@ const registerLimiter = rateLimit({
   limit: 10,
 });
 
+const corporateInquiryLimiter = rateLimit({
+  ...commonOptions,
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+});
+
+const accountRecoveryLimiter = rateLimit({
+  ...commonOptions,
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+});
+
 module.exports = {
   apiLimiter,
   loginLimiter,
   registerLimiter,
+  corporateInquiryLimiter,
+  accountRecoveryLimiter,
 };

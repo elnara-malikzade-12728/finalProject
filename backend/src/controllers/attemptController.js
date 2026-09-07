@@ -18,6 +18,22 @@ function isEquivalentAnswer(left, right) {
     return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function getMaxAttempts(testType) {
+    return testType === "FINAL" ? 3 : 5;
+}
+
+function dedupeSubmittedAnswers(answers) {
+    const seenQuestionIds = new Set();
+    const dedupedAnswers = [];
+    for (const entry of answers) {
+        const questionId = Number(entry?.questionId);
+        if (!Number.isInteger(questionId) || seenQuestionIds.has(questionId)) continue;
+        seenQuestionIds.add(questionId);
+        dedupedAnswers.push(entry);
+    }
+    return dedupedAnswers;
+}
+
 async function ensureTestIsAvailable(testId) {
     const test = await prisma.test.findUnique({
         where: { id: testId },
@@ -102,6 +118,14 @@ async function startTestAttempt(req, res, next) {
 
         if (activeAttempt) {
             return res.status(200).json(activeAttempt);
+        }
+
+        const submittedAttemptCount = await prisma.testAttempt.count({
+            where: { userId: req.user.id, testId, status: "SUBMITTED" },
+        });
+        const maxAttempts = getMaxAttempts(test.type);
+        if (submittedAttemptCount >= maxAttempts) {
+            throw createHttpError(429, `Bu test üçün maksimum ${maxAttempts} cəhd limitinə çatmısınız.`);
         }
 
         if (!test.questions || test.questions.length === 0) {
@@ -259,11 +283,13 @@ async function submitAttempt(req, res, next) {
             throw createHttpError(400, "Cavablar göndərilməyib.");
         }
 
+        const dedupedAnswers = dedupeSubmittedAnswers(answers);
+
         const questionMap = new Map(attempt.test.questions.map((question) => [question.id, question]));
         const preparedAnswers = [];
         let correctCount = 0;
 
-        for (const answerEntry of answers) {
+        for (const answerEntry of dedupedAnswers) {
             const questionId = Number(answerEntry?.questionId);
             const question = questionMap.get(questionId);
 
@@ -361,4 +387,6 @@ module.exports = {
     getAttempt,
     submitAttempt,
     listMyAttempts,
+    getMaxAttempts,
+    dedupeSubmittedAnswers,
 };

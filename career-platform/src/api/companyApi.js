@@ -5,3 +5,5 @@ export const saveCompany = (body) => apiRequest("/companies/me", { method: "PUT"
 export const addCompanyEmployee = (email) => apiRequest("/companies/me/employees", { method: "POST", authenticated: true, body: { email } });
 export const removeCompanyEmployee = (id) => apiRequest(`/companies/me/employees/${id}`, { method: "DELETE", authenticated: true });
 export const createCompanyJob = (body) => apiRequest("/companies/me/jobs", { method: "POST", authenticated: true, body });
+export const getMyCompanyInvitations = ({ signal } = {}) => apiRequest("/companies/invitations/me", { authenticated: true, signal });
+export const acceptCompanyInvitation = (id) => apiRequest(`/companies/invitations/${id}/accept`, { method: "POST", authenticated: true });
