@@ -77,14 +77,21 @@ async function createCertificateForUser(userId, courseId) {
         throw createHttpError(404, "Kurs tapılmadı.");
     }
 
-    const certificate = await prisma.certificate.create({
-        data: {
-            code: generateCertificateCode(),
-            userId,
-            courseId,
-            finalScore: latestSuccessfulAttempt.score ?? 0,
-        },
-    });
+    let certificate;
+    try {
+        certificate = await prisma.certificate.create({
+            data: {
+                code: generateCertificateCode(),
+                userId,
+                courseId,
+                finalScore: latestSuccessfulAttempt.score ?? 0,
+            },
+        });
+    } catch (error) {
+        if (error.code !== "P2002") throw error;
+        certificate = await prisma.certificate.findFirst({ where: { userId, courseId } });
+        if (!certificate) throw error;
+    }
 
     return {
         ...certificate,

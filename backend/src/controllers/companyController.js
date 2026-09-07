@@ -13,7 +13,7 @@ async function saveCompany(req, res) {
     const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
     const logoUrl = typeof req.body.logoUrl === "string" ? req.body.logoUrl.trim() || null : null;
     if (!name || name.length > 150) return res.status(400).json({ error: "Şirkət adı 1–150 simvol olmalıdır." });
-    const company = await prisma.company.upsert({ where: { ownerId: req.user.id }, update: { name, logoUrl }, create: { name, logoUrl, ownerId: req.user.id, members: { create: { userId: req.user.id } } } });
+    const company = await prisma.company.upsert({ where: { ownerId: req.user.id }, update: { name, logoUrl }, create: { name, logoUrl, ownerId: req.user.id, members: { create: { userId: req.user.id, status: "ACCEPTED" } } } });
     return res.status(200).json(company);
   } catch (error) {
     logger.error("Şirkət profili saxlanılarkən xəta", error);
@@ -25,7 +25,7 @@ async function dashboard(req, res) {
   try {
     const company = await prisma.company.findUnique({
       where: { ownerId: req.user.id },
-      include: { members: { include: { user: { select: { id: true, name: true, email: true, subscriptions: { where: { status: "ACTIVE" }, take: 1 }, enrollments: { select: { id: true } }, certificates: { select: { id: true } } } } } }, jobs: { orderBy: [{ isPriority: "desc" }, { id: "desc" }] } },
+      include: { members: { where: { status: "ACCEPTED" }, include: { user: { select: { id: true, name: true, email: true, subscriptions: { where: { status: "ACTIVE" }, take: 1 }, enrollments: { select: { id: true } }, certificates: { select: { id: true } } } } } }, jobs: { orderBy: [{ isPriority: "desc" }, { id: "desc" }] } },
     });
     if (!company) return res.status(200).json(null);
     const members = company.members.map(({ id, joinedAt, user }) => ({ id, joinedAt, userId: user.id, name: user.name, email: user.email, activeSubscription: user.subscriptions.length > 0, enrollments: user.enrollments.length, certificates: user.certificates.length }));
@@ -42,12 +42,45 @@ async function addEmployee(req, res) {
     if (!company) return res.status(404).json({ error: "Əvvəlcə şirkət profili yaradın." });
     const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
     const user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, email: true } });
-    if (!user) return res.status(404).json({ error: "Bu e-poçtla Synex istifadəçisi tapılmadı." });
-    const member = await prisma.companyMember.upsert({ where: { companyId_userId: { companyId: company.id, userId: user.id } }, update: {}, create: { companyId: company.id, userId: user.id } });
-    return res.status(201).json({ ...member, user });
+    if (user) {
+      await prisma.companyMember.upsert({
+        where: { companyId_userId: { companyId: company.id, userId: user.id } },
+        update: {},
+        create: { companyId: company.id, userId: user.id, status: "PENDING" },
+      });
+    }
+    return res.status(202).json({ message: "Hesab mövcuddursa, əməkdaşlıq dəvəti göndərildi." });
   } catch (error) {
     logger.error("Əməkdaş əlavə edilərkən xəta", error);
     return res.status(500).json({ error: "Əməkdaşı əlavə etmək mümkün olmadı." });
+  }
+}
+
+async function listMyInvitations(req, res, next) {
+  try {
+    const invitations = await prisma.companyMember.findMany({
+      where: { userId: req.user.id, status: "PENDING" },
+      include: { company: { select: { id: true, name: true, logoUrl: true } } },
+      orderBy: { joinedAt: "desc" },
+    });
+    return res.json(invitations);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function acceptInvitation(req, res, next) {
+  try {
+    const invitationId = Number(req.params.id);
+    if (!Number.isInteger(invitationId) || invitationId < 1) return res.status(404).json({ error: "Dəvət tapılmadı." });
+    const invitation = await prisma.companyMember.findFirst({
+      where: { id: invitationId, userId: req.user.id, status: "PENDING" },
+    });
+    if (!invitation) return res.status(404).json({ error: "Dəvət tapılmadı." });
+    const accepted = await prisma.companyMember.update({ where: { id: invitation.id }, data: { status: "ACCEPTED", joinedAt: new Date() } });
+    return res.json(accepted);
+  } catch (error) {
+    return next(error);
   }
 }
 
@@ -83,4 +116,4 @@ async function createPriorityJob(req, res) {
   }
 }
 
-module.exports = { saveCompany, dashboard, addEmployee, removeEmployee, createPriorityJob };
+module.exports = { saveCompany, dashboard, addEmployee, listMyInvitations, acceptInvitation, removeEmployee, createPriorityJob };

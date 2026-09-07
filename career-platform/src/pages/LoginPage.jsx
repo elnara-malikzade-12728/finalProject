@@ -285,6 +285,10 @@ function LoginPage() {
           </form>
 
           <p className="auth-switch">
+            <Link to="/forgot-password">Şifrəni unutmusunuz?</Link>
+          </p>
+
+          <p className="auth-switch">
             Hesabın yoxdur?{" "}
             <Link to="/register">
               Pulsuz qeydiyyatdan keç

@@ -20,34 +20,39 @@ enum AttemptStatus {
 }
 
 model User {
-  id                 Int              @id @default(autoincrement())
-  name               String
-  email              String           @unique
-  password           String
-  role               UserRole         @default(USER)
-  isActive           Boolean          @default(true)
-  isCorporate        Boolean          @default(false)
-  tokenVersion       Int              @default(0)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  education          String?
-  location           String?
-  bio                String?
-  interests          String[]         @default([])
-  skills             String[]         @default([])
-  cvFilePath         String?
-  cvOriginalName     String?
-  progress           Progress[]
-  lessonProgress     LessonProgress[]
-  enrollments        Enrollment[]
-  applications       Application[]
-  testAttempts       TestAttempt[]
-  certificates       Certificate[]
-  subscriptions      Subscription[]
-  payments           Payment[]
-  coursePurchases    CoursePurchase[]
-  ownedCompany       Company?         @relation("CompanyOwner")
-  companyMemberships CompanyMember[]
+  id                          Int              @id @default(autoincrement())
+  name                        String
+  email                       String           @unique
+  password                    String
+  role                        UserRole         @default(USER)
+  isActive                    Boolean          @default(true)
+  isCorporate                 Boolean          @default(false)
+  tokenVersion                Int              @default(0)
+  emailVerifiedAt             DateTime?
+  verificationTokenHash       String?          @unique
+  verificationTokenExpiresAt  DateTime?
+  passwordResetTokenHash      String?          @unique
+  passwordResetTokenExpiresAt DateTime?
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @updatedAt
+  education                   String?
+  location                    String?
+  bio                         String?
+  interests                   String[]         @default([])
+  skills                      String[]         @default([])
+  cvFilePath                  String?
+  cvOriginalName              String?
+  progress                    Progress[]
+  lessonProgress              LessonProgress[]
+  enrollments                 Enrollment[]
+  applications                Application[]
+  testAttempts                TestAttempt[]
+  certificates                Certificate[]
+  subscriptions               Subscription[]
+  payments                    Payment[]
+  coursePurchases             CoursePurchase[]
+  ownedCompany                Company?         @relation("CompanyOwner")
+  companyMemberships          CompanyMember[]
 }
 
 enum UserRole {
@@ -127,15 +132,21 @@ model Company {
 }
 
 model CompanyMember {
-  id        Int      @id @default(autoincrement())
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id        Int              @id @default(autoincrement())
+  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  joinedAt  DateTime @default(now())
+  status    MembershipStatus @default(PENDING)
+  joinedAt  DateTime         @default(now())
 
   @@unique([companyId, userId])
   @@index([userId])
+}
+
+enum MembershipStatus {
+  PENDING
+  ACCEPTED
 }
 
 enum EmploymentType {
@@ -252,8 +263,9 @@ model Certificate {
   pdfPath    String?
   finalScore Float?
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Restrict)
 
+  @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
 }
@@ -322,7 +334,6 @@ model Lesson {
   videoMimeType          String?
   videoSizeBytes         Int?
   durationSeconds        Int?
-  isFreePreview          Boolean        @default(false)
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 

@@ -4,11 +4,16 @@ const {
   register,
   login,
   logout,
+  verifyEmail,
+  resendVerification,
+  forgotPassword,
+  resetPassword,
 } = require("../controllers/authController");
 const auth = require("../middleware/auth");
 const {
   loginLimiter,
   registerLimiter,
+  accountRecoveryLimiter,
 } = require("../middleware/rateLimiters");
 
 /**
@@ -145,6 +150,10 @@ router.post("/register", registerLimiter, register);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", loginLimiter, login);
+router.post("/verify-email", accountRecoveryLimiter, verifyEmail);
+router.post("/resend-verification", accountRecoveryLimiter, resendVerification);
+router.post("/forgot-password", accountRecoveryLimiter, forgotPassword);
+router.post("/reset-password", accountRecoveryLimiter, resetPassword);
 
 /**
  * @openapi

@@ -2,11 +2,16 @@
 
 Synex Academy is a youth employment and career-development platform created as a Holberton School final project. It helps users explore career paths, follow structured learning roadmaps, track progress, and discover relevant jobs and internships.
 
+## Security Notes
+
+- Production Swagger routes are disabled unless `ENABLE_API_DOCS=true` is explicitly configured for a controlled environment.
+- The current SPA stores its bearer token in browser local storage. This is a known architectural limitation; strict CSP and React output escaping must remain enabled until a future HttpOnly-cookie migration.
+
 ## Live Deployment
 
 - Frontend: https://karyerayol.vercel.app
 - Backend API: https://karyerayol-api.vercel.app
-- Swagger Documentation: https://karyerayol-api.vercel.app/api/docs
+- Swagger Documentation: available only in local/controlled environments
 
 ## Current Status
 

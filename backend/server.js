@@ -55,15 +55,16 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     message: "Synex Academy backend running",
-    documentation: "/api/docs",
+    documentation: process.env.NODE_ENV !== "production" ? "/api/docs" : undefined,
   });
 });
 
-app.get("/api/docs.json", (req, res) => {
-  res.status(200).json(swaggerSpec);
-});
+if (process.env.NODE_ENV !== "production" || process.env.ENABLE_API_DOCS === "true") {
+  app.get("/api/docs.json", (req, res) => {
+    res.status(200).json(swaggerSpec);
+  });
 
-app.get("/api/docs", helmet({
+  app.get("/api/docs", helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -117,7 +118,8 @@ app.get("/api/docs", helmet({
       </body>
     </html>
   `);
-});
+  });
+}
 
 app.use((error, req, res, next) => {
   if (res.headersSent) {

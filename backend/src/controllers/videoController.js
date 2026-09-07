@@ -175,6 +175,12 @@ async function createLessonUploadUrl(req, res) {
       throw error;
     }
 
+    const pendingVideoExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await prisma.lesson.update({
+      where: { id: lessonId },
+      data: { pendingVideoProviderId: videoPath, pendingVideoExpiresAt },
+    });
+
     return res.status(201).json({
       bucket,
       path: videoPath,
@@ -307,6 +313,11 @@ async function completeLessonVideoUpload(req, res) {
       });
     }
 
+    const bindingError = validateBunnyUploadBinding(lesson, videoPath);
+    if (bindingError) {
+      return res.status(bindingError.status).json({ error: "Bu video həmin dərs üçün yaradılmış aktiv yükləmə sessiyasına aid deyil." });
+    }
+
     const expectedPrefix = [
       "courses",
       lesson.module.courseId,
@@ -345,16 +356,26 @@ async function completeLessonVideoUpload(req, res) {
       throw storageError;
     }
 
-    const uploadedFileExists =
-      storedFiles?.some(
-        (file) => file.name === fileName,
-      );
+    const uploadedFile = storedFiles?.find((file) => file.name === fileName);
+    const uploadedFileExists = Boolean(uploadedFile);
 
     if (!uploadedFileExists) {
       return res.status(400).json({
         error:
           "Yüklənmiş video Supabase Storage daxilində tapılmadı.",
       });
+    }
+
+
+    const actualSize = Number(uploadedFile.metadata?.size);
+    const actualContentType = uploadedFile.metadata?.mimetype || uploadedFile.metadata?.contentType;
+    if (!Number.isInteger(actualSize) || actualSize < 1 || actualSize > getMaximumVideoSize()) {
+      await supabase.storage.from(bucket).remove([videoPath]);
+      return res.status(400).json({ error: "Yüklənmiş videonun real ölçüsü icazə verilən limitə uyğun deyil." });
+    }
+    if (!allowedVideoTypes[actualContentType]) {
+      await supabase.storage.from(bucket).remove([videoPath]);
+      return res.status(400).json({ error: "Yüklənmiş faylın real MIME tipi video formatına uyğun deyil." });
     }
 
     if (
@@ -384,8 +405,10 @@ async function completeLessonVideoUpload(req, res) {
           videoPath,
           videoProvider: "SUPABASE",
           videoProviderId: null,
-          videoMimeType: contentType,
-          videoSizeBytes: normalizedSize,
+          pendingVideoProviderId: null,
+          pendingVideoExpiresAt: null,
+          videoMimeType: actualContentType,
+          videoSizeBytes: actualSize,
           durationSeconds: normalizedDuration,
         },
       });

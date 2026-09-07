@@ -131,16 +131,19 @@ export async function registerUser(userData) {
     },
   });
 
-  if (!data?.token) {
-    throw new Error(
-      "Server authentication token qaytarmadı.",
-    );
-  }
-
-  setToken(data.token);
-
   return data;
 }
+
+export async function verifyEmailToken(token) {
+  const data = await apiRequest("/auth/verify-email", { method: "POST", authenticated: false, body: { token } });
+  if (!data?.token) throw new Error("E-poçt təsdiqləndi, amma giriş tokeni qaytarılmadı.");
+  setToken(data.token);
+  return data;
+}
+
+export const resendVerificationEmail = (email) => apiRequest("/auth/resend-verification", { method: "POST", authenticated: false, body: { email } });
+export const requestPasswordReset = (email) => apiRequest("/auth/forgot-password", { method: "POST", authenticated: false, body: { email } });
+export const resetPasswordWithToken = (token, password) => apiRequest("/auth/reset-password", { method: "POST", authenticated: false, body: { token, password } });
 
 export async function loginUser(credentials) {
   if (USE_MOCK_API) {
