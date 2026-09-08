@@ -527,20 +527,20 @@ async function getLessonVideoUrl(req, res) {
 
     if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId) {
       let durationSeconds = lesson.durationSeconds;
-      if (!Number.isInteger(durationSeconds) || durationSeconds < 1) {
-        try {
-          const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
-          const refreshedDuration = Math.round(Number(bunnyVideo?.length));
-          if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
-            durationSeconds = refreshedDuration;
+      try {
+        const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
+        const refreshedDuration = Math.round(Number(bunnyVideo?.length));
+        if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
+          durationSeconds = refreshedDuration;
+          if (refreshedDuration !== lesson.durationSeconds) {
             await prisma.lesson.update({
               where: { id: lesson.id },
               data: { durationSeconds: refreshedDuration },
             });
           }
-        } catch (durationError) {
-          logger.warn("Bunny video müddəti yenilənə bilmədi", durationError);
         }
+      } catch (durationError) {
+        logger.warn("Bunny video müddəti yenilənə bilmədi", durationError);
       }
       const expiresIn = getVideoSignedUrlTtl();
       const access = bunny.createEmbedUrl(lesson.videoProviderId, expiresIn);
