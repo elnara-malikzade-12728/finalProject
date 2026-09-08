@@ -12,6 +12,7 @@ const {
 const { createOneTimeToken, hashToken } = require("../services/authTokenService");
 const { sendVerificationEmail, sendPasswordResetEmail } = require("../services/emailService");
 const { passwordMatchesHash } = require("../services/passwordService");
+const { scheduleBackgroundTask } = require("../services/backgroundTaskService");
 
 const GENERIC_REGISTRATION_MESSAGE = "Qeydiyyat məlumatları qəbul edildi. Hesab yaradıla bilərsə, təsdiq keçidi e-poçtunuza göndəriləcək.";
 const GENERIC_RESET_MESSAGE = "Bu e-poçtla hesab mövcuddursa, şifrə yeniləmə keçidi göndəriləcək.";
@@ -100,7 +101,11 @@ async function register(req, res) {
           where: { id: existingUser.id },
           data: { verificationTokenHash: hash, verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
         });
-        await sendVerificationEmail(existingUser, token);
+        scheduleBackgroundTask(
+          sendVerificationEmail(existingUser, token).catch((error) =>
+            logger.error("Təsdiq e-poçtu göndərilə bilmədi", error),
+          ),
+        );
       }
       return res.status(202).json({ message: GENERIC_REGISTRATION_MESSAGE });
     }
@@ -117,7 +122,11 @@ async function register(req, res) {
       },
     });
 
-    await sendVerificationEmail(user, verificationToken);
+    scheduleBackgroundTask(
+      sendVerificationEmail(user, verificationToken).catch((error) =>
+        logger.error("Təsdiq e-poçtu göndərilə bilmədi", error),
+      ),
+    );
 
     return res.status(202).json({ message: GENERIC_REGISTRATION_MESSAGE });
   } catch (error) {
@@ -222,7 +231,11 @@ async function resendVerification(req, res) {
       if (user && !user.emailVerifiedAt) {
         const { token, hash } = createOneTimeToken();
         await prisma.user.update({ where: { id: user.id }, data: { verificationTokenHash: hash, verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } });
-        await sendVerificationEmail(user, token);
+        scheduleBackgroundTask(
+          sendVerificationEmail(user, token).catch((error) =>
+            logger.error("Təsdiq e-poçtu göndərilə bilmədi", error),
+          ),
+        );
       }
     }
     return res.json({ message: GENERIC_REGISTRATION_MESSAGE });
@@ -240,7 +253,11 @@ async function forgotPassword(req, res) {
       if (user?.isActive) {
         const { token, hash } = createOneTimeToken();
         await prisma.user.update({ where: { id: user.id }, data: { passwordResetTokenHash: hash, passwordResetTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
-        await sendPasswordResetEmail(user, token);
+        scheduleBackgroundTask(
+          sendPasswordResetEmail(user, token).catch((error) =>
+            logger.error("Şifrə yeniləmə e-poçtu göndərilə bilmədi", error),
+          ),
+        );
       }
     }
     return res.json({ message: GENERIC_RESET_MESSAGE });

@@ -48,4 +48,5 @@ build/
 
 # Cache
 .cache/
+.npm-cache/
 .turbo/

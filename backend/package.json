@@ -16,6 +16,7 @@
   "dependencies": {
     "@prisma/client": "^4.16.2",
     "@supabase/supabase-js": "^2.112.3",
+    "@vercel/functions": "^3.9.5",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dejavu-fonts-ttf": "^2.37.0",
