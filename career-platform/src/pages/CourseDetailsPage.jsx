@@ -83,7 +83,7 @@ function CourseDetailsPage() {
     maxWatchedSecondsRef.current = savedPosition;
     lastReportedSecondRef.current = savedPosition;
     videoPlayerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [video, selectedLesson, learningState.lessonProgress]);
+  }, [video, selectedLesson]);
 
   useEffect(() => {
     if (video?.playbackType !== "embed" || !selectedLesson || !bunnyIframeRef.current || !learningState.enrolled || user?.role === "ADMIN") return undefined;
@@ -91,6 +91,8 @@ function CourseDetailsPage() {
     const player = new playerjs.Player(bunnyIframeRef.current);
     let active = true;
     let completionRequested = false;
+    let completionConfirmed = false;
+    let playerDurationSeconds = 0;
     const persistPosition = async (seconds, { force = false } = {}) => {
       const safeSecond = Math.max(0, Math.floor(Number(seconds) || 0));
       if (!active || (!force && safeSecond <= lastReportedSecondRef.current)) return null;
@@ -106,11 +108,12 @@ function CourseDetailsPage() {
       }
     };
     const handleEnded = async (data = {}) => {
-      if (!active || completionRequested) return;
+      if (!active || completionRequested || completionConfirmed) return;
       completionRequested = true;
       setUpdatingLessonId(selectedLesson.id);
       try {
         const finalSecond = Number(data.duration)
+          || playerDurationSeconds
           || Number(video.durationSeconds)
           || Number(selectedLesson.durationSeconds)
           || maxWatchedSecondsRef.current;
@@ -118,6 +121,7 @@ function CourseDetailsPage() {
         if (!active) return;
         setLearningState(await getMyCourseState(courseId));
         if (active && progress?.completed) {
+          completionConfirmed = true;
           setNotification({ type: "success", message: "Video tamamlandı və dərs tamamlanmış kimi qeyd edildi." });
         } else if (active) {
           setNotification({ type: "error", message: "Video sona çatdı, amma dərsin tamamlanması təsdiqlənmədi. Səhifəni yeniləyib videonun son hissəsini yenidən izləyin." });
@@ -136,7 +140,8 @@ function CourseDetailsPage() {
         return;
       }
       maxWatchedSecondsRef.current = Math.max(maxWatchedSecondsRef.current, seconds);
-      const duration = Number(data.duration) || Number(video.durationSeconds) || Number(selectedLesson.durationSeconds);
+      const duration = Number(data.duration) || 0;
+      if (duration > 0) playerDurationSeconds = duration;
       if (duration > 0 && seconds >= duration - 1) {
         handleEnded({ duration });
       } else if (seconds - lastReportedSecondRef.current >= 10) {
@@ -147,9 +152,12 @@ function CourseDetailsPage() {
     player.on("timeupdate", handleTimeUpdate);
     player.on("ended", handleEnded);
     const progressSampler = window.setInterval(() => {
-      if (!active) return;
+      if (!active || completionConfirmed) return;
       player.getCurrentTime((seconds) => {
-        if (active) handleTimeUpdate({ seconds });
+        if (!active) return;
+        player.getDuration((duration) => {
+          if (active) handleTimeUpdate({ seconds, duration });
+        });
       });
     }, 5000);
     return () => {
