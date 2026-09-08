@@ -55,6 +55,7 @@ function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
 
   useEffect(() => {
     async function loadCv() {
@@ -240,12 +241,12 @@ function ProfilePage() {
     if (!window.confirm("Hesabınız və ona bağlı məlumatlar həmişəlik silinəcək. Davam edilsin?")) return;
     try {
       setIsDeletingAccount(true);
-      setErrorMessage("");
+      setDeleteAccountError("");
       await deleteAccount(deletePassword, deleteConfirmation);
       await logout();
       navigate("/", { replace: true });
     } catch (deleteError) {
-      setErrorMessage(deleteError?.message || "Hesabı silmək mümkün olmadı.");
+      setDeleteAccountError(deleteError?.message || "Hesabı silmək mümkün olmadı.");
     } finally {
       setIsDeletingAccount(false);
     }
@@ -602,12 +603,13 @@ function ProfilePage() {
                 <h2 id="delete-account-title">Hesabı sil</h2>
                 <p>Bu əməliyyat profilinizi, irəliləyişinizi, müraciətlərinizi və sertifikatlarınızı həmişəlik siləcək.</p>
                 {!showDeleteAccount ? (
-                  <button type="button" className="button button-danger-ghost" onClick={() => setShowDeleteAccount(true)}><Trash2 size={17} /> Hesabı sil</button>
+                  <button type="button" className="button button-danger-ghost" onClick={() => { setShowDeleteAccount(true); setDeleteAccountError(""); }}><Trash2 size={17} /> Hesabı sil</button>
                 ) : (
                   <form className="profile-form" onSubmit={handleDeleteAccount}>
-                    <div className="form-group"><label htmlFor="delete-account-password">Təsdiq üçün cari şifrə</label><input id="delete-account-password" type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} required disabled={isDeletingAccount} /></div>
-                    <div className="form-group"><label htmlFor="delete-account-confirmation">Təsdiq üçün <strong>HESABIMI SİL</strong> yazın</label><input id="delete-account-confirmation" type="text" autoComplete="off" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} required disabled={isDeletingAccount} /></div>
-                    <div className="cv-actions"><button className="button button-danger-ghost" disabled={isDeletingAccount || !deletePassword || !isDeleteConfirmationValid(deleteConfirmation)}>{isDeletingAccount ? <LoaderCircle className="loading-spinner" size={17} /> : <Trash2 size={17} />} Həmişəlik sil</button><button type="button" className="button button-secondary" onClick={() => { setShowDeleteAccount(false); setDeletePassword(""); setDeleteConfirmation(""); }} disabled={isDeletingAccount}>Ləğv et</button></div>
+                    <div className="form-group"><label htmlFor="delete-account-password">Təsdiq üçün cari şifrə</label><input id="delete-account-password" type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => { setDeletePassword(event.target.value); setDeleteAccountError(""); }} required disabled={isDeletingAccount} /></div>
+                    <div className="form-group"><label htmlFor="delete-account-confirmation">Təsdiq üçün <strong>HESABIMI SİL</strong> yazın</label><input id="delete-account-confirmation" type="text" autoComplete="off" value={deleteConfirmation} onChange={(event) => { setDeleteConfirmation(event.target.value); setDeleteAccountError(""); }} required disabled={isDeletingAccount} /></div>
+                    {deleteAccountError && <div className="alert alert-error" role="alert"><AlertCircle size={19} aria-hidden="true" /><span>{deleteAccountError}</span></div>}
+                    <div className="cv-actions"><button className="button button-danger-ghost" disabled={isDeletingAccount || !deletePassword || !isDeleteConfirmationValid(deleteConfirmation)}>{isDeletingAccount ? <LoaderCircle className="loading-spinner" size={17} /> : <Trash2 size={17} />} Həmişəlik sil</button><button type="button" className="button button-secondary" onClick={() => { setShowDeleteAccount(false); setDeletePassword(""); setDeleteConfirmation(""); setDeleteAccountError(""); }} disabled={isDeletingAccount}>Ləğv et</button></div>
                   </form>
                 )}
               </section>
