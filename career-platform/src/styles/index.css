@@ -3690,3 +3690,29 @@ button.course-lesson-status.is-complete:hover { background: #ccefdc; }
 .account-danger-zone h2 {
   color: #b91c1c;
 }
+
+.lesson-resource-list a {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: color .2s ease, text-decoration-color .2s ease;
+}
+
+.lesson-resource-list a:hover,
+.lesson-resource-list a:focus-visible {
+  color: var(--primary);
+  text-decoration-color: currentColor;
+}
+
+.lesson-resource-list .lesson-resource-open {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--primary);
+  font-size: .85rem;
+}
+
+.lesson-resource-list .lesson-resource-open:hover,
+.lesson-resource-list .lesson-resource-open:focus-visible {
+  color: var(--primary-dark);
+}

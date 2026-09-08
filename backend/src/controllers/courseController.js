@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
 const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../services/lessonUnlockService');
 const { canAccessCourse, getFreePreviewLessonIds, isFreePreviewLesson } = require('../services/courseAccessService');
+const bunny = require('../lib/bunnyStream');
 
 const structureInclude = {
   category: { include: { parent: true } },
@@ -251,7 +252,7 @@ async function updateLessonProgress(req, res) {
 
     const lesson = await prisma.lesson.findFirst({
       where: { id: lessonId, published: true, module: { course: { published: true } } },
-      select: { id: true, durationSeconds: true, module: { select: { courseId: true } } },
+      select: { id: true, durationSeconds: true, videoProviderId: true, module: { select: { courseId: true } } },
     });
     if (!lesson) return res.status(404).json({ error: 'Dərs tapılmadı.' });
 
@@ -273,10 +274,23 @@ async function updateLessonProgress(req, res) {
       return res.status(403).json({ error: 'Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.' });
     }
 
-    if (!Number.isInteger(lesson.durationSeconds) || lesson.durationSeconds < 1) {
+    let durationSeconds = lesson.durationSeconds;
+    if ((!Number.isInteger(durationSeconds) || durationSeconds < 1) && lesson.videoProviderId) {
+      try {
+        const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
+        const refreshedDuration = Math.round(Number(bunnyVideo?.length));
+        if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
+          durationSeconds = refreshedDuration;
+          await prisma.lesson.update({ where: { id: lessonId }, data: { durationSeconds } });
+        }
+      } catch (durationError) {
+        logger.warn('Bunny video müddəti irəliləyiş üçün yenilənə bilmədi', durationError);
+      }
+    }
+    if (!Number.isInteger(durationSeconds) || durationSeconds < 1) {
       return res.status(409).json({ error: 'Video müddəti müəyyən edilmədiyi üçün irəliləyiş saxlanıla bilməz.' });
     }
-    if (lastPositionSeconds > lesson.durationSeconds + 2) {
+    if (lastPositionSeconds > durationSeconds + 2) {
       return res.status(400).json({ error: 'Video mövqeyi müddətdən böyük ola bilməz.' });
     }
 
@@ -295,9 +309,9 @@ async function updateLessonProgress(req, res) {
       return res.status(409).json({ error: 'Videonu irəli ötürmək olmaz. Son izlənilən mövqedən davam edin.' });
     }
 
-    const safePosition = Math.min(lastPositionSeconds, lesson.durationSeconds);
-    const watchedPercentage = Math.min(100, Math.floor((safePosition / lesson.durationSeconds) * 100));
-    const completed = safePosition >= lesson.durationSeconds - 2;
+    const safePosition = Math.min(lastPositionSeconds, durationSeconds);
+    const watchedPercentage = Math.min(100, Math.floor((safePosition / durationSeconds) * 100));
+    const completed = safePosition >= durationSeconds - 2;
     const progress = await prisma.lessonProgress.upsert({
       where: { userId_lessonId: { userId: req.user.id, lessonId } },
       update: { watchedPercentage, lastPositionSeconds: safePosition, completed, lastHeartbeatAt: now },
