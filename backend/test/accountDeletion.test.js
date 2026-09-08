@@ -6,6 +6,8 @@ test("account deletion requires the exact typed confirmation phrase", () => {
   assert.equal(ACCOUNT_DELETION_PHRASE, "HESABIMI SIL");
   assert.equal(hasValidAccountDeletionConfirmation("HESABIMI SIL"), true);
   assert.equal(hasValidAccountDeletionConfirmation(" HESABIMI SIL "), true);
-  assert.equal(hasValidAccountDeletionConfirmation("hesabimi sil"), false);
+  assert.equal(hasValidAccountDeletionConfirmation("HESABIMI SİL"), true);
+  assert.equal(hasValidAccountDeletionConfirmation("hesabimi sil"), true);
+  assert.equal(hasValidAccountDeletionConfirmation("HESABI SIL"), false);
   assert.equal(hasValidAccountDeletionConfirmation(undefined), false);
 });
