@@ -11,7 +11,13 @@ const {
 const ACCOUNT_DELETION_PHRASE = "HESABIMI SIL";
 
 function hasValidAccountDeletionConfirmation(value) {
-  return typeof value === "string" && value.trim() === ACCOUNT_DELETION_PHRASE;
+  if (typeof value !== "string") return false;
+  const normalized = value
+    .trim()
+    .toLocaleUpperCase("az-AZ")
+    .replaceAll("İ", "I")
+    .replaceAll("İ", "I");
+  return normalized === ACCOUNT_DELETION_PHRASE;
 }
 
 const publicUserFields = {
