@@ -21,7 +21,7 @@ router.get('/:id', controller.getPublishedCourse);
  *     responses:
  *       201: { description: Kurs qeydiyyatı yaradıldı }
  *       200: { description: İstifadəçi artıq kursa qeydiyyatdan keçib }
- *       403: { description: Administrator qeydiyyatı qadağandır və ya aktiv abunəlik/kurs alışı yoxdur }
+ *       403: { description: Administrator qeydiyyatı qadağandır }
  *       404: { description: Kurs tapılmadı }
  * /api/courses/{id}/me:
  *   get:
@@ -38,7 +38,7 @@ router.get('/:id', controller.getPublishedCourse);
  *   put:
  *     tags: [Learning]
  *     summary: Dərsin izləmə irəliləyişini yadda saxla
- *     description: İzləmə faizi 90 və ya daha çox olduqda dərs avtomatik tamamlanmış hesab edilir.
+ *     description: Server ardıcıl vaxt siqnallarını video müddəti ilə yoxlayır; video sona çatdıqda dərs avtomatik tamamlanır. İrəli keçid və saxta 100% sorğusu qəbul edilmir.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { in: path, name: id, required: true, schema: { type: integer } }
@@ -48,7 +48,7 @@ router.get('/:id', controller.getPublishedCourse);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [watchedPercentage, lastPositionSeconds]
+ *             required: [lastPositionSeconds]
  *             properties:
  *               watchedPercentage: { type: integer, minimum: 0, maximum: 100, example: 45 }
  *               lastPositionSeconds: { type: integer, minimum: 0, example: 135 }

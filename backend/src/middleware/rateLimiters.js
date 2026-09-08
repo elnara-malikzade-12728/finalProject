@@ -40,10 +40,19 @@ const accountRecoveryLimiter = rateLimit({
   limit: 5,
 });
 
+const accountDeletionLimiter = rateLimit({
+  ...commonOptions,
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => `account-delete:${req.user.id}`,
+});
+
 module.exports = {
   apiLimiter,
   loginLimiter,
   registerLimiter,
   corporateInquiryLimiter,
   accountRecoveryLimiter,
+  accountDeletionLimiter,
 };

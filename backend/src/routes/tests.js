@@ -2,7 +2,7 @@ const express = require("express");
 const auth = require("../middleware/auth");
 const optionalAuth = require("../middleware/optionalAuth");
 const requireRole = require("../middleware/requireRole");
-const { createTest, listTests, listPublishedTests, getTest, updateTest, deleteTest, publishTest } = require("../controllers/testController");
+const { createTest, listTests, listPublishedTests, getTest, updateTest, deleteTest, publishTest, getTestAudioExplanation } = require("../controllers/testController");
 const { createQuestion, reorderQuestions } = require("../controllers/questionController");
 
 const router = express.Router();
@@ -55,6 +55,8 @@ router.get("/", auth, requireRole("ADMIN"), listTests);
  *               courseId: { type: integer, nullable: true, example: 5 }
  *               passScorePercent: { type: integer, example: 60 }
  *               timeLimitMinutes: { type: integer, example: 15 }
+ *               audioExplanationUrl: { type: string, format: uri, nullable: true, example: "https://cdn.example.com/audio/lesson-3.mp3" }
+ *               audioExplanationTitle: { type: string, nullable: true, example: "Düzgün cavabların izahı" }
  *               published: { type: boolean, example: false }
  *     responses:
  *       201: { description: Test uğurla yaradıldı }
@@ -84,6 +86,26 @@ router.get("/:id", optionalAuth, getTest);
 
 /**
  * @openapi
+ * /api/tests/{id}/audio:
+ *   get:
+ *     tags: [Tests]
+ *     summary: Testin səsli izah keçidini əldə et
+ *     description: Administrator və ya testi göndərmiş istifadəçi üçün səsli izahı qaytarır.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200: { description: Səsli izah keçidi qaytarıldı }
+ *       403: { description: Test hələ göndərilməyib }
+ *       404: { description: Test və ya səsli izah tapılmadı }
+ */
+router.get("/:id/audio", auth, getTestAudioExplanation);
+
+/**
+ * @openapi
  * /api/tests/{id}:
  *   patch:
  *     tags: [Tests]
@@ -95,6 +117,16 @@ router.get("/:id", optionalAuth, getTest);
  *         name: id
  *         required: true
  *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               audioExplanationUrl: { type: string, format: uri, nullable: true }
+ *               audioExplanationTitle: { type: string, nullable: true }
  *     responses:
  *       200: { description: Test yeniləndi }
  *       400: { description: Məlumatlar düzgün deyil }

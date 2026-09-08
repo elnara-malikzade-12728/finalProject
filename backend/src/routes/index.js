@@ -19,6 +19,7 @@ const paymentRoutes = require("./payments");
 const subscriptionRoutes = require("./subscriptions");
 const corporateInquiryRoutes = require("./corporateInquiries");
 const companyRoutes = require("./companies");
+const lessonResourceRoutes = require("./lessonResources");
 const router = express.Router();
 
 router.use("/auth", authRoutes);
@@ -40,5 +41,6 @@ router.use("/payments", paymentRoutes);
 router.use("/", subscriptionRoutes);
 router.use("/corporate-inquiries", corporateInquiryRoutes);
 router.use("/companies", companyRoutes);
+router.use("/", lessonResourceRoutes);
 
 module.exports = router;

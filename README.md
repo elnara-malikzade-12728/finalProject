@@ -39,6 +39,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Mock API fallback for frontend-only demonstrations
 - Timed lesson and final assessments with automatic submission
 - Sequential lesson locking: video completion enables the lesson test, and a passing lesson test unlocks the next lesson
+- Inline lesson-test cards beneath videos and administrator-managed audio explanations that unlock after test submission
 - Downloadable PDF certificates with embedded QR verification links
 - CV upload and lifecycle management
 - Stripe recurring monthly/yearly subscriptions, one-time course checkout, renewals, cancellation, and signed webhook processing
@@ -345,6 +346,13 @@ The frontend normally runs at `http://localhost:5173/`.
 | `DELETE` | `/api/lessons/:lessonId/video` | Admin | Delete a lesson video and clear its metadata |
 | `GET` | `/api/tests` | Yes | List available assessments |
 | `POST` | `/api/tests` | Admin | Create an assessment |
+| `PATCH` | `/api/tests/:id` | Admin | Update assessment settings and its audio explanation |
+| `GET` | `/api/tests/:id/audio` | User | Open the audio explanation after submitting the assessment |
+| `GET` | `/api/lessons/:lessonId/resources` | Conditional | List lesson materials after free-preview/access and sequence checks |
+| `DELETE` | `/api/users/me` | User | Permanently delete the account after password and typed-phrase confirmation; failed attempts are rate-limited |
+| `POST` | `/api/lessons/:lessonId/resources` | Admin | Add an HTTPS lesson material |
+| `PATCH` | `/api/lesson-resources/:id` | Admin | Update a lesson material |
+| `DELETE` | `/api/lesson-resources/:id` | Admin | Delete a lesson material |
 | `POST` | `/api/tests/:testId/attempts` | User | Start an assessment attempt |
 | `POST` | `/api/attempts/:attemptId/submit` | User | Submit answers and calculate the result |
 | `GET` | `/api/certificates/me` | User | List the current user's certificates |
@@ -547,6 +555,14 @@ Configure the deployed backend with the database, JWT, Supabase/video, Stripe, a
 ## Repository
 
 [GitHub repository](https://github.com/elnara-malikzade-12728/finalProject)
+
+### Sprint 5 completion controls
+
+- Video progress is calculated by the backend from monotonic playback heartbeats; forward seeking and client-supplied completion percentages are not trusted.
+- The first two published lessons remain free. Signed-in learners may enroll and retain progress without purchasing; later lessons still require a valid subscription or course purchase.
+- Administrators can manage HTTPS-only PDFs, assignments, archives, and reading links under **Dərs materialları**. Learner access is checked on every resource request.
+- Users may explicitly opt in from **Şəxsi kabinet** to forward their stored CV to course-linked vacancies after passing the final exam. Duplicate applications are prevented.
+- Lesson-test audio explanations become available only after an attempt is submitted.
 
 ## License
 

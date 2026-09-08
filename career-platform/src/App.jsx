@@ -122,6 +122,7 @@ const TestsPage = lazy(
 const AdminTestsPage = lazy(
   () => import("./pages/AdminTestsPage.jsx"),
 );
+const AdminResourcesPage = lazy(() => import("./pages/AdminResourcesPage.jsx"));
 
 const PricingPage = lazy(
   () => import("./pages/PricingPage.jsx"),
@@ -346,6 +347,7 @@ function App() {
                     path="tests"
                     element={<AdminTestsPage />}
                   />
+                  <Route path="resources" element={<AdminResourcesPage />} />
 
                   <Route
                     path="jobs"

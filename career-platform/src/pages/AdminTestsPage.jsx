@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ListChecks, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { CheckCircle2, Headphones, ListChecks, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getCourseStructure } from "../api/adminCoursesApi.js";
-import { createAdminQuestion, createAdminTest, deleteAdminQuestion, deleteAdminTest, getAdminTests, getTestById, setAdminTestPublished, updateAdminQuestion } from "../api/testsApi.js";
+import { createAdminQuestion, createAdminTest, deleteAdminQuestion, deleteAdminTest, getAdminTests, getTestById, setAdminTestPublished, updateAdminQuestion, updateAdminTest } from "../api/testsApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import PageLoader from "../components/common/PageLoader.jsx";
 
@@ -16,6 +16,7 @@ function AdminTestsPage() {
   const [testForm, setTestForm] = useState(emptyTest);
   const [questionForm, setQuestionForm] = useState(emptyQuestion);
   const [questionEdit, setQuestionEdit] = useState(null);
+  const [audioForm, setAudioForm] = useState({ audioExplanationTitle: "", audioExplanationUrl: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -40,7 +41,12 @@ function AdminTestsPage() {
   async function selectTest(id, revealEditor = false) {
     setError("");
     try {
-      setSelected(await getTestById(id));
+      const test = await getTestById(id);
+      setSelected(test);
+      setAudioForm({
+        audioExplanationTitle: test.audioExplanationTitle || "",
+        audioExplanationUrl: test.audioExplanationUrl || "",
+      });
       if (revealEditor) {
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
@@ -120,6 +126,29 @@ function AdminTestsPage() {
     } catch (requestError) { setError(getApiErrorMessage(requestError)); }
   }
 
+  async function submitAudioExplanation(event) {
+    event.preventDefault();
+    if (!selected) return;
+    setError(""); setMessage("");
+    try {
+      await updateAdminTest(selected.id, audioForm);
+      setMessage(audioForm.audioExplanationUrl ? "Səsli izah saxlanıldı." : "Səsli izah silindi.");
+      await selectTest(selected.id);
+      await load();
+    } catch (requestError) { setError(getApiErrorMessage(requestError)); }
+  }
+
+  async function removeAudioExplanation() {
+    if (!selected || !window.confirm("Səsli izah silinsin?")) return;
+    setError(""); setMessage("");
+    try {
+      await updateAdminTest(selected.id, { audioExplanationTitle: null, audioExplanationUrl: null });
+      setMessage("Səsli izah silindi.");
+      await selectTest(selected.id);
+      await load();
+    } catch (requestError) { setError(getApiErrorMessage(requestError)); }
+  }
+
   if (isLoading) return <PageLoader message="Testlər yüklənir..." />;
   const targetOptions = testForm.type === "FINAL" ? courses : lessons;
 
@@ -155,6 +184,14 @@ function AdminTestsPage() {
     </div>
     {selected && <section ref={editorRef} className="assessment-editor">
       <header><div><h2>{selected.title}</h2><p>ID: {selected.id} · {selected.questions.length} sual · keçid {selected.passScorePercent}%</p></div><div className="assessment-editor-actions">{selected.published && <Link className="button button-secondary" to={`/tests/${selected.id}`}>İstifadəçi kimi bax</Link>}<button className="button button-secondary" type="button" onClick={() => togglePublished(selected)}><CheckCircle2 size={18} />{selected.published ? "Qaralamaya keçir" : "Yayımla"}</button></div></header>
+      <form className="course-admin-form assessment-audio-form" onSubmit={submitAudioExplanation}>
+        <h3><Headphones size={19} /> Testin səsli izahı</h3>
+        <p>HTTPS audio fayl keçidini əlavə edin. İzah istifadəçiyə testi göndərdikdən sonra açılacaq.</p>
+        <input maxLength="120" placeholder="Audio izahın adı" value={audioForm.audioExplanationTitle} onChange={(event) => setAudioForm({ ...audioForm, audioExplanationTitle: event.target.value })} />
+        <input type="url" inputMode="url" placeholder="https://.../sesli-izah.mp3" value={audioForm.audioExplanationUrl} onChange={(event) => setAudioForm({ ...audioForm, audioExplanationUrl: event.target.value })} />
+        {audioForm.audioExplanationUrl && <audio controls preload="metadata" src={audioForm.audioExplanationUrl}>Brauzeriniz audio elementini dəstəkləmir.</audio>}
+        <div className="assessment-question-actions"><button className="button button-primary" type="submit"><Save size={16} /> Səsli izahı saxla</button>{selected.audioExplanationUrl && <button className="button button-secondary" type="button" onClick={removeAudioExplanation}><Trash2 size={16} /> Səsli izahı sil</button>}</div>
+      </form>
       <div className="assessment-question-list">{selected.questions.map((question) => <article key={question.id}>
         {questionEdit?.id === question.id ? <form className="course-admin-form assessment-question-edit-form" onSubmit={submitQuestionEdit}>
           <textarea required value={questionEdit.questionText} onChange={(e) => setQuestionEdit({ ...questionEdit, questionText: e.target.value })} />

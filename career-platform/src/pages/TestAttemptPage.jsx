@@ -6,6 +6,7 @@ import { getAttempt, submitAttempt } from "../api/testsApi.js";
 import ErrorState from "../components/common/ErrorState.jsx";
 import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
+import TestAudioExplanation from "../components/tests/TestAudioExplanation.jsx";
 
 function TestAttemptPage() {
     const { attemptId } = useParams();
@@ -181,6 +182,14 @@ function TestAttemptPage() {
                                     : "Bu cəhd keçid balını toplamadı."}
                             </span>
                         </div>
+                    )}
+
+                    {attempt.status === "SUBMITTED" && (
+                        <TestAudioExplanation
+                            testId={attempt.test.id}
+                            hasAudioExplanation={attempt.test.hasAudioExplanation}
+                            unlocked
+                        />
                     )}
 
                     {attempt.status !== "SUBMITTED" && attempt.test?.timeLimitMinutes && (

@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
+const { accountDeletionLimiter } = require("../middleware/rateLimiters");
 const {
   getProfile,
   updateProfile,
+  deleteMyAccount,
 } = require("../controllers/userController");
 
 /**
@@ -103,6 +105,9 @@ router.get("/me", auth, getProfile);
  *                 items:
  *                   type: string
  *                 example: [HTML, CSS, JavaScript]
+ *               careerAutoApplyEnabled:
+ *                 type: boolean
+ *                 description: Kurs tamamlandıqda CV-ni həmin kursla əlaqəli vakansiyalara avtomatik yönləndirməyə açıq razılıq.
  *     responses:
  *       200:
  *         description: İstifadəçi profili uğurla yeniləndi
@@ -124,5 +129,30 @@ router.get("/me", auth, getProfile);
  *               $ref: '#/components/schemas/Error'
  */
 router.patch("/me", auth, updateProfile);
+
+/**
+ * @openapi
+ * /api/users/me:
+ *   delete:
+ *     tags: [Users]
+ *     summary: Cari istifadəçi hesabını həmişəlik sil
+ *     description: Cari şifrə yenidən yoxlanılır. Administrator hesabları bu endpoint ilə silinmir.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, confirmation]
+ *             properties:
+ *               currentPassword: { type: string, format: password }
+ *               confirmation: { type: string, enum: [HESABIMI SIL] }
+ *     responses:
+ *       204: { description: Hesab silindi }
+ *       401: { description: Cari şifrə yanlışdır }
+ *       403: { description: Administrator hesabı üçün qadağandır }
+ */
+router.delete("/me", auth, accountDeletionLimiter, deleteMyAccount);
 
 module.exports = router;

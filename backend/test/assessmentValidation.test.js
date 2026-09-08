@@ -6,6 +6,8 @@ const {
     normalizePercent,
     buildQuestionPayload,
     getAssessmentRules,
+    normalizeOptionalAudioUrl,
+    normalizeOptionalAudioTitle,
 } = require("../src/controllers/testController");
 const { createCvSignedUrl } = require("../src/services/cvStorageService");
 
@@ -49,6 +51,16 @@ test("assessment rules enforce specification scores and timers", () => {
     assert.throws(() => getAssessmentRules("FINAL", { passScorePercent: 60 }), /70%/);
     assert.throws(() => getAssessmentRules("FINAL", { timeLimitMinutes: 29 }), /30–45/);
     assert.throws(() => getAssessmentRules("FINAL", { timeLimitMinutes: 46 }), /30–45/);
+});
+
+test("test audio metadata accepts only bounded HTTPS values", () => {
+    assert.equal(normalizeOptionalAudioUrl(" https://media.example.test/explanation.mp3 "), "https://media.example.test/explanation.mp3");
+    assert.equal(normalizeOptionalAudioUrl(""), null);
+    assert.equal(normalizeOptionalAudioTitle("  Cavabların izahı  "), "Cavabların izahı");
+    assert.equal(normalizeOptionalAudioTitle(null), null);
+    assert.throws(() => normalizeOptionalAudioUrl("http://media.example.test/audio.mp3"), /HTTPS/);
+    assert.throws(() => normalizeOptionalAudioUrl("not-a-url"), /HTTPS/);
+    assert.throws(() => normalizeOptionalAudioTitle("a".repeat(121)), /120/);
 });
 
 test("createCvSignedUrl returns a short-lived private link", async () => {

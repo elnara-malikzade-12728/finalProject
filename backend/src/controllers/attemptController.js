@@ -34,6 +34,15 @@ function dedupeSubmittedAnswers(answers) {
     return dedupedAnswers;
 }
 
+function hideAudioExplanationUrl(test) {
+    if (!test) return test;
+    const { audioExplanationUrl, ...safeTest } = test;
+    return {
+        ...safeTest,
+        hasAudioExplanation: Boolean(audioExplanationUrl),
+    };
+}
+
 async function ensureTestIsAvailable(testId) {
     const test = await prisma.test.findUnique({
         where: { id: testId },
@@ -109,6 +118,7 @@ async function startTestAttempt(req, res, next) {
                         type: true,
                         passScorePercent: true,
                         timeLimitMinutes: true,
+                        audioExplanationUrl: true,
                         lesson: { select: { id: true, title: true } },
                         course: { select: { id: true, title: true } },
                     },
@@ -117,7 +127,10 @@ async function startTestAttempt(req, res, next) {
         });
 
         if (activeAttempt) {
-            return res.status(200).json(activeAttempt);
+            return res.status(200).json({
+                ...activeAttempt,
+                test: hideAudioExplanationUrl(activeAttempt.test),
+            });
         }
 
         const submittedAttemptCount = await prisma.testAttempt.count({
@@ -146,6 +159,7 @@ async function startTestAttempt(req, res, next) {
                         type: true,
                         passScorePercent: true,
                         timeLimitMinutes: true,
+                        audioExplanationUrl: true,
                         published: true,
                         lesson: { select: { id: true, title: true } },
                         course: { select: { id: true, title: true } },
@@ -156,6 +170,7 @@ async function startTestAttempt(req, res, next) {
 
         return res.status(201).json({
             ...attempt,
+            test: hideAudioExplanationUrl(attempt.test),
             questions: test.questions.map((question) => ({
                 id: question.id,
                 questionText: question.questionText,
@@ -186,6 +201,7 @@ async function getAttempt(req, res, next) {
                         type: true,
                         passScorePercent: true,
                         timeLimitMinutes: true,
+                        audioExplanationUrl: true,
                         published: true,
                         lesson: { select: { id: true, title: true } },
                         course: { select: { id: true, title: true } },
@@ -215,6 +231,7 @@ async function getAttempt(req, res, next) {
 
         return res.status(200).json({
             ...attempt,
+            test: hideAudioExplanationUrl(attempt.test),
             questions: questions.map((question) => ({
                 id: question.id,
                 questionText: question.questionText,

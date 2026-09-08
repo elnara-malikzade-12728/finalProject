@@ -1,7 +1,7 @@
 const prisma = require('../lib/prisma');
 const logger = require('../utils/logger');
 const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../services/lessonUnlockService');
-const { canAccessCourse, getFreePreviewLessonIds } = require('../services/courseAccessService');
+const { canAccessCourse, getFreePreviewLessonIds, isFreePreviewLesson } = require('../services/courseAccessService');
 
 const structureInclude = {
   category: { include: { parent: true } },
@@ -110,7 +110,17 @@ async function getPublishedCourse(req, res) {
               select: {
                 id: true, title: true, description: true, order: true, durationSeconds: true,
                 videoPath: true, videoProviderId: true,
-                tests: { where: { published: true, type: 'LESSON' }, select: { id: true, title: true } },
+                tests: {
+                  where: { published: true, type: 'LESSON' },
+                  select: {
+                    id: true,
+                    title: true,
+                    passScorePercent: true,
+                    timeLimitMinutes: true,
+                    audioExplanationUrl: true,
+                    _count: { select: { questions: true } },
+                  },
+                },
               },
             },
           },
@@ -127,6 +137,10 @@ async function getPublishedCourse(req, res) {
         ...module,
         lessons: module.lessons.map(({ videoPath, videoProviderId, ...lesson }) => ({
           ...lesson,
+          tests: lesson.tests.map(({ audioExplanationUrl, ...test }) => ({
+            ...test,
+            hasAudioExplanation: Boolean(audioExplanationUrl),
+          })),
           isFreePreview: freePreviewLessonIds.has(lesson.id),
           hasVideo: Boolean(videoPath || videoProviderId),
         })),
@@ -152,10 +166,6 @@ async function enrollInCourse(req, res) {
       select: { id: true },
     });
     if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
-
-    if (!(await canAccessCourse(req.user.id, courseId))) {
-      return res.status(403).json({ error: 'Kursa qeydiyyat üçün aktiv abunəlik və ya bu kursun alışı tələb olunur.' });
-    }
 
     const existing = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId: req.user.id, courseId } },
@@ -197,7 +207,7 @@ async function getMyCourseState(req, res) {
           where: { userId_courseId: { userId: req.user.id, courseId } },
         });
     const hasAccess = req.user.role === 'ADMIN' || await canAccessCourse(req.user.id, courseId);
-    const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment && hasAccess);
+    const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment);
     const progress = enrolled && lessonIds.length
       ? await prisma.lessonProgress.findMany({
           where: { userId: req.user.id, lessonId: { in: lessonIds } },
@@ -234,15 +244,14 @@ async function updateLessonProgress(req, res) {
       return res.status(403).json({ error: 'Administrator üçün dərs irəliləyişi saxlanılmır.' });
     }
     const lessonId = id(req.params.id);
-    const watchedPercentage = Number(req.body.watchedPercentage);
     const lastPositionSeconds = Number(req.body.lastPositionSeconds);
-    if (!lessonId || !Number.isInteger(watchedPercentage) || watchedPercentage < 0 || watchedPercentage > 100 || !Number.isInteger(lastPositionSeconds) || lastPositionSeconds < 0) {
-      return res.status(400).json({ error: 'Dərs ID-si, izləmə faizi və son mövqe düzgün olmalıdır.' });
+    if (!lessonId || !Number.isInteger(lastPositionSeconds) || lastPositionSeconds < 0) {
+      return res.status(400).json({ error: 'Dərs ID-si və video mövqeyi düzgün olmalıdır.' });
     }
 
     const lesson = await prisma.lesson.findFirst({
       where: { id: lessonId, published: true, module: { course: { published: true } } },
-      select: { id: true, module: { select: { courseId: true } } },
+      select: { id: true, durationSeconds: true, module: { select: { courseId: true } } },
     });
     if (!lesson) return res.status(404).json({ error: 'Dərs tapılmadı.' });
 
@@ -255,7 +264,8 @@ async function updateLessonProgress(req, res) {
       return res.status(403).json({ error: 'İrəliləyişi saxlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
     }
 
-    if (!(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+    const freePreview = await isFreePreviewLesson(lesson.module.courseId, lessonId);
+    if (!freePreview && !(await canAccessCourse(req.user.id, lesson.module.courseId))) {
       return res.status(403).json({ error: 'Aktiv abunəliyiniz və ya bu kurs üçün etibarlı alışınız yoxdur.' });
     }
 
@@ -263,10 +273,35 @@ async function updateLessonProgress(req, res) {
       return res.status(403).json({ error: 'Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.' });
     }
 
+    if (!Number.isInteger(lesson.durationSeconds) || lesson.durationSeconds < 1) {
+      return res.status(409).json({ error: 'Video müddəti müəyyən edilmədiyi üçün irəliləyiş saxlanıla bilməz.' });
+    }
+    if (lastPositionSeconds > lesson.durationSeconds + 2) {
+      return res.status(400).json({ error: 'Video mövqeyi müddətdən böyük ola bilməz.' });
+    }
+
+    const existing = await prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+    });
+    const previousPosition = existing?.lastPositionSeconds || 0;
+    if (lastPositionSeconds < previousPosition) return res.json(existing);
+
+    const now = new Date();
+    const elapsedSeconds = existing?.lastHeartbeatAt
+      ? Math.max(0, (now.getTime() - new Date(existing.lastHeartbeatAt).getTime()) / 1000)
+      : 0;
+    const maximumAdvance = existing ? Math.max(12, Math.ceil(elapsedSeconds) + 8) : 15;
+    if (lastPositionSeconds - previousPosition > maximumAdvance) {
+      return res.status(409).json({ error: 'Videonu irəli ötürmək olmaz. Son izlənilən mövqedən davam edin.' });
+    }
+
+    const safePosition = Math.min(lastPositionSeconds, lesson.durationSeconds);
+    const watchedPercentage = Math.min(100, Math.floor((safePosition / lesson.durationSeconds) * 100));
+    const completed = safePosition >= lesson.durationSeconds - 2;
     const progress = await prisma.lessonProgress.upsert({
       where: { userId_lessonId: { userId: req.user.id, lessonId } },
-      update: { watchedPercentage, lastPositionSeconds, completed: watchedPercentage >= 90 },
-      create: { userId: req.user.id, lessonId, watchedPercentage, lastPositionSeconds, completed: watchedPercentage >= 90 },
+      update: { watchedPercentage, lastPositionSeconds: safePosition, completed, lastHeartbeatAt: now },
+      create: { userId: req.user.id, lessonId, watchedPercentage, lastPositionSeconds: safePosition, completed, lastHeartbeatAt: now },
     });
     return res.json(progress);
   } catch (error) {

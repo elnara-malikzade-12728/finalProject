@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const prisma = require("../lib/prisma");
+const { autoForwardCvForCourseCompletion } = require("./careerApplicationService");
 
 function createHttpError(statusCode, message) {
     const error = new Error(message);
@@ -55,6 +56,7 @@ async function createCertificateForUser(userId, courseId) {
     });
 
     if (existing) {
+        await autoForwardCvForCourseCompletion(userId, courseId);
         return existing;
     }
 
@@ -92,6 +94,8 @@ async function createCertificateForUser(userId, courseId) {
         certificate = await prisma.certificate.findFirst({ where: { userId, courseId } });
         if (!certificate) throw error;
     }
+
+    await autoForwardCvForCourseCompletion(userId, courseId);
 
     return {
         ...certificate,

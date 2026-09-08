@@ -90,6 +90,7 @@ export async function updateProfile(
     skills: Array.isArray(profileUpdates.skills)
       ? profileUpdates.skills
       : [],
+    careerAutoApplyEnabled: Boolean(profileUpdates.careerAutoApplyEnabled),
   };
 
   if (USE_MOCK_API) {
@@ -99,6 +100,14 @@ export async function updateProfile(
   return apiRequest("/users/me", {
     method: "PATCH",
     body: normalizedProfile,
+    signal,
+  });
+}
+
+export async function deleteAccount(currentPassword, confirmation, { signal } = {}) {
+  return apiRequest("/users/me", {
+    method: "DELETE",
+    body: { currentPassword, confirmation },
     signal,
   });
 }

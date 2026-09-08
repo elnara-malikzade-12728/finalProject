@@ -40,6 +40,7 @@ model User {
   bio                         String?
   interests                   String[]         @default([])
   skills                      String[]         @default([])
+  careerAutoApplyEnabled      Boolean          @default(false)
   cvFilePath                  String?
   cvOriginalName              String?
   progress                    Progress[]
@@ -181,6 +182,7 @@ model Application {
   status                  ApplicationStatus @default(PENDING)
   cvFilePathAtApplication String?
   coverLetter             String?
+  source                  String             @default("MANUAL")
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
 
@@ -198,6 +200,8 @@ model Test {
   courseId         Int?
   passScorePercent Int
   timeLimitMinutes Int?
+  audioExplanationUrl   String?
+  audioExplanationTitle String?
   published        Boolean       @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -341,6 +345,7 @@ model Lesson {
   moduleId Int
   progress LessonProgress[]
   tests    Test[]
+  resources LessonResource[]
 
   @@unique([moduleId, order])
   @@index([moduleId])
@@ -351,6 +356,7 @@ model LessonProgress {
   completed           Boolean  @default(false)
   watchedPercentage   Int      @default(0)
   lastPositionSeconds Int      @default(0)
+  lastHeartbeatAt     DateTime?
   updatedAt           DateTime @updatedAt
 
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -360,6 +366,22 @@ model LessonProgress {
 
   @@unique([userId, lessonId])
   @@index([userId])
+  @@index([lessonId])
+}
+
+model LessonResource {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  url         String
+  fileType    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId    Int
+
+  @@unique([lessonId, url])
   @@index([lessonId])
 }
 
