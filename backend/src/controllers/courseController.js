@@ -294,9 +294,15 @@ async function updateLessonProgress(req, res) {
       return res.status(400).json({ error: 'Video mövqeyi müddətdən böyük ola bilməz.' });
     }
 
-    const existing = await prisma.lessonProgress.findUnique({
+    let existing = await prisma.lessonProgress.findUnique({
       where: { userId_lessonId: { userId: req.user.id, lessonId } },
     });
+    if (existing && existing.lastPositionSeconds > durationSeconds + 2) {
+      await prisma.lessonProgress.delete({
+        where: { userId_lessonId: { userId: req.user.id, lessonId } },
+      });
+      existing = null;
+    }
     const previousPosition = existing?.lastPositionSeconds || 0;
     if (lastPositionSeconds < previousPosition) return res.json(existing);
 

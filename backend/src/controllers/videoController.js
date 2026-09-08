@@ -236,10 +236,13 @@ async function completeLessonVideoUpload(req, res) {
       if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId && lesson.videoProviderId !== videoId) {
         await bunny.deleteVideo(lesson.videoProviderId).catch((error) => logger.error("Köhnə Bunny videosu silinərkən xəta:", error));
       }
-      const updatedLesson = await prisma.lesson.update({
-        where: { id: lessonId },
-        data: { videoProvider: "BUNNY", videoProviderId: videoId, pendingVideoProviderId: null, pendingVideoExpiresAt: null, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: Number(video.length) || Number(req.body.durationSeconds) || null },
-      });
+      const [updatedLesson] = await prisma.$transaction([
+        prisma.lesson.update({
+          where: { id: lessonId },
+          data: { videoProvider: "BUNNY", videoProviderId: videoId, pendingVideoProviderId: null, pendingVideoExpiresAt: null, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: Number(video.length) || Number(req.body.durationSeconds) || null },
+        }),
+        prisma.lessonProgress.deleteMany({ where: { lessonId } }),
+      ]);
       return res.status(200).json(updatedLesson);
     } catch (error) {
       logger.error("Bunny video yüklənməsi tamamlanarkən xəta:", error);
@@ -396,8 +399,9 @@ async function completeLessonVideoUpload(req, res) {
       }
     }
 
-    const updatedLesson =
-      await prisma.lesson.update({
+    const [updatedLesson] =
+      await prisma.$transaction([
+        prisma.lesson.update({
         where: {
           id: lessonId,
         },
@@ -411,7 +415,9 @@ async function completeLessonVideoUpload(req, res) {
           videoSizeBytes: actualSize,
           durationSeconds: normalizedDuration,
         },
-      });
+        }),
+        prisma.lessonProgress.deleteMany({ where: { lessonId } }),
+      ]);
 
     return res.status(200).json(updatedLesson);
   } catch (error) {
