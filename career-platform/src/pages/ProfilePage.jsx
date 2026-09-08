@@ -13,7 +13,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   completeCvUpload,
   deleteMyCv,
@@ -23,9 +23,11 @@ import {
 } from "../api/cvApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { acceptCompanyInvitation, getMyCompanyInvitations } from "../api/companyApi.js";
+import { deleteAccount } from "../api/profileApi.js";
 
 function ProfilePage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -34,6 +36,7 @@ function ProfilePage() {
     interests: user?.interests?.join(", ") || "",
     skills: user?.skills?.join(", ") || "",
     bio: user?.bio || "",
+    careerAutoApplyEnabled: Boolean(user?.careerAutoApplyEnabled),
   });
 
   const [successMessage, setSuccessMessage] = useState("");
@@ -44,6 +47,10 @@ function ProfilePage() {
   const [isCvUploading, setIsCvUploading] = useState(false);
   const [isCvDeleting, setIsCvDeleting] = useState(false);
   const [companyInvitations, setCompanyInvitations] = useState([]);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     async function loadCv() {
@@ -85,11 +92,11 @@ function ProfilePage() {
   }
 
   function handleChange(event) {
-    const { name, value } = event.target;
+    const { name, value, type, checked } = event.target;
 
     setFormData((current) => ({
       ...current,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
 
     setSuccessMessage("");
@@ -121,6 +128,7 @@ function ProfilePage() {
       interests: convertToList(formData.interests),
       skills: convertToList(formData.skills),
       bio: formData.bio.trim(),
+      careerAutoApplyEnabled: formData.careerAutoApplyEnabled,
     };
 
     try {
@@ -219,6 +227,23 @@ function ProfilePage() {
       );
     } finally {
       setIsCvDeleting(false);
+    }
+  }
+
+  async function handleDeleteAccount(event) {
+    event.preventDefault();
+    if (!deletePassword || deleteConfirmation !== "HESABIMI SIL") return;
+    if (!window.confirm("Hesabınız və ona bağlı məlumatlar həmişəlik silinəcək. Davam edilsin?")) return;
+    try {
+      setIsDeletingAccount(true);
+      setErrorMessage("");
+      await deleteAccount(deletePassword, deleteConfirmation);
+      await logout();
+      navigate("/", { replace: true });
+    } catch (deleteError) {
+      setErrorMessage(deleteError?.message || "Hesabı silmək mümkün olmadı.");
+    } finally {
+      setIsDeletingAccount(false);
     }
   }
 
@@ -538,6 +563,13 @@ function ProfilePage() {
                 </small>
               </div>
 
+              {user?.role !== "ADMIN" && (
+                <label className="form-checkbox-row" htmlFor="career-auto-apply">
+                  <input id="career-auto-apply" type="checkbox" name="careerAutoApplyEnabled" checked={formData.careerAutoApplyEnabled} onChange={handleChange} disabled={isSaving} />
+                  <span><strong>Kursu bitirdikdə CV-mi uyğun vakansiyalara yönləndir</strong><small className="form-help">Yalnız yüklədiyiniz CV və tamamladığınız kursla əlaqəli vakansiyalar üçün. İstənilən vaxt söndürə bilərsiniz.</small></span>
+                </label>
+              )}
+
               <button
                 type="submit"
                 className="button button-primary button-large"
@@ -560,6 +592,22 @@ function ProfilePage() {
                 )}
               </button>
             </form>
+
+            {user?.role !== "ADMIN" && (
+              <section className="account-danger-zone" aria-labelledby="delete-account-title">
+                <h2 id="delete-account-title">Hesabı sil</h2>
+                <p>Bu əməliyyat profilinizi, irəliləyişinizi, müraciətlərinizi və sertifikatlarınızı həmişəlik siləcək.</p>
+                {!showDeleteAccount ? (
+                  <button type="button" className="button button-danger-ghost" onClick={() => setShowDeleteAccount(true)}><Trash2 size={17} /> Hesabı sil</button>
+                ) : (
+                  <form className="profile-form" onSubmit={handleDeleteAccount}>
+                    <div className="form-group"><label htmlFor="delete-account-password">Təsdiq üçün cari şifrə</label><input id="delete-account-password" type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} required disabled={isDeletingAccount} /></div>
+                    <div className="form-group"><label htmlFor="delete-account-confirmation">Təsdiq üçün <strong>HESABIMI SIL</strong> yazın</label><input id="delete-account-confirmation" type="text" autoComplete="off" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} required disabled={isDeletingAccount} /></div>
+                    <div className="cv-actions"><button className="button button-danger-ghost" disabled={isDeletingAccount || !deletePassword || deleteConfirmation !== "HESABIMI SIL"}>{isDeletingAccount ? <LoaderCircle className="loading-spinner" size={17} /> : <Trash2 size={17} />} Həmişəlik sil</button><button type="button" className="button button-secondary" onClick={() => { setShowDeleteAccount(false); setDeletePassword(""); setDeleteConfirmation(""); }} disabled={isDeletingAccount}>Ləğv et</button></div>
+                  </form>
+                )}
+              </section>
+            )}
           </div>
         </div>
       </section>

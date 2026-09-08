@@ -23,7 +23,9 @@ async function bunnyRequest(path, options = {}) {
   });
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Bunny Stream sorğusu uğursuz oldu (${response.status}): ${detail}`);
+    const error = new Error(`Bunny Stream sorğusu uğursuz oldu (${response.status}): ${detail}`);
+    error.statusCode = response.status;
+    throw error;
   }
   return response.status === 204 ? null : response.json();
 }
@@ -36,8 +38,13 @@ async function getVideo(videoId) {
   return bunnyRequest(`/videos/${videoId}`);
 }
 
-async function deleteVideo(videoId) {
-  return bunnyRequest(`/videos/${videoId}`, { method: 'DELETE' });
+async function deleteVideo(videoId, { ignoreMissing = false } = {}) {
+  try {
+    return await bunnyRequest(`/videos/${videoId}`, { method: 'DELETE' });
+  } catch (error) {
+    if (ignoreMissing && error.statusCode === 404) return null;
+    throw error;
+  }
 }
 
 function createTusCredentials(videoId, lifetimeSeconds = 3600) {

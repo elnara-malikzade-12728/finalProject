@@ -60,6 +60,34 @@ function getAssessmentRules(type, { passScorePercent, timeLimitMinutes } = {}) {
     return { passScorePercent: requiredPassScore, timeLimitMinutes: 1 };
 }
 
+function normalizeOptionalAudioUrl(value) {
+    if (value === undefined) return undefined;
+    if (value === null || (typeof value === "string" && !value.trim())) return null;
+    if (typeof value !== "string" || value.length > 2048) {
+        throw createHttpError(400, "Audio izah keçidi düzgün deyil.");
+    }
+
+    let parsed;
+    try {
+        parsed = new URL(value.trim());
+    } catch {
+        throw createHttpError(400, "Audio izah üçün düzgün HTTPS keçidi daxil edin.");
+    }
+    if (parsed.protocol !== "https:") {
+        throw createHttpError(400, "Audio izah keçidi HTTPS olmalıdır.");
+    }
+    return parsed.toString();
+}
+
+function normalizeOptionalAudioTitle(value) {
+    if (value === undefined) return undefined;
+    if (value === null || (typeof value === "string" && !value.trim())) return null;
+    if (typeof value !== "string" || value.trim().length > 120) {
+        throw createHttpError(400, "Audio izahın adı maksimum 120 simvol ola bilər.");
+    }
+    return value.trim();
+}
+
 function buildQuestionPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
         throw createHttpError(400, "Question payload must be an object.");
@@ -164,6 +192,8 @@ async function createTest(req, res, next) {
                 courseId,
                 passScorePercent: rules.passScorePercent,
                 timeLimitMinutes: rules.timeLimitMinutes,
+                audioExplanationUrl: normalizeOptionalAudioUrl(body.audioExplanationUrl),
+                audioExplanationTitle: normalizeOptionalAudioTitle(body.audioExplanationTitle),
                 published: Boolean(body.published),
             },
         });
@@ -185,7 +215,10 @@ async function listTests(req, res, next) {
             },
         });
 
-        return res.status(200).json(tests);
+        return res.status(200).json(tests.map(({ audioExplanationUrl, ...test }) => ({
+            ...test,
+            hasAudioExplanation: Boolean(audioExplanationUrl),
+        })));
     } catch (error) {
         return next(error);
     }
@@ -202,12 +235,17 @@ async function listPublishedTests(req, res, next) {
                 type: true,
                 passScorePercent: true,
                 timeLimitMinutes: true,
+                audioExplanationUrl: true,
+                audioExplanationTitle: true,
                 course: { select: { id: true, title: true } },
                 lesson: { select: { id: true, title: true } },
                 _count: { select: { questions: true } },
             },
         });
-        return res.status(200).json(tests);
+        return res.status(200).json(tests.map(({ audioExplanationUrl, ...test }) => ({
+            ...test,
+            hasAudioExplanation: Boolean(audioExplanationUrl),
+        })));
     } catch (error) {
         return next(error);
     }
@@ -239,6 +277,8 @@ async function getTest(req, res, next) {
 
             return res.status(200).json({
                 ...test,
+                audioExplanationUrl: undefined,
+                hasAudioExplanation: Boolean(test.audioExplanationUrl),
                 correctValueHidden: true,
                 questions: test.questions.map((question) => ({
                     id: question.id,
@@ -303,6 +343,13 @@ async function updateTest(req, res, next) {
             updates.published = body.published;
         }
 
+        if (body.audioExplanationUrl !== undefined) {
+            updates.audioExplanationUrl = normalizeOptionalAudioUrl(body.audioExplanationUrl);
+        }
+        if (body.audioExplanationTitle !== undefined) {
+            updates.audioExplanationTitle = normalizeOptionalAudioTitle(body.audioExplanationTitle);
+        }
+
         const updated = await prisma.test.update({
             where: { id },
             data: updates,
@@ -310,6 +357,47 @@ async function updateTest(req, res, next) {
         });
 
         return res.status(200).json(updated);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function getTestAudioExplanation(req, res, next) {
+    try {
+        const id = normalizePositiveInt(req.params.id, "id");
+        const test = await prisma.test.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                title: true,
+                published: true,
+                audioExplanationUrl: true,
+                audioExplanationTitle: true,
+            },
+        });
+
+        if (!test) throw createHttpError(404, "Test tapılmadı.");
+        if (!test.published && req.user.role !== "ADMIN") {
+            throw createHttpError(403, "Bu test yayımlanmayıb.");
+        }
+        if (!test.audioExplanationUrl) {
+            throw createHttpError(404, "Bu test üçün səsli izah əlavə edilməyib.");
+        }
+
+        if (req.user.role !== "ADMIN") {
+            const submittedAttempt = await prisma.testAttempt.findFirst({
+                where: { userId: req.user.id, testId: id, status: "SUBMITTED" },
+                select: { id: true },
+            });
+            if (!submittedAttempt) {
+                throw createHttpError(403, "Səsli izah test göndərildikdən sonra açılır.");
+            }
+        }
+
+        return res.status(200).json({
+            url: test.audioExplanationUrl,
+            title: test.audioExplanationTitle || `${test.title} — səsli izah`,
+        });
     } catch (error) {
         return next(error);
     }
@@ -371,6 +459,8 @@ module.exports = {
     normalizePercent,
     validateTestType,
     getAssessmentRules,
+    normalizeOptionalAudioUrl,
+    normalizeOptionalAudioTitle,
     buildQuestionPayload,
     listTests,
     listPublishedTests,
@@ -379,4 +469,5 @@ module.exports = {
     updateTest,
     deleteTest,
     publishTest,
+    getTestAudioExplanation,
 };

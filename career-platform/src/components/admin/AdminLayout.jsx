@@ -9,6 +9,7 @@ import {
   RefreshCcw,
   Video,
   ListChecks,
+  FileText,
 } from "lucide-react";
 import {
   NavLink,
@@ -32,6 +33,12 @@ const adminLinks = [
     to: "/admin/tests",
     label: "Testlər",
     icon: ListChecks,
+    end: false,
+  },
+  {
+    to: "/admin/resources",
+    label: "Dərs materialları",
+    icon: FileText,
     end: false,
   },
   {

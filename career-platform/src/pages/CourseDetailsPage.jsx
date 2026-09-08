@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle2, Clock3, Layers3, ListChecks, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Clock3, FileText, Layers3, ListChecks, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
 import playerjs from "player.js";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client.js";
 import { enrollInCourse, getMyCourseState, getPublishedCourse, updateLessonProgress } from "../api/coursesApi.js";
 import { getLessonVideoUrl } from "../api/videoApi.js";
+import { getMyAttempts } from "../api/testsApi.js";
 import ErrorState from "../components/common/ErrorState.jsx";
 import Notification from "../components/common/Notification.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import TestAudioExplanation from "../components/tests/TestAudioExplanation.jsx";
+import { getLessonResources } from "../api/lessonResourcesApi.js";
 
 const emptyLearningState = { enrolled: false, hasAccess: false, completedLessonIds: [], lockedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
 
@@ -26,9 +29,13 @@ function CourseDetailsPage() {
   const [updatingLessonId, setUpdatingLessonId] = useState(null);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState(null);
+  const [submittedTestIds, setSubmittedTestIds] = useState(new Set());
+  const [lessonResources, setLessonResources] = useState([]);
   const notificationRef = useRef(null);
   const videoPlayerRef = useRef(null);
   const bunnyIframeRef = useRef(null);
+  const maxWatchedSecondsRef = useRef(0);
+  const lastReportedSecondRef = useRef(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,20 +64,58 @@ function CourseDetailsPage() {
   }, [courseId, isAuthenticated, isInitializing]);
 
   useEffect(() => {
+    if (isInitializing || !isAuthenticated || user?.role === "ADMIN") {
+      if (!isInitializing) setSubmittedTestIds(new Set());
+      return undefined;
+    }
+    const controller = new AbortController();
+    getMyAttempts({ signal: controller.signal })
+      .then((attempts) => setSubmittedTestIds(new Set(
+        (attempts || []).filter((attempt) => attempt.status === "SUBMITTED").map((attempt) => attempt.testId),
+      )))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [isAuthenticated, isInitializing, user?.role]);
+
+  useEffect(() => {
     if (!video || !selectedLesson || !videoPlayerRef.current) return;
+    const savedPosition = learningState.lessonProgress?.[selectedLesson.id]?.lastPositionSeconds || 0;
+    maxWatchedSecondsRef.current = savedPosition;
+    lastReportedSecondRef.current = savedPosition;
     videoPlayerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [video, selectedLesson]);
+  }, [video, selectedLesson, learningState.lessonProgress]);
 
   useEffect(() => {
     if (video?.playbackType !== "embed" || !selectedLesson || !bunnyIframeRef.current || !learningState.enrolled || user?.role === "ADMIN") return undefined;
 
     const player = new playerjs.Player(bunnyIframeRef.current);
     let active = true;
+    const persistPosition = async (seconds) => {
+      const safeSecond = Math.max(0, Math.floor(Number(seconds) || 0));
+      if (!active || safeSecond <= lastReportedSecondRef.current) return;
+      try {
+        const progress = await updateLessonProgress(selectedLesson.id, 0, safeSecond);
+        if (!active) return;
+        lastReportedSecondRef.current = progress.lastPositionSeconds;
+        setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: progress } }));
+      } catch (requestError) {
+        if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+      }
+    };
+    const handleTimeUpdate = (data = {}) => {
+      const seconds = Math.max(0, Number(data.seconds) || 0);
+      if (seconds > maxWatchedSecondsRef.current + 4) {
+        player.setCurrentTime(maxWatchedSecondsRef.current);
+        return;
+      }
+      maxWatchedSecondsRef.current = Math.max(maxWatchedSecondsRef.current, seconds);
+      if (seconds - lastReportedSecondRef.current >= 10) persistPosition(seconds);
+    };
     const handleEnded = async () => {
       if (!active) return;
       setUpdatingLessonId(selectedLesson.id);
       try {
-        await updateLessonProgress(selectedLesson.id, 100, 0);
+        await persistPosition(Number(selectedLesson.durationSeconds) || maxWatchedSecondsRef.current);
         if (!active) return;
         setLearningState(await getMyCourseState(courseId));
         if (active) setNotification({ type: "success", message: "Video tamamlandı və dərs tamamlanmış kimi qeyd edildi." });
@@ -81,9 +126,11 @@ function CourseDetailsPage() {
       }
     };
 
+    player.on("timeupdate", handleTimeUpdate);
     player.on("ended", handleEnded);
     return () => {
       active = false;
+      player.off("timeupdate", handleTimeUpdate);
       player.off("ended", handleEnded);
     };
   }, [courseId, learningState.enrolled, selectedLesson, user?.role, video]);
@@ -100,10 +147,6 @@ function CourseDetailsPage() {
   async function handleEnroll() {
     if (!isAuthenticated) {
       navigate("/login", { state: { from: `/courses/${courseId}`, message: "Kursa başlamaq üçün daxil olun." } });
-      return;
-    }
-    if (!learningState.hasAccess) {
-      navigate("/pricing", { state: { courseId: Number(courseId) } });
       return;
     }
     setIsEnrolling(true);
@@ -154,9 +197,13 @@ function CourseDetailsPage() {
     setIsLoadingVideo(true);
     setNotification(null);
     try {
-      const response = await getLessonVideoUrl(lesson.id);
+      const [response, resources] = await Promise.all([
+        getLessonVideoUrl(lesson.id),
+        getLessonResources(lesson.id).catch(() => []),
+      ]);
       setSelectedLesson(lesson);
       setVideo(response);
+      setLessonResources(Array.isArray(resources) ? resources : []);
     } catch (requestError) {
       showLessonNotification("error", getApiErrorMessage(requestError));
     } finally {
@@ -164,32 +211,29 @@ function CourseDetailsPage() {
     }
   }
 
-  async function handleCompletion(lesson) {
-    const completed = !completedLessonIds.has(lesson.id);
-    setUpdatingLessonId(lesson.id);
-    try {
-      await updateLessonProgress(lesson.id, completed ? 100 : 0, 0);
-      setLearningState(await getMyCourseState(courseId));
-      setNotification({ type: "success", message: completed ? "Dərs tamamlandı." : "Dərs başlanmamış kimi qeyd edildi." });
-    } catch (requestError) {
-      setNotification({ type: "error", message: getApiErrorMessage(requestError) });
-    } finally {
-      setUpdatingLessonId(null);
-    }
-  }
-
   async function handleVideoProgress(event) {
     if (!selectedLesson || isAdmin || !learningState.enrolled || !event.currentTarget.duration) return;
-    const watchedPercentage = Math.min(100, Math.round((event.currentTarget.currentTime / event.currentTarget.duration) * 100));
-    if (watchedPercentage % 5 !== 0) return;
-    const previous = learningState.lessonProgress?.[selectedLesson.id]?.watchedPercentage || 0;
-    if (watchedPercentage <= previous) return;
-    await updateLessonProgress(selectedLesson.id, watchedPercentage, Math.floor(event.currentTarget.currentTime));
-    if (watchedPercentage >= 90) {
+    const currentSecond = Math.floor(event.currentTarget.currentTime);
+    if (currentSecond > maxWatchedSecondsRef.current + 3) {
+      event.currentTarget.currentTime = maxWatchedSecondsRef.current;
+      return;
+    }
+    maxWatchedSecondsRef.current = Math.max(maxWatchedSecondsRef.current, currentSecond);
+    const isAtEnd = currentSecond >= Math.floor(event.currentTarget.duration) - 2;
+    if (!isAtEnd && currentSecond - lastReportedSecondRef.current < 10) return;
+    const progress = await updateLessonProgress(selectedLesson.id, 0, currentSecond);
+    lastReportedSecondRef.current = progress.lastPositionSeconds;
+    if (progress.completed) {
       setLearningState(await getMyCourseState(courseId));
       return;
     }
-    setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: { watchedPercentage, lastPositionSeconds: Math.floor(event.currentTarget.currentTime) } } }));
+    setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: progress } }));
+  }
+
+  function preventForwardSeek(event) {
+    if (event.currentTarget.currentTime > maxWatchedSecondsRef.current + 3) {
+      event.currentTarget.currentTime = maxWatchedSecondsRef.current;
+    }
   }
 
   function handleVideoLoaded(event) {
@@ -212,6 +256,7 @@ function CourseDetailsPage() {
   const nextLesson = inProgressLesson
     || orderedLessons.find((lesson) => !completedLessonIds.has(lesson.id) && !lockedLessonIds.has(lesson.id))
     || orderedLessons.find((lesson) => !lockedLessonIds.has(lesson.id));
+  const selectedLessonTest = selectedLesson?.tests?.[0] || null;
 
   return (
     <>
@@ -223,7 +268,7 @@ function CourseDetailsPage() {
             {!isAdmin && !learningState.enrolled && (
               <button type="button" className="button button-primary button-large" onClick={handleEnroll} disabled={isEnrolling || isInitializing}>
                 {isEnrolling && <LoaderCircle className="loading-spinner" size={18} />}
-                {isAuthenticated ? learningState.hasAccess ? "Kursa qeydiyyatdan keç" : "Giriş əldə et" : "Kursa başla"}
+                {isAuthenticated ? "Kursa qeydiyyatdan keç" : "Kursa başla"}
               </button>
             )}
           </div>
@@ -269,10 +314,33 @@ function CourseDetailsPage() {
                 {video.playbackType === "embed" ? (
                   <iframe ref={bunnyIframeRef} key={video.url} src={video.url} title={selectedLesson.title} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
                 ) : (
-                  <video key={video.url} controls preload="metadata" src={video.url} onLoadedMetadata={handleVideoLoaded} onTimeUpdate={handleVideoProgress}>Brauzeriniz video elementini dəstəkləmir.</video>
+                  <video key={video.url} controls preload="metadata" src={video.url} onLoadedMetadata={handleVideoLoaded} onSeeking={preventForwardSeek} onTimeUpdate={handleVideoProgress}>Brauzeriniz video elementini dəstəkləmir.</video>
                 )}
                 {video.watermark && <span className="video-user-watermark">{video.watermark.email} · ID {video.watermark.userId}</span>}
               </div>
+              {selectedLessonTest && (
+                <div className="lesson-assessment-stack">
+                  <section className="lesson-test-inline" aria-label="Dərs sonu testi">
+                    <div><ListChecks size={23} /><span>Dərs sonu testi</span></div>
+                    <h3>{selectedLessonTest.title}</h3>
+                    <p>{selectedLessonTest._count?.questions || 0} sual · {selectedLessonTest.timeLimitMinutes} dəqiqə · keçid {selectedLessonTest.passScorePercent}%</p>
+                    <Link className="button button-primary" to={`/tests/${selectedLessonTest.id}`}>Testə keç</Link>
+                  </section>
+                  <TestAudioExplanation
+                    testId={selectedLessonTest.id}
+                    hasAudioExplanation={selectedLessonTest.hasAudioExplanation}
+                    unlocked={submittedTestIds.has(selectedLessonTest.id)}
+                  />
+                </div>
+              )}
+              {lessonResources.length > 0 && (
+                <section className="lesson-test-inline" aria-label="Dərs materialları">
+                  <div><FileText size={23} /><span>Dərs materialları</span></div>
+                  <ul className="lesson-resource-list">
+                    {lessonResources.map((resource) => <li key={resource.id}><a href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}</a>{resource.description && <p>{resource.description}</p>}<small>{resource.fileType || "LINK"}</small></li>)}
+                  </ul>
+                </section>
+              )}
             </section>
           )}
           <div className="content-card-heading"><BookOpen size={25} /><div><h2>Kurs proqramı</h2><p>Modullar və yayımlanmış dərslər.</p></div></div>
@@ -294,26 +362,12 @@ function CourseDetailsPage() {
                     </button>
                     {lesson.durationSeconds && <small><Clock3 size={14} /> {Math.ceil(lesson.durationSeconds / 60)} dəq.</small>}
                     {learningState.enrolled && !isAdmin && (completed && !locked ? (
-                      <button
-                        type="button"
-                        className="course-lesson-status is-complete"
-                        title="Başlanmayıb kimi qeyd et"
-                        aria-label={`${lesson.title} dərsini başlanmayıb kimi qeyd et`}
-                        onClick={() => handleCompletion(lesson)}
-                        disabled={updatingLessonId === lesson.id}
-                      >
-                        <CheckCircle2 size={15} aria-hidden="true" /> Tamamlandı
-                      </button>
+                      <span className="course-lesson-status is-complete"><CheckCircle2 size={15} aria-hidden="true" /> Tamamlandı</span>
                     ) : (
                       <span className={`course-lesson-status ${locked ? "is-locked" : watchedPercentage > 0 ? "is-progress" : ""}`}>
                         {lessonStatus}
                       </span>
                     ))}
-                    {learningState.enrolled && !isAdmin && !completed && !locked && (
-                      <button type="button" className="course-lesson-complete" onClick={() => handleCompletion(lesson)} disabled={updatingLessonId === lesson.id}>
-                        <CheckCircle2 size={17} /> Tamamla
-                      </button>
-                    )}
                     {learningState.enrolled && !isAdmin && completed && !locked && lessonTest && (
                       <Link className="course-lesson-test" to={`/tests/${lessonTest.id}`}>
                         <ListChecks size={17} /> Dərs testi

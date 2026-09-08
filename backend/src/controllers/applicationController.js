@@ -109,6 +109,7 @@ async function applyToJob(req, res) {
         userId,
         jobId,
         status: "PENDING",
+        source: "MANUAL",
         cvFilePathAtApplication: selectedCv,
         coverLetter: coverLetter || null,
       },

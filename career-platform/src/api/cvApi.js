@@ -60,7 +60,10 @@ export async function getMyCv({ signal } = {}) {
         signal,
     });
 
-    return response?.cv || response || null;
+    if (response && Object.prototype.hasOwnProperty.call(response, "cv")) {
+        return response.cv || null;
+    }
+    return response || null;
 }
 
 export async function deleteMyCv({ signal } = {}) {

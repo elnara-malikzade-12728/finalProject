@@ -1,11 +1,18 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
+const { getSupabaseAdmin } = require("../lib/supabase");
 const {
   getPasswordValidationError,
   isValidEmail,
   normalizeEmail,
 } = require("../utils/validation");
+
+const ACCOUNT_DELETION_PHRASE = "HESABIMI SIL";
+
+function hasValidAccountDeletionConfirmation(value) {
+  return typeof value === "string" && value.trim() === ACCOUNT_DELETION_PHRASE;
+}
 
 const publicUserFields = {
   id: true,
@@ -19,6 +26,7 @@ const publicUserFields = {
   bio: true,
   interests: true,
   skills: true,
+  careerAutoApplyEnabled: true,
 };
 
 function normalizeStringList(value) {
@@ -77,6 +85,7 @@ async function updateProfile(req, res) {
       bio,
       interests,
       skills,
+      careerAutoApplyEnabled,
     } = req.body;
 
     const updates = {};
@@ -123,6 +132,13 @@ async function updateProfile(req, res) {
       }
 
       updates.skills = normalizedSkills;
+    }
+
+    if (careerAutoApplyEnabled !== undefined) {
+      if (typeof careerAutoApplyEnabled !== "boolean") {
+        return res.status(400).json({ error: "Avtomatik CV yönləndirmə seçimi boolean olmalıdır." });
+      }
+      updates.careerAutoApplyEnabled = careerAutoApplyEnabled;
     }
 
     if (
@@ -229,7 +245,44 @@ async function updateProfile(req, res) {
   }
 }
 
+async function deleteMyAccount(req, res) {
+  try {
+    if (req.user.role === "ADMIN") {
+      return res.status(403).json({ error: "Administrator hesabı bu bölmədən silinə bilməz." });
+    }
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    if (!currentPassword) {
+      return res.status(400).json({ error: "Hesabı silmək üçün cari şifrəni daxil edin." });
+    }
+    if (!hasValidAccountDeletionConfirmation(req.body?.confirmation)) {
+      return res.status(400).json({ error: `Təsdiq sahəsinə dəqiq olaraq ${ACCOUNT_DELETION_PHRASE} yazın.` });
+    }
+    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { id: true, password: true, cvFilePath: true } });
+    if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+      return res.status(401).json({ error: "Cari şifrə yanlışdır." });
+    }
+    await prisma.user.delete({ where: { id: user.id } });
+    if (user.cvFilePath) {
+      try {
+        const bucket = process.env.SUPABASE_CV_BUCKET || "user-cvs";
+        const { error: storageError } = await getSupabaseAdmin().storage.from(bucket).remove([user.cvFilePath]);
+        if (storageError) logger.warn("Silinmiş hesaba aid CV Storage-dan silinmədi", storageError);
+      } catch (storageError) {
+        logger.warn("Silinmiş hesaba aid CV Storage təmizlənərkən xəta", storageError);
+      }
+    }
+    return res.status(204).end();
+  } catch (error) {
+    if (error.code === "P2025") return res.status(404).json({ error: "İstifadəçi tapılmadı." });
+    logger.error("Hesab silinərkən xəta:", error);
+    return res.status(500).json({ error: "Hesabı silmək mümkün olmadı." });
+  }
+}
+
 module.exports = {
   getProfile,
   updateProfile,
+  deleteMyAccount,
+  hasValidAccountDeletionConfirmation,
+  ACCOUNT_DELETION_PHRASE,
 };

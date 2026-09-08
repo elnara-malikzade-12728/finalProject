@@ -5,9 +5,11 @@ export const getPublishedTests = (options) => apiRequest("/tests/published", { .
 export const createAdminTest = (body) => apiRequest("/tests", { method: "POST", body });
 export const deleteAdminTest = (id) => apiRequest(`/tests/${id}`, { method: "DELETE" });
 export const setAdminTestPublished = (id, published) => apiRequest(`/tests/${id}/publish`, { method: "PATCH", body: { published } });
+export const updateAdminTest = (id, body) => apiRequest(`/tests/${id}`, { method: "PATCH", body });
 export const createAdminQuestion = (testId, body) => apiRequest(`/tests/${testId}/questions`, { method: "POST", body });
 export const updateAdminQuestion = (id, body) => apiRequest(`/questions/${id}`, { method: "PATCH", body });
 export const deleteAdminQuestion = (id) => apiRequest(`/questions/${id}`, { method: "DELETE" });
+export const getTestAudioExplanation = (id, options) => apiRequest(`/tests/${id}/audio`, options);
 
 export async function startTestAttempt(testId, { signal } = {}) {
     return apiRequest(`/tests/${testId}/attempts`, {

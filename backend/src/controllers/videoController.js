@@ -601,7 +601,7 @@ async function deleteLessonVideo(req, res) {
     }
 
     if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId) {
-      await bunny.deleteVideo(lesson.videoProviderId);
+      await bunny.deleteVideo(lesson.videoProviderId, { ignoreMissing: true });
     } else {
       const supabase = getSupabaseAdmin();
 
