@@ -146,8 +146,15 @@ function CourseDetailsPage() {
 
     player.on("timeupdate", handleTimeUpdate);
     player.on("ended", handleEnded);
+    const progressSampler = window.setInterval(() => {
+      if (!active) return;
+      player.getCurrentTime((seconds) => {
+        if (active) handleTimeUpdate({ seconds });
+      });
+    }, 5000);
     return () => {
       active = false;
+      window.clearInterval(progressSampler);
       player.off("timeupdate", handleTimeUpdate);
       player.off("ended", handleEnded);
     };
