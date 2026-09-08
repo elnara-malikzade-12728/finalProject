@@ -526,9 +526,25 @@ async function getLessonVideoUrl(req, res) {
     }
 
     if (lesson.videoProvider === "BUNNY" && lesson.videoProviderId) {
+      let durationSeconds = lesson.durationSeconds;
+      if (!Number.isInteger(durationSeconds) || durationSeconds < 1) {
+        try {
+          const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
+          const refreshedDuration = Math.round(Number(bunnyVideo?.length));
+          if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
+            durationSeconds = refreshedDuration;
+            await prisma.lesson.update({
+              where: { id: lesson.id },
+              data: { durationSeconds: refreshedDuration },
+            });
+          }
+        } catch (durationError) {
+          logger.warn("Bunny video müddəti yenilənə bilmədi", durationError);
+        }
+      }
       const expiresIn = getVideoSignedUrlTtl();
       const access = bunny.createEmbedUrl(lesson.videoProviderId, expiresIn);
-      return res.status(200).json({ ...access, playbackType: "embed", provider: "BUNNY", lessonId: lesson.id, title: lesson.title, watermark: user ? { userId: user.id, email: user.email } : { userId: "preview", email: "Synex Academy" } });
+      return res.status(200).json({ ...access, playbackType: "embed", provider: "BUNNY", lessonId: lesson.id, title: lesson.title, durationSeconds, watermark: user ? { userId: user.id, email: user.email } : { userId: "preview", email: "Synex Academy" } });
     }
 
     const expiresIn = getVideoSignedUrlTtl();

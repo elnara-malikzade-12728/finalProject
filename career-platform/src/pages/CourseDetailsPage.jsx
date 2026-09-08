@@ -90,16 +90,43 @@ function CourseDetailsPage() {
 
     const player = new playerjs.Player(bunnyIframeRef.current);
     let active = true;
-    const persistPosition = async (seconds) => {
+    let completionRequested = false;
+    const persistPosition = async (seconds, { force = false } = {}) => {
       const safeSecond = Math.max(0, Math.floor(Number(seconds) || 0));
-      if (!active || safeSecond <= lastReportedSecondRef.current) return;
+      if (!active || (!force && safeSecond <= lastReportedSecondRef.current)) return null;
       try {
         const progress = await updateLessonProgress(selectedLesson.id, 0, safeSecond);
-        if (!active) return;
+        if (!active) return progress;
         lastReportedSecondRef.current = progress.lastPositionSeconds;
         setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: progress } }));
+        return progress;
       } catch (requestError) {
         if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+        throw requestError;
+      }
+    };
+    const handleEnded = async (data = {}) => {
+      if (!active || completionRequested) return;
+      completionRequested = true;
+      setUpdatingLessonId(selectedLesson.id);
+      try {
+        const finalSecond = Number(data.duration)
+          || Number(video.durationSeconds)
+          || Number(selectedLesson.durationSeconds)
+          || maxWatchedSecondsRef.current;
+        const progress = await persistPosition(finalSecond, { force: true });
+        if (!active) return;
+        setLearningState(await getMyCourseState(courseId));
+        if (active && progress?.completed) {
+          setNotification({ type: "success", message: "Video tamamlandı və dərs tamamlanmış kimi qeyd edildi." });
+        } else if (active) {
+          setNotification({ type: "error", message: "Video sona çatdı, amma dərsin tamamlanması təsdiqlənmədi. Səhifəni yeniləyib videonun son hissəsini yenidən izləyin." });
+        }
+      } catch (requestError) {
+        if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+      } finally {
+        completionRequested = false;
+        if (active) setUpdatingLessonId(null);
       }
     };
     const handleTimeUpdate = (data = {}) => {
@@ -109,20 +136,11 @@ function CourseDetailsPage() {
         return;
       }
       maxWatchedSecondsRef.current = Math.max(maxWatchedSecondsRef.current, seconds);
-      if (seconds - lastReportedSecondRef.current >= 10) persistPosition(seconds);
-    };
-    const handleEnded = async () => {
-      if (!active) return;
-      setUpdatingLessonId(selectedLesson.id);
-      try {
-        await persistPosition(Number(selectedLesson.durationSeconds) || maxWatchedSecondsRef.current);
-        if (!active) return;
-        setLearningState(await getMyCourseState(courseId));
-        if (active) setNotification({ type: "success", message: "Video tamamlandı və dərs tamamlanmış kimi qeyd edildi." });
-      } catch (requestError) {
-        if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
-      } finally {
-        if (active) setUpdatingLessonId(null);
+      const duration = Number(data.duration) || Number(video.durationSeconds) || Number(selectedLesson.durationSeconds);
+      if (duration > 0 && seconds >= duration - 1) {
+        handleEnded({ duration });
+      } else if (seconds - lastReportedSecondRef.current >= 10) {
+        persistPosition(seconds).catch(() => {});
       }
     };
 
@@ -337,7 +355,15 @@ function CourseDetailsPage() {
                 <section className="lesson-test-inline" aria-label="Dərs materialları">
                   <div><FileText size={23} /><span>Dərs materialları</span></div>
                   <ul className="lesson-resource-list">
-                    {lessonResources.map((resource) => <li key={resource.id}><a href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}</a>{resource.description && <p>{resource.description}</p>}<small>{resource.fileType || "LINK"}</small></li>)}
+                    {lessonResources.map((resource) => (
+                      <li key={resource.id}>
+                        <a href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}</a>
+                        {resource.description && <p>{resource.description}</p>}
+                        <a className="lesson-resource-open" href={resource.url} target="_blank" rel="noopener noreferrer">
+                          Materiala bax
+                        </a>
+                      </li>
+                    ))}
                   </ul>
                 </section>
               )}
