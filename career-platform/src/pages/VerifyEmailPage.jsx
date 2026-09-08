@@ -12,15 +12,33 @@ function VerifyEmailPage() {
   const [email, setEmail] = useState(params.get("email") || "");
   const [status, setStatus] = useState(token ? "E-poçt təsdiqlənir..." : "Təsdiq keçidi e-poçtunuza göndərildi.");
   const [error, setError] = useState("");
+  const [verificationComplete, setVerificationComplete] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
     if (!token || started.current) return;
     started.current = true;
+    let cancelled = false;
+    let redirectTimer;
+
     verifyEmailToken(token)
-      .then(async () => { await refreshUser(); setStatus("E-poçt ünvanınız təsdiqləndi."); })
-      .catch((requestError) => setError(getApiErrorMessage(requestError)));
-  }, [token, refreshUser]);
+      .then(async () => {
+        const verifiedUser = await refreshUser();
+        if (cancelled) return;
+        if (!verifiedUser) throw new Error("Təsdiqdən sonra istifadəçi məlumatlarını yükləmək mümkün olmadı.");
+        setVerificationComplete(true);
+        setStatus("E-poçt ünvanınız uğurla təsdiqləndi. Şəxsi kabinetə yönləndirilirsiniz...");
+        redirectTimer = window.setTimeout(() => navigate("/profile", { replace: true }), 1500);
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(getApiErrorMessage(requestError));
+      });
+
+    return () => {
+      cancelled = true;
+      if (redirectTimer) window.clearTimeout(redirectTimer);
+    };
+  }, [token, refreshUser, navigate]);
 
   async function resend(event) {
     event.preventDefault();
@@ -28,7 +46,7 @@ function VerifyEmailPage() {
     catch (requestError) { setError(getApiErrorMessage(requestError)); }
   }
 
-  return <section className="auth-section"><div className="container auth-container"><div className="auth-card"><div className="auth-heading"><h1>E-poçt təsdiqi</h1><p>{status}</p></div>{error && <div className="alert alert-error" role="alert">{error}</div>}{token && !error ? <button className="button button-primary button-large auth-submit" onClick={() => navigate("/courses")}>Kurslara keç</button> : <form className="auth-form" onSubmit={resend}><div className="form-group"><label htmlFor="verification-email">E-poçt ünvanı</label><input id="verification-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></div><button className="button button-primary button-large auth-submit">Təsdiq məktubunu yenidən göndər</button></form>}<p className="auth-switch"><Link to="/login">Giriş səhifəsinə qayıt</Link></p></div></div></section>;
+  return <section className="auth-section"><div className="container auth-container"><div className="auth-card"><div className="auth-heading"><h1>E-poçt təsdiqi</h1><p>{status}</p></div>{error && <div className="alert alert-error" role="alert">{error}</div>}{verificationComplete ? <button className="button button-primary button-large auth-submit" onClick={() => navigate("/profile", { replace: true })}>Şəxsi kabinetə keç</button> : !token && <form className="auth-form" onSubmit={resend}><div className="form-group"><label htmlFor="verification-email">E-poçt ünvanı</label><input id="verification-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></div><button className="button button-primary button-large auth-submit">Təsdiq məktubunu yenidən göndər</button></form>}<p className="auth-switch"><Link to="/login">Giriş səhifəsinə qayıt</Link></p></div></div></section>;
 }
 
 export default VerifyEmailPage;
