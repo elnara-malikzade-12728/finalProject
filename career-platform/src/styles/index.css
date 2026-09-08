@@ -3704,15 +3704,3 @@ button.course-lesson-status.is-complete:hover { background: #ccefdc; }
   color: var(--primary);
   text-decoration-color: currentColor;
 }
-
-.lesson-resource-list .lesson-resource-open {
-  display: inline-block;
-  margin-top: 4px;
-  color: var(--primary);
-  font-size: .85rem;
-}
-
-.lesson-resource-list .lesson-resource-open:hover,
-.lesson-resource-list .lesson-resource-open:focus-visible {
-  color: var(--primary-dark);
-}

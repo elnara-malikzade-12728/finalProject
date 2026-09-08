@@ -215,6 +215,10 @@ function CourseDetailsPage() {
     setIsLoadingVideo(true);
     setNotification(null);
     try {
+      if (isAuthenticated && user?.role !== "ADMIN" && lesson.isFreePreview && !learningState.enrolled) {
+        await enrollInCourse(courseId);
+        setLearningState(await getMyCourseState(courseId));
+      }
       const [response, resources] = await Promise.all([
         getLessonVideoUrl(lesson.id),
         getLessonResources(lesson.id).catch(() => []),
@@ -359,9 +363,6 @@ function CourseDetailsPage() {
                       <li key={resource.id}>
                         <a href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}</a>
                         {resource.description && <p>{resource.description}</p>}
-                        <a className="lesson-resource-open" href={resource.url} target="_blank" rel="noopener noreferrer">
-                          Materiala bax
-                        </a>
                       </li>
                     ))}
                   </ul>
