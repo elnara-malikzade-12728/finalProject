@@ -26,6 +26,18 @@ router.post("/tests/:id/attempts", auth, startTestAttempt);
 
 /**
  * @openapi
+ * /api/attempts/me:
+ *   get:
+ *     tags: [Attempts]
+ *     summary: Mənim cəhdlərimi göstər
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: İstifadəçinin cəhdləri }
+ */
+router.get("/attempts/me", auth, listMyAttempts);
+
+/**
+ * @openapi
  * /api/attempts/{id}:
  *   get:
  *     tags: [Attempts]
@@ -79,17 +91,5 @@ router.get("/attempts/:id", auth, getAttempt);
  *       409: { description: Cəhd artıq göndərilib }
  */
 router.post("/attempts/:id/submit", auth, submitAttempt);
-
-/**
- * @openapi
- * /api/attempts/me:
- *   get:
- *     tags: [Attempts]
- *     summary: Mənim cəhdlərimi göstər
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: İstifadəçinin cəhdləri }
- */
-router.get("/attempts/me", auth, listMyAttempts);
 
 module.exports = router;
