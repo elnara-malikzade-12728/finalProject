@@ -140,9 +140,29 @@ function CourseDetailsPage() {
           || maxWatchedSecondsRef.current;
         const progress = await persistPosition(finalSecond, { force: true });
         if (!active) return;
-        setLearningState(await getMyCourseState(courseId));
         if (active && progress?.completed) {
           completionConfirmed = true;
+          setLearningState((current) => {
+            const completedLessonIds = new Set(current.completedLessonIds || []);
+            completedLessonIds.add(selectedLesson.id);
+            const completedLessons = completedLessonIds.size;
+            return {
+              ...current,
+              completedLessonIds: [...completedLessonIds],
+              lessonProgress: {
+                ...current.lessonProgress,
+                [selectedLesson.id]: progress,
+              },
+              completedLessons,
+              progressPercentage: current.totalLessons
+                ? Math.round((completedLessons / current.totalLessons) * 100)
+                : 0,
+            };
+          });
+          // Refresh unlock information without delaying the visible completion state.
+          getMyCourseState(courseId)
+            .then((state) => { if (active) setLearningState(state); })
+            .catch(() => {});
           setNotification({ type: "success", message: "Video tamamlandı və dərs tamamlanmış kimi qeyd edildi." });
         } else if (active) {
           setNotification({ type: "error", message: "Video sona çatdı, amma dərsin tamamlanması təsdiqlənmədi. Səhifəni yeniləyib videonun son hissəsini yenidən izləyin." });
