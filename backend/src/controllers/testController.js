@@ -210,7 +210,7 @@ async function listTests(req, res, next) {
             orderBy: { updatedAt: "desc" },
             include: {
                 course: { select: { id: true, title: true } },
-                lesson: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true, module: { select: { course: { select: { id: true, title: true } } } } } },
                 _count: { select: { questions: true, attempts: true } },
             },
         });
@@ -238,7 +238,7 @@ async function listPublishedTests(req, res, next) {
                 audioExplanationUrl: true,
                 audioExplanationTitle: true,
                 course: { select: { id: true, title: true } },
-                lesson: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true, module: { select: { course: { select: { id: true, title: true } } } } } },
                 _count: { select: { questions: true } },
             },
         });
@@ -258,7 +258,7 @@ async function getTest(req, res, next) {
         const test = await prisma.test.findUnique({
             where: { id },
             include: {
-                lesson: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true, module: { select: { course: { select: { id: true, title: true } } } } } },
                 course: { select: { id: true, title: true } },
                 questions: {
                     orderBy: { order: "asc" },

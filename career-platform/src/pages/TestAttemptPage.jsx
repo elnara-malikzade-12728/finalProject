@@ -62,6 +62,8 @@ function TestAttemptPage() {
     const contextTitle = attempt?.test?.type === "FINAL"
         ? attempt?.test?.course?.title || "Yekun imtahan"
         : attempt?.test?.lesson?.title || "Dərs testi";
+    const courseId = attempt?.test?.course?.id
+        || attempt?.test?.lesson?.module?.course?.id;
 
     useEffect(() => {
         if (remainingSeconds === null || remainingSeconds <= 0 || attempt?.status === "SUBMITTED") return undefined;
@@ -262,9 +264,9 @@ function TestAttemptPage() {
                     <button
                         type="button"
                         className="button button-secondary"
-                        onClick={() => navigate("/courses")}
+                        onClick={() => navigate(courseId ? `/courses/${courseId}` : "/courses")}
                     >
-                        Kurslara qayıt
+                        {courseId ? "Kursa qayıt" : "Kurslara qayıt"}
                     </button>
                 </div>
             </div>
