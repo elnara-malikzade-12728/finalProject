@@ -13,6 +13,7 @@ import {
   registerUser,
 } from "../api/authApi.js";
 import {
+  ApiError,
   getApiErrorMessage,
   getToken,
 } from "../api/client.js";
@@ -42,9 +43,11 @@ export function AuthProvider({ children }) {
       setUser(currentUser);
 
       return currentUser;
-    } catch {
-      logoutUser();
-      setUser(null);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await logoutUser();
+        setUser(null);
+      }
 
       return null;
     } finally {
@@ -72,8 +75,10 @@ export function AuthProvider({ children }) {
         setUser(currentUser);
       } catch (error) {
         if (error.name !== "AbortError") {
-          logoutUser();
-          setUser(null);
+          if (error instanceof ApiError && error.status === 401) {
+            await logoutUser();
+            setUser(null);
+          }
         }
       } finally {
         if (!controller.signal.aborted) {
