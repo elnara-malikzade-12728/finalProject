@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { validateBunnyUploadBinding } = require("../src/controllers/videoController");
+const { normalizeVideoDuration, validateBunnyUploadBinding } = require("../src/controllers/videoController");
 
 const now = new Date("2026-08-31T12:00:00.000Z");
 
@@ -32,4 +32,10 @@ test("rejects an expired Bunny upload session", () => {
     status: 410,
     error: "Video yükləmə sessiyasının vaxtı bitib. Yeni yükləmə keçidi yaradın.",
   });
+});
+
+test("normalizes Bunny's decimal duration for Prisma integer storage", () => {
+  assert.equal(normalizeVideoDuration(14.47), 14);
+  assert.equal(normalizeVideoDuration(0, 887.4), 887);
+  assert.equal(normalizeVideoDuration(undefined, null), null);
 });
