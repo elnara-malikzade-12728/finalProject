@@ -203,7 +203,10 @@ function CourseDetailsPage() {
           };
         });
       }
-      if (duration > 0 && seconds / duration >= 0.98) {
+      // Do not request completion at a percentage threshold. On longer videos,
+      // 98% can still be many seconds before the server's completion window.
+      // That early request can overlap the real `ended` event and suppress it.
+      if (duration > 0 && duration - seconds <= 2) {
         handleEnded({ seconds, duration });
       } else if (persistImmediately || seconds - lastReportedSecondRef.current >= 10) {
         persistPosition(seconds, { force: persistImmediately }).catch(() => {});
