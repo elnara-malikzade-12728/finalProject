@@ -90,6 +90,7 @@ function TestPage() {
     const contextTitle = test?.type === "FINAL"
         ? test?.course?.title || "Yekun imtahan"
         : test?.lesson?.title || "Dərs testi";
+    const courseId = test?.course?.id || test?.lesson?.module?.course?.id;
 
     if (isLoading) {
         return <PageLoader message="Test yüklənir..." fullPage />;
@@ -113,8 +114,8 @@ function TestPage() {
         <section className="section">
             <div className="container test-page-layout">
                 <div className="content-card test-intro-card">
-                    <Link to="/courses" className="back-link">
-                        ← Kurslara qayıt
+                    <Link to={courseId ? `/courses/${courseId}` : "/courses"} className="back-link">
+                        ← {courseId ? "Kursa qayıt" : "Kurslara qayıt"}
                     </Link>
 
                     <span className="tag">{contextTitle}</span>
