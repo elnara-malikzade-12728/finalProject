@@ -8,7 +8,9 @@ function isPlaybackComplete(positionSeconds, durationSeconds) {
   const duration = Number(durationSeconds);
   const position = Number(positionSeconds);
   if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(position)) return false;
-  const endToleranceSeconds = Math.max(1, Math.min(5, Math.ceil(duration * 0.01)));
+  // Bunny's encoded duration can differ slightly from the player timeline.
+  // Completion still requires at least 98% playback and never forgives >15s.
+  const endToleranceSeconds = Math.max(1, Math.min(15, Math.ceil(duration * 0.02)));
   return position >= duration - endToleranceSeconds;
 }
 

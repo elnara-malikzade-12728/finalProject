@@ -101,7 +101,26 @@ function CourseDetailsPage() {
         const progress = await updateLessonProgress(selectedLesson.id, 0, safeSecond);
         if (!active) return progress;
         lastReportedSecondRef.current = progress.lastPositionSeconds;
-        setLearningState((current) => ({ ...current, lessonProgress: { ...current.lessonProgress, [selectedLesson.id]: progress } }));
+        setLearningState((current) => {
+          const displayed = current.lessonProgress?.[selectedLesson.id] || {};
+          return {
+            ...current,
+            lessonProgress: {
+              ...current.lessonProgress,
+              [selectedLesson.id]: {
+                ...progress,
+                watchedPercentage: Math.max(
+                  Number(displayed.watchedPercentage || 0),
+                  Number(progress.watchedPercentage || 0),
+                ),
+                lastPositionSeconds: Math.max(
+                  Number(displayed.lastPositionSeconds || 0),
+                  Number(progress.lastPositionSeconds || 0),
+                ),
+              },
+            },
+          };
+        });
         return progress;
       } catch (requestError) {
         if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
@@ -114,9 +133,9 @@ function CourseDetailsPage() {
       completionRequested = true;
       setUpdatingLessonId(selectedLesson.id);
       try {
-        const finalSecond = Number(video.durationSeconds)
-          || Number(data.duration)
+        const finalSecond = Number(data.duration)
           || playerDurationSeconds
+          || Number(video.durationSeconds)
           || Number(selectedLesson.durationSeconds)
           || maxWatchedSecondsRef.current;
         const progress = await persistPosition(finalSecond, { force: true });
