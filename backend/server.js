@@ -24,7 +24,15 @@ const allowedOrigins = new Set(
     .filter(Boolean),
 );
 
-app.set("trust proxy", 1);
+const configuredProxyHops = Number.parseInt(process.env.TRUST_PROXY_HOPS || "", 10);
+app.set(
+  "trust proxy",
+  process.env.VERCEL === "1"
+    ? 1
+    : Number.isInteger(configuredProxyHops) && configuredProxyHops > 0
+      ? configuredProxyHops
+      : false,
+);
 app.use(helmet());
 app.use(
   cors({
@@ -45,6 +53,10 @@ app.use(
 // body JSON-a çevrilməsin.
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "10kb" }));
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 app.use("/api", apiLimiter);
 
 const apiRoutes = require("./src/routes");
