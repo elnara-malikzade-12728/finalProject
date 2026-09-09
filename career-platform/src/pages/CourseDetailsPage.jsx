@@ -355,7 +355,7 @@ function CourseDetailsPage() {
                 )}
                 {video.watermark && <span className="video-user-watermark">{video.watermark.email} · ID {video.watermark.userId}</span>}
               </div>
-              {selectedLessonTest && (
+              {selectedLessonTest && completedLessonIds.has(selectedLesson.id) && (
                 <div className="lesson-assessment-stack">
                   <section className="lesson-test-inline" aria-label="Dərs sonu testi">
                     <div><ListChecks size={23} /><span>Dərs sonu testi</span></div>
