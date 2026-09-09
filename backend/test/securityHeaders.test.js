@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const app = require("../server");
 
 async function withServer(run) {
@@ -21,6 +23,8 @@ test("API responses use Helmet's restrictive default CSP", async () => {
     assert.ok(policy);
     assert.match(policy, /default-src 'self'/);
     assert.doesNotMatch(policy, /cdn\.jsdelivr\.net/);
+    assert.equal(response.headers.get("x-frame-options"), "SAMEORIGIN");
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   });
 });
 
@@ -34,5 +38,41 @@ test("Swagger receives only its required scoped CSP allowances", async () => {
     assert.match(policy, /script-src 'self' 'unsafe-inline' https:\/\/cdn\.jsdelivr\.net/);
     assert.match(policy, /style-src 'self' 'unsafe-inline' https:\/\/cdn\.jsdelivr\.net/);
     assert.match(policy, /connect-src 'self'/);
+  });
+});
+
+test("Docker frontend sends the browser hardening headers reported by ZAP", () => {
+  const nginxConfig = fs.readFileSync(
+    path.join(__dirname, "../../career-platform/nginx.test.conf"),
+    "utf8",
+  );
+
+  assert.match(nginxConfig, /server_tokens off;/);
+  assert.match(nginxConfig, /Content-Security-Policy .*frame-ancestors 'none'/);
+  assert.match(nginxConfig, /X-Frame-Options "DENY" always;/);
+  assert.match(nginxConfig, /X-Content-Type-Options "nosniff" always;/);
+  assert.match(nginxConfig, /proxy_set_header X-Forwarded-For \$remote_addr;/);
+  assert.doesNotMatch(nginxConfig, /proxy_add_x_forwarded_for/);
+});
+
+test("Vercel frontend sends the browser hardening headers in production", () => {
+  const config = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../../career-platform/vercel.json"),
+    "utf8",
+  ));
+  const headers = Object.fromEntries(
+    config.headers[0].headers.map(({ key, value }) => [key.toLowerCase(), value]),
+  );
+
+  assert.match(headers["content-security-policy"], /frame-ancestors 'none'/);
+  assert.equal(headers["x-frame-options"], "DENY");
+  assert.equal(headers["x-content-type-options"], "nosniff");
+  assert.match(headers["strict-transport-security"], /max-age=31536000/);
+});
+
+test("API responses are not stored by shared or browser caches", async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/route-that-does-not-exist`);
+    assert.equal(response.headers.get("cache-control"), "no-store");
   });
 });
