@@ -4,6 +4,14 @@ const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../serv
 const { canAccessCourse, getFreePreviewLessonIds, isFreePreviewLesson } = require('../services/courseAccessService');
 const bunny = require('../lib/bunnyStream');
 
+function isPlaybackComplete(positionSeconds, durationSeconds) {
+  const duration = Number(durationSeconds);
+  const position = Number(positionSeconds);
+  if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(position)) return false;
+  const endToleranceSeconds = Math.max(1, Math.min(5, Math.ceil(duration * 0.01)));
+  return position >= duration - endToleranceSeconds;
+}
+
 const structureInclude = {
   category: { include: { parent: true } },
   modules: {
@@ -316,8 +324,10 @@ async function updateLessonProgress(req, res) {
     }
 
     const safePosition = Math.min(lastPositionSeconds, durationSeconds);
-    const watchedPercentage = Math.min(100, Math.floor((safePosition / durationSeconds) * 100));
-    const completed = safePosition >= durationSeconds - 2;
+    const completed = isPlaybackComplete(safePosition, durationSeconds);
+    const watchedPercentage = completed
+      ? 100
+      : Math.min(99, Math.floor((safePosition / durationSeconds) * 100));
     const progress = await prisma.lessonProgress.upsert({
       where: { userId_lessonId: { userId: req.user.id, lessonId } },
       update: { watchedPercentage, lastPositionSeconds: safePosition, completed, lastHeartbeatAt: now },
@@ -543,6 +553,7 @@ async function deleteLesson(req, res) {
 }
 
 module.exports = {
+  isPlaybackComplete,
   listPublishedCourses,
   getPublishedCourse,
   enrollInCourse,
