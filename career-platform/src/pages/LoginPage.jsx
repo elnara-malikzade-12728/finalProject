@@ -285,7 +285,7 @@ function LoginPage() {
           </form>
 
           <p className="auth-switch">
-            <Link to="/forgot-password">Şifrəni unutmusunuz?</Link>
+            <Link to="/forgot-password">Şifrəni unutmusan?</Link>
           </p>
 
           <p className="auth-switch">

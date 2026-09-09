@@ -92,6 +92,7 @@ function CourseDetailsPage() {
     let active = true;
     let completionRequested = false;
     let completionConfirmed = false;
+    let isPlaying = false;
     let playerDurationSeconds = 0;
     const persistPosition = async (seconds, { force = false } = {}) => {
       const safeSecond = Math.max(0, Math.floor(Number(seconds) || 0));
@@ -109,6 +110,7 @@ function CourseDetailsPage() {
     };
     const handleEnded = async (data = {}) => {
       if (!active || completionRequested || completionConfirmed) return;
+      isPlaying = false;
       completionRequested = true;
       setUpdatingLessonId(selectedLesson.id);
       try {
@@ -133,7 +135,8 @@ function CourseDetailsPage() {
         if (active) setUpdatingLessonId(null);
       }
     };
-    const handleTimeUpdate = (data = {}) => {
+    const handleTimeUpdate = (data = {}, { allowPaused = false, persistImmediately = false } = {}) => {
+      if (!isPlaying && !allowPaused) return;
       const seconds = Math.max(0, Number(data.seconds) || 0);
       if (seconds > maxWatchedSecondsRef.current + 4) {
         player.setCurrentTime(maxWatchedSecondsRef.current);
@@ -141,18 +144,54 @@ function CourseDetailsPage() {
       }
       maxWatchedSecondsRef.current = Math.max(maxWatchedSecondsRef.current, seconds);
       const duration = Number(data.duration) || 0;
-      if (duration > 0) playerDurationSeconds = duration;
+      if (duration > 0) {
+        playerDurationSeconds = duration;
+        const watchedPercentage = Math.min(100, Math.floor((seconds / duration) * 100));
+        setLearningState((current) => {
+          const savedProgress = current.lessonProgress?.[selectedLesson.id] || {};
+          if (watchedPercentage <= Number(savedProgress.watchedPercentage || 0)) return current;
+          return {
+            ...current,
+            lessonProgress: {
+              ...current.lessonProgress,
+              [selectedLesson.id]: {
+                ...savedProgress,
+                watchedPercentage,
+                lastPositionSeconds: seconds,
+              },
+            },
+          };
+        });
+      }
       if (duration > 0 && seconds >= duration - 1) {
         handleEnded({ duration });
-      } else if (seconds - lastReportedSecondRef.current >= 10) {
-        persistPosition(seconds).catch(() => {});
+      } else if (persistImmediately || seconds - lastReportedSecondRef.current >= 10) {
+        persistPosition(seconds, { force: persistImmediately }).catch(() => {});
       }
     };
 
+    const handlePlay = () => {
+      isPlaying = true;
+    };
+    const handlePause = () => {
+      isPlaying = false;
+      player.getCurrentTime((seconds) => {
+        if (!active) return;
+        player.getDuration((duration) => {
+          if (active) handleTimeUpdate(
+            { seconds, duration },
+            { allowPaused: true, persistImmediately: true },
+          );
+        });
+      });
+    };
+
+    player.on("play", handlePlay);
+    player.on("pause", handlePause);
     player.on("timeupdate", handleTimeUpdate);
     player.on("ended", handleEnded);
     const progressSampler = window.setInterval(() => {
-      if (!active || completionConfirmed) return;
+      if (!active || !isPlaying || completionConfirmed) return;
       player.getCurrentTime((seconds) => {
         if (!active) return;
         player.getDuration((duration) => {
@@ -163,6 +202,8 @@ function CourseDetailsPage() {
     return () => {
       active = false;
       window.clearInterval(progressSampler);
+      player.off("play", handlePlay);
+      player.off("pause", handlePause);
       player.off("timeupdate", handleTimeUpdate);
       player.off("ended", handleEnded);
     };
