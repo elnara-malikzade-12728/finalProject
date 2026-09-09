@@ -26,4 +26,15 @@ function info(message) {
   if (process.env.NODE_ENV !== "production") console.info(message);
 }
 
-module.exports = { error, info };
+function warn(context, exception) {
+  console.warn({
+    context,
+    code: exception?.code,
+    name: exception?.name,
+    type: exception?.type,
+    statusCode: exception?.statusCode,
+    ...(process.env.NODE_ENV !== "production" ? { message: exception?.message } : {}),
+  });
+}
+
+module.exports = { error, info, warn };
