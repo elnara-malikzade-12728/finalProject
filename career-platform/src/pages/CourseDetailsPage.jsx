@@ -129,11 +129,11 @@ function CourseDetailsPage() {
     };
     const handleEnded = async (data = {}) => {
       if (!active || completionRequested || completionConfirmed) return;
-      isPlaying = false;
       completionRequested = true;
       setUpdatingLessonId(selectedLesson.id);
       try {
-        const finalSecond = Number(data.duration)
+        const finalSecond = Number(data.seconds)
+          || Number(data.duration)
           || playerDurationSeconds
           || Number(video.durationSeconds)
           || Number(selectedLesson.durationSeconds)
@@ -183,8 +183,8 @@ function CourseDetailsPage() {
           };
         });
       }
-      if (duration > 0 && seconds >= duration - 1) {
-        handleEnded({ duration });
+      if (duration > 0 && seconds / duration >= 0.98) {
+        handleEnded({ seconds, duration });
       } else if (persistImmediately || seconds - lastReportedSecondRef.current >= 10) {
         persistPosition(seconds, { force: persistImmediately }).catch(() => {});
       }
