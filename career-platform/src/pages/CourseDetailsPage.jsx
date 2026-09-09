@@ -114,9 +114,9 @@ function CourseDetailsPage() {
       completionRequested = true;
       setUpdatingLessonId(selectedLesson.id);
       try {
-        const finalSecond = Number(data.duration)
+        const finalSecond = Number(video.durationSeconds)
+          || Number(data.duration)
           || playerDurationSeconds
-          || Number(video.durationSeconds)
           || Number(selectedLesson.durationSeconds)
           || maxWatchedSecondsRef.current;
         const progress = await persistPosition(finalSecond, { force: true });
@@ -146,7 +146,8 @@ function CourseDetailsPage() {
       const duration = Number(data.duration) || 0;
       if (duration > 0) {
         playerDurationSeconds = duration;
-        const watchedPercentage = Math.min(100, Math.floor((seconds / duration) * 100));
+        // Only a server-confirmed completion may display 100% and unlock the test.
+        const watchedPercentage = Math.min(99, Math.floor((seconds / duration) * 100));
         setLearningState((current) => {
           const savedProgress = current.lessonProgress?.[selectedLesson.id] || {};
           if (watchedPercentage <= Number(savedProgress.watchedPercentage || 0)) return current;
