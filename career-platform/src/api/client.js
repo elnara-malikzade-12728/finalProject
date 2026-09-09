@@ -6,6 +6,23 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+export function getTokenRemainingSeconds() {
+  const token = getToken();
+  if (!token) return 0;
+
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return 0;
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const payload = JSON.parse(window.atob(padded));
+    if (!Number.isFinite(payload.exp)) return 0;
+    return Math.max(0, Math.floor(payload.exp - Date.now() / 1000));
+  } catch {
+    return 0;
+  }
+}
+
 export function setToken(token) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);

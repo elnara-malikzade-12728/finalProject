@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock3, LoaderCircle, PlayCircle, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getApiErrorMessage } from "../api/client.js";
+import { getApiErrorMessage, getTokenRemainingSeconds } from "../api/client.js";
 import { startTestAttempt, getTestById } from "../api/testsApi.js";
 import ErrorState from "../components/common/ErrorState.jsx";
 import Notification from "../components/common/Notification.jsx";
@@ -57,6 +57,17 @@ function TestPage() {
             setNotification({
                 type: "info",
                 message: "Administratorlar test cəhdini başlada bilməz.",
+            });
+            return;
+        }
+
+        const requiredSessionSeconds = (Number(test?.timeLimitMinutes) || 0) * 60 + 120;
+        if (getTokenRemainingSeconds() < requiredSessionSeconds) {
+            navigate("/login", {
+                state: {
+                    from: `/tests/${testId}`,
+                    message: "Test zamanı sessiyanın bitməməsi üçün yenidən daxil olun.",
+                },
             });
             return;
         }
