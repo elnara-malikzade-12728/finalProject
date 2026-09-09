@@ -12,8 +12,8 @@ function generateCertificateCode() {
     return crypto.randomBytes(16).toString("hex");
 }
 
-async function ensureCourseFinalPassed(userId, courseId) {
-    const course = await prisma.course.findUnique({
+async function ensureCourseFinalPassed(userId, courseId, db = prisma) {
+    const course = await db.course.findUnique({
         where: { id: courseId },
         include: {
             tests: {
@@ -33,7 +33,7 @@ async function ensureCourseFinalPassed(userId, courseId) {
 
     const testIds = course.tests.map((test) => test.id);
 
-    const latestSuccessfulAttempt = await prisma.testAttempt.findFirst({
+    const latestSuccessfulAttempt = await db.testAttempt.findFirst({
         where: {
             userId,
             testId: { in: testIds },
@@ -50,18 +50,21 @@ async function ensureCourseFinalPassed(userId, courseId) {
     return { course, latestSuccessfulAttempt };
 }
 
-async function createCertificateForUser(userId, courseId) {
-    const existing = await prisma.certificate.findFirst({
+async function createCertificateForUser(
+    userId,
+    courseId,
+    { db = prisma, autoForward = autoForwardCvForCourseCompletion } = {},
+) {
+    const existing = await db.certificate.findFirst({
         where: { userId, courseId },
     });
 
     if (existing) {
-        await autoForwardCvForCourseCompletion(userId, courseId);
         return existing;
     }
 
-    const { latestSuccessfulAttempt } = await ensureCourseFinalPassed(userId, courseId);
-    const user = await prisma.user.findUnique({
+    const { latestSuccessfulAttempt } = await ensureCourseFinalPassed(userId, courseId, db);
+    const user = await db.user.findUnique({
         where: { id: userId },
         select: { id: true, name: true },
     });
@@ -70,7 +73,7 @@ async function createCertificateForUser(userId, courseId) {
         throw createHttpError(404, "İstifadəçi tapılmadı.");
     }
 
-    const course = await prisma.course.findUnique({
+    const course = await db.course.findUnique({
         where: { id: courseId },
         select: { id: true, title: true },
     });
@@ -81,7 +84,7 @@ async function createCertificateForUser(userId, courseId) {
 
     let certificate;
     try {
-        certificate = await prisma.certificate.create({
+        certificate = await db.certificate.create({
             data: {
                 code: generateCertificateCode(),
                 userId,
@@ -91,11 +94,12 @@ async function createCertificateForUser(userId, courseId) {
         });
     } catch (error) {
         if (error.code !== "P2002") throw error;
-        certificate = await prisma.certificate.findFirst({ where: { userId, courseId } });
+        certificate = await db.certificate.findFirst({ where: { userId, courseId } });
         if (!certificate) throw error;
+        return certificate;
     }
 
-    await autoForwardCvForCourseCompletion(userId, courseId);
+    await autoForward(userId, courseId, db);
 
     return {
         ...certificate,
