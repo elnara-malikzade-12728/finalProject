@@ -50,6 +50,14 @@ function parsePositiveInteger(value) {
   return parsedValue;
 }
 
+function normalizeVideoDuration(...candidates) {
+  for (const candidate of candidates) {
+    const duration = Number(candidate);
+    if (Number.isFinite(duration) && duration > 0) return Math.round(duration);
+  }
+  return null;
+}
+
 function validateBunnyUploadBinding(lesson, videoId, now = new Date()) {
   if (!lesson.pendingVideoProviderId || lesson.pendingVideoProviderId !== videoId) {
     return { status: 400, error: "Bu Bunny videosu həmin dərs üçün yaradılmayıb." };
@@ -239,7 +247,7 @@ async function completeLessonVideoUpload(req, res) {
       const [updatedLesson] = await prisma.$transaction([
         prisma.lesson.update({
           where: { id: lessonId },
-          data: { videoProvider: "BUNNY", videoProviderId: videoId, pendingVideoProviderId: null, pendingVideoExpiresAt: null, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: Number(video.length) || Number(req.body.durationSeconds) || null },
+          data: { videoProvider: "BUNNY", videoProviderId: videoId, pendingVideoProviderId: null, pendingVideoExpiresAt: null, videoPath: null, videoMimeType: req.body.contentType || null, videoSizeBytes: Number(req.body.sizeBytes) || null, durationSeconds: normalizeVideoDuration(video.length, req.body.durationSeconds) },
         }),
         prisma.lessonProgress.deleteMany({ where: { lessonId } }),
       ]);
@@ -671,4 +679,5 @@ module.exports = {
   getLessonVideoUrl,
   deleteLessonVideo,
   validateBunnyUploadBinding,
+  normalizeVideoDuration,
 };
