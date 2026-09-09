@@ -11,6 +11,8 @@ import CorporateRoute from "./components/auth/CorporateRoute.jsx";
 import PageLoader from "./components/common/PageLoader.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import TestAttemptPage from "./pages/TestAttemptPage.jsx";
+import TestPage from "./pages/TestPage.jsx";
 
 const HomePage = lazy(
   () => import("./pages/HomePage.jsx"),
@@ -60,14 +62,6 @@ const MyApplicationsPage = lazy(
 
 const ProfilePage = lazy(
   () => import("./pages/ProfilePage.jsx"),
-);
-
-const TestPage = lazy(
-  () => import("./pages/TestPage.jsx"),
-);
-
-const TestAttemptPage = lazy(
-  () => import("./pages/TestAttemptPage.jsx"),
 );
 
 const CertificatesPage = lazy(
