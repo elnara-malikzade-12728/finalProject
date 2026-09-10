@@ -45,6 +45,7 @@ test("buildQuestionPayload validates and normalizes question fields", () => {
 
 test("assessment rules enforce specification scores and timers", () => {
     assert.deepEqual(getAssessmentRules("LESSON"), { passScorePercent: 60, timeLimitMinutes: 1 });
+    assert.deepEqual(getAssessmentRules("LESSON", { questionCount: 3 }), { passScorePercent: 60, timeLimitMinutes: 3 });
     assert.deepEqual(getAssessmentRules("FINAL"), { passScorePercent: 70, timeLimitMinutes: 30 });
     assert.deepEqual(getAssessmentRules("FINAL", { timeLimitMinutes: 45 }), { passScorePercent: 70, timeLimitMinutes: 45 });
     assert.throws(() => getAssessmentRules("LESSON", { passScorePercent: 70 }), /60%/);

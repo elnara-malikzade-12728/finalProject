@@ -44,14 +44,23 @@ async function createQuestion(req, res, next) {
             throw createHttpError(400, "Final testlərində maksimum 30 sual ola bilər.");
         }
 
-        const question = await prisma.question.create({
-            data: {
-                testId,
-                questionText: payload.questionText,
-                options: payload.options,
-                correctValue: payload.correctValue,
-                order: payload.order,
-            },
+        const question = await prisma.$transaction(async (transaction) => {
+            const created = await transaction.question.create({
+                data: {
+                    testId,
+                    questionText: payload.questionText,
+                    options: payload.options,
+                    correctValue: payload.correctValue,
+                    order: payload.order,
+                },
+            });
+            if (test.type === "LESSON") {
+                await transaction.test.update({
+                    where: { id: testId },
+                    data: { timeLimitMinutes: nextTotalCount },
+                });
+            }
+            return created;
         });
 
         return res.status(201).json(question);
@@ -120,9 +129,19 @@ async function updateQuestion(req, res, next) {
 async function deleteQuestion(req, res, next) {
     try {
         const questionId = normalizePositiveInt(req.params.id, "id");
-        await ensureQuestionExists(questionId);
+        const question = await ensureQuestionExists(questionId);
+        const test = await ensureTestOwnership(question.testId);
+        const totalCount = await prisma.question.count({ where: { testId: question.testId } });
 
-        await prisma.question.delete({ where: { id: questionId } });
+        await prisma.$transaction(async (transaction) => {
+            await transaction.question.delete({ where: { id: questionId } });
+            if (test.type === "LESSON") {
+                await transaction.test.update({
+                    where: { id: question.testId },
+                    data: { timeLimitMinutes: Math.max(1, totalCount - 1) },
+                });
+            }
+        });
         return res.status(204).send();
     } catch (error) {
         return next(error);
