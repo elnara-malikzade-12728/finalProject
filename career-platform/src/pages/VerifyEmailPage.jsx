@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { resendVerificationEmail, verifyEmailToken } from "../api/authApi.js";
+import { checkEmailVerificationStatus, getVerificationStatusToken, resendVerificationEmail, verifyEmailToken } from "../api/authApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -37,6 +37,46 @@ function VerifyEmailPage() {
     return () => {
       cancelled = true;
       if (redirectTimer) window.clearTimeout(redirectTimer);
+    };
+  }, [token, refreshUser, navigate]);
+
+  useEffect(() => {
+    if (token) return undefined;
+    const statusToken = getVerificationStatusToken();
+    if (!statusToken) return undefined;
+
+    let cancelled = false;
+    let checking = false;
+    const controller = new AbortController();
+
+    async function checkStatus() {
+      if (checking || cancelled || document.visibilityState === "hidden") return;
+      checking = true;
+      try {
+        const result = await checkEmailVerificationStatus(statusToken, { signal: controller.signal });
+        if (!result?.verified || cancelled) return;
+        const verifiedUser = await refreshUser();
+        if (!verifiedUser || cancelled) return;
+        setVerificationComplete(true);
+        setStatus("E-poçt ünvanınız təsdiqləndi. Şəxsi kabinetə yönləndirilirsiniz...");
+        navigate("/profile", { replace: true });
+      } catch (requestError) {
+        if (requestError.name !== "AbortError" && !cancelled) {
+          setError(getApiErrorMessage(requestError));
+        }
+      } finally {
+        checking = false;
+      }
+    }
+
+    checkStatus();
+    const interval = window.setInterval(checkStatus, 5000);
+    window.addEventListener("focus", checkStatus);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearInterval(interval);
+      window.removeEventListener("focus", checkStatus);
     };
   }, [token, refreshUser, navigate]);
 

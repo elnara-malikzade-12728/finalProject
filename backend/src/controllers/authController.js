@@ -95,11 +95,20 @@ async function register(req, res) {
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
+      const passwordBelongsToExistingUser = await bcrypt.compare(password, existingUser.password);
+      const { token: verificationStatusToken, hash: verificationStatusTokenHash } = createOneTimeToken();
       if (!existingUser.emailVerifiedAt) {
         const { token, hash } = createOneTimeToken();
         await prisma.user.update({
           where: { id: existingUser.id },
-          data: { verificationTokenHash: hash, verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+          data: {
+            verificationTokenHash: hash,
+            verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            ...(passwordBelongsToExistingUser ? {
+              verificationStatusTokenHash,
+              verificationStatusExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+            } : {}),
+          },
         });
         scheduleBackgroundTask(
           sendVerificationEmail(existingUser, token).catch((error) =>
@@ -107,10 +116,14 @@ async function register(req, res) {
           ),
         );
       }
-      return res.status(202).json({ message: GENERIC_REGISTRATION_MESSAGE });
+      return res.status(202).json({
+        message: GENERIC_REGISTRATION_MESSAGE,
+        verificationStatusToken,
+      });
     }
 
     const { token: verificationToken, hash: verificationTokenHash } = createOneTimeToken();
+    const { token: verificationStatusToken, hash: verificationStatusTokenHash } = createOneTimeToken();
 
     const user = await prisma.user.create({
       data: {
@@ -119,6 +132,8 @@ async function register(req, res) {
         password: hashedPassword,
         verificationTokenHash,
         verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        verificationStatusTokenHash,
+        verificationStatusExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
       },
     });
 
@@ -128,7 +143,10 @@ async function register(req, res) {
       ),
     );
 
-    return res.status(202).json({ message: GENERIC_REGISTRATION_MESSAGE });
+    return res.status(202).json({
+      message: GENERIC_REGISTRATION_MESSAGE,
+      verificationStatusToken,
+    });
   } catch (error) {
     logger.error(
       "İstifadəçi qeydiyyatı zamanı xəta:",
@@ -220,6 +238,35 @@ async function verifyEmail(req, res) {
   } catch (error) {
     logger.error("E-poçt təsdiqi zamanı xəta", error);
     return res.status(500).json({ error: "E-poçt ünvanını təsdiqləmək mümkün olmadı." });
+  }
+}
+
+async function getVerificationStatus(req, res) {
+  try {
+    const statusToken = typeof req.body?.statusToken === "string" ? req.body.statusToken.trim() : "";
+    if (!statusToken) return res.status(400).json({ error: "Təsdiq statusu tokeni tələb olunur." });
+
+    const user = await prisma.user.findFirst({
+      where: {
+        verificationStatusTokenHash: hashToken(statusToken),
+        verificationStatusExpiresAt: { gt: new Date() },
+        isActive: true,
+      },
+    });
+    if (!user?.emailVerifiedAt) return res.json({ verified: false });
+
+    const consumed = await prisma.user.updateMany({
+      where: { id: user.id, verificationStatusTokenHash: hashToken(statusToken) },
+      data: { verificationStatusTokenHash: null, verificationStatusExpiresAt: null },
+    });
+    if (consumed.count !== 1) {
+      return res.status(400).json({ error: "Təsdiq statusu sessiyası artıq istifadə edilib." });
+    }
+
+    return res.json({ verified: true, ...createAuthenticationResponse(user) });
+  } catch (error) {
+    logger.error("E-poçt təsdiqi statusu yoxlanarkən xəta", error);
+    return res.status(500).json({ error: "E-poçt təsdiqi statusunu yoxlamaq mümkün olmadı." });
   }
 }
 
@@ -318,6 +365,7 @@ module.exports = {
   logout,
   createAuthenticationResponse,
   verifyEmail,
+  getVerificationStatus,
   resendVerification,
   forgotPassword,
   resetPassword,

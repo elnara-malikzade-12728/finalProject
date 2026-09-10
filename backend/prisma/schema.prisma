@@ -31,6 +31,8 @@ model User {
   emailVerifiedAt             DateTime?
   verificationTokenHash       String?          @unique
   verificationTokenExpiresAt  DateTime?
+  verificationStatusTokenHash String?          @unique
+  verificationStatusExpiresAt DateTime?
   passwordResetTokenHash      String?          @unique
   passwordResetTokenExpiresAt DateTime?
   createdAt                   DateTime         @default(now())
