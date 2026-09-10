@@ -37,7 +37,7 @@ function validateTestType(type) {
     return safeType;
 }
 
-function getAssessmentRules(type, { passScorePercent, timeLimitMinutes } = {}) {
+function getAssessmentRules(type, { passScorePercent, timeLimitMinutes, questionCount } = {}) {
     const safeType = validateTestType(type);
     const requiredPassScore = safeType === "FINAL" ? 70 : 60;
 
@@ -57,7 +57,10 @@ function getAssessmentRules(type, { passScorePercent, timeLimitMinutes } = {}) {
         return { passScorePercent: requiredPassScore, timeLimitMinutes: finalTime };
     }
 
-    return { passScorePercent: requiredPassScore, timeLimitMinutes: 1 };
+    const lessonTime = Number.isInteger(questionCount) && questionCount > 0
+        ? questionCount
+        : 1;
+    return { passScorePercent: requiredPassScore, timeLimitMinutes: lessonTime };
 }
 
 function normalizeOptionalAudioUrl(value) {
@@ -316,6 +319,7 @@ async function updateTest(req, res, next) {
             timeLimitMinutes: body.timeLimitMinutes !== undefined
                 ? body.timeLimitMinutes
                 : effectiveType === existing.type ? existing.timeLimitMinutes : undefined,
+            questionCount: effectiveType === "LESSON" ? existing.questions.length : undefined,
         });
         updates.passScorePercent = rules.passScorePercent;
         updates.timeLimitMinutes = rules.timeLimitMinutes;
@@ -439,7 +443,7 @@ async function publishTest(req, res, next) {
 
         const ruleUpdates = publishedValue
             ? test.type === "LESSON"
-                ? { passScorePercent: 60, timeLimitMinutes: test.questions.length }
+                ? getAssessmentRules("LESSON", { questionCount: test.questions.length })
                 : { passScorePercent: 70, timeLimitMinutes: getAssessmentRules("FINAL", { timeLimitMinutes: test.timeLimitMinutes }).timeLimitMinutes }
             : {};
 
