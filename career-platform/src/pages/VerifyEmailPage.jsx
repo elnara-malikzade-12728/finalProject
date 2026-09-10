@@ -3,17 +3,22 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { checkEmailVerificationStatus, getVerificationStatusToken, resendVerificationEmail, verifyEmailToken } from "../api/authApi.js";
 import { getApiErrorMessage } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { removeQueryParameterFromUrl } from "../utils/urlSecurity.js";
 
 function VerifyEmailPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
-  const token = params.get("token") || "";
+  const [token] = useState(() => params.get("token") || "");
   const [email, setEmail] = useState(params.get("email") || "");
   const [status, setStatus] = useState(token ? "E-poçt təsdiqlənir..." : "Təsdiq keçidi e-poçtunuza göndərildi.");
   const [error, setError] = useState("");
   const [verificationComplete, setVerificationComplete] = useState(false);
   const started = useRef(false);
+
+  useEffect(() => {
+    if (token) removeQueryParameterFromUrl("token");
+  }, [token]);
 
   useEffect(() => {
     if (!token || started.current) return;
