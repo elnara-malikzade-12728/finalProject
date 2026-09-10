@@ -5,6 +5,7 @@ const {
   login,
   logout,
   verifyEmail,
+  getVerificationStatus,
   resendVerification,
   forgotPassword,
   resetPassword,
@@ -58,6 +59,9 @@ const {
  *               properties:
  *                 message:
  *                   type: string
+ *                 verificationStatusToken:
+ *                   type: string
+ *                   description: Qeydiyyat səhifəsində e-poçt təsdiqinin başqa cihazda tamamlandığını yoxlamaq üçün qısaömürlü, məhdud token.
  *       400:
  *         description: Ad, e-poçt ünvanı və şifrə daxil edilməyib
  *         content:
@@ -160,6 +164,22 @@ router.post("/login", loginLimiter, login);
  *     responses:
  *       200: { description: E-poçt ünvanı təsdiqləndi }
  *       400: { description: Keçid yanlışdır və ya vaxtı bitib }
+ * /api/auth/verification-status:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Qeydiyyat sessiyasının e-poçt təsdiqi statusunu yoxla
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [statusToken]
+ *             properties:
+ *               statusToken: { type: string }
+ *     responses:
+ *       200: { description: Təsdiq statusu qaytarıldı; təsdiqlənibsə giriş sessiyası yaradıldı }
+ *       400: { description: Status tokeni yanlışdır və ya vaxtı bitib }
  * /api/auth/resend-verification:
  *   post:
  *     tags: [Authentication]
@@ -211,6 +231,7 @@ router.post("/login", loginLimiter, login);
  *       400: { description: Token və ya şifrə yanlışdır, yaxud yeni şifrə əvvəlki ilə eynidir }
  */
 router.post("/verify-email", accountRecoveryLimiter, verifyEmail);
+router.post("/verification-status", getVerificationStatus);
 router.post("/resend-verification", accountRecoveryLimiter, resendVerification);
 router.post("/forgot-password", accountRecoveryLimiter, forgotPassword);
 router.post("/reset-password", accountRecoveryLimiter, resetPassword);

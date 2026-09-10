@@ -8,6 +8,15 @@ import {
 const CURRENT_USER_KEY = "career_platform_current_user";
 const USERS_KEY = "career_platform_users";
 const MOCK_TOKEN = "mock-authentication-token";
+const VERIFICATION_STATUS_TOKEN_KEY = "career_platform_verification_status_token";
+
+export function getVerificationStatusToken() {
+  return sessionStorage.getItem(VERIFICATION_STATUS_TOKEN_KEY) || "";
+}
+
+export function clearVerificationStatusToken() {
+  sessionStorage.removeItem(VERIFICATION_STATUS_TOKEN_KEY);
+}
 
 function readStorage(key, fallback) {
   try {
@@ -131,6 +140,10 @@ export async function registerUser(userData) {
     },
   });
 
+  if (data?.verificationStatusToken) {
+    sessionStorage.setItem(VERIFICATION_STATUS_TOKEN_KEY, data.verificationStatusToken);
+  }
+
   return data;
 }
 
@@ -138,6 +151,20 @@ export async function verifyEmailToken(token) {
   const data = await apiRequest("/auth/verify-email", { method: "POST", authenticated: false, body: { token } });
   if (!data?.token) throw new Error("E-poçt təsdiqləndi, amma giriş tokeni qaytarılmadı.");
   setToken(data.token);
+  return data;
+}
+
+export async function checkEmailVerificationStatus(statusToken, { signal } = {}) {
+  const data = await apiRequest("/auth/verification-status", {
+    method: "POST",
+    authenticated: false,
+    body: { statusToken },
+    signal,
+  });
+  if (data?.verified && data.token) {
+    setToken(data.token);
+    clearVerificationStatusToken();
+  }
   return data;
 }
 
