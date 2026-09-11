@@ -49,6 +49,10 @@ test("Docker frontend sends the browser hardening headers reported by ZAP", () =
 
   assert.match(nginxConfig, /server_tokens off;/);
   assert.match(nginxConfig, /Content-Security-Policy .*frame-ancestors 'none'/);
+  assert.doesNotMatch(nginxConfig, /style-src[^;]*'unsafe-inline'/);
+  assert.match(nginxConfig, /report-to csp-endpoint/);
+  assert.match(nginxConfig, /Reporting-Endpoints/);
+  assert.doesNotMatch(nginxConfig, /Access-Control-Allow-Origin "\*"/);
   assert.match(nginxConfig, /X-Frame-Options "DENY" always;/);
   assert.match(nginxConfig, /X-Content-Type-Options "nosniff" always;/);
   assert.match(nginxConfig, /proxy_set_header X-Forwarded-For \$remote_addr;/);
@@ -65,6 +69,10 @@ test("Vercel frontend sends the browser hardening headers in production", () => 
   );
 
   assert.match(headers["content-security-policy"], /frame-ancestors 'none'/);
+  assert.doesNotMatch(headers["content-security-policy"], /style-src[^;]*'unsafe-inline'/);
+  assert.match(headers["content-security-policy"], /report-to csp-endpoint/);
+  assert.match(headers["reporting-endpoints"], /csp-endpoint=/);
+  assert.equal(headers["access-control-allow-origin"], "https://karyerayol.vercel.app");
   assert.equal(headers["x-frame-options"], "DENY");
   assert.equal(headers["x-content-type-options"], "nosniff");
   assert.match(headers["strict-transport-security"], /max-age=31536000/);
@@ -74,5 +82,18 @@ test("API responses are not stored by shared or browser caches", async () => {
   await withServer(async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/route-that-does-not-exist`);
     assert.equal(response.headers.get("cache-control"), "no-store");
+  });
+});
+
+test("CSP reporting endpoint accepts browser reports without authentication", async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/security/csp-report`, {
+      method: "POST",
+      headers: { "content-type": "application/csp-report" },
+      body: JSON.stringify({ "csp-report": { "violated-directive": "script-src" } }),
+    });
+
+    assert.equal(response.status, 204);
+    assert.equal(await response.text(), "");
   });
 });

@@ -151,18 +151,15 @@ function RoadmapPage() {
                 />
               </div>
 
-              <div
+              <progress
                 className="progress-track"
-                role="progressbar"
+                value={progressPercentage}
+                max="100"
                 aria-label={`${career.title} yol xəritəsi irəliləyişi`}
                 aria-valuenow={progressPercentage}
                 aria-valuemin="0"
                 aria-valuemax="100"
-              >
-                <span
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
+              />
 
               <p>
                 {completedSteps.length} / {career.roadmap.length} addım

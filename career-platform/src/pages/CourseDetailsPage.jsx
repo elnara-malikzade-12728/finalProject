@@ -417,9 +417,7 @@ function CourseDetailsPage() {
                 </div>
                 <strong>{learningState.progressPercentage}%</strong>
               </div>
-              <div className="progress-track" role="progressbar" aria-label="Kursun tamamlanma faizi" aria-valuemin="0" aria-valuemax="100" aria-valuenow={learningState.progressPercentage}>
-                <span style={{ width: `${learningState.progressPercentage}%` }} />
-              </div>
+              <progress className="progress-track" value={learningState.progressPercentage} max="100" aria-label="Kursun tamamlanma faizi" aria-valuemin="0" aria-valuemax="100" aria-valuenow={learningState.progressPercentage} />
               {nextLesson && (
                 <button type="button" className="button button-primary" onClick={() => handleOpenLesson(nextLesson)} disabled={isLoadingVideo || learningState.progressPercentage === 100}>
                   <PlayCircle size={18} />
