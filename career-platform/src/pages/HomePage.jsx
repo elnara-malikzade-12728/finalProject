@@ -71,16 +71,15 @@ function HomePage() {
               <span className="hero-percentage">67%</span>
             </div>
 
-            <div
+            <progress
               className="progress-track"
-              role="progressbar"
+              value="67"
+              max="100"
               aria-valuenow="67"
               aria-valuemin="0"
               aria-valuemax="100"
               aria-label="Frontend Developer yol xəritəsi irəliləyişi"
-            >
-              <span style={{ width: "67%" }} />
-            </div>
+            />
 
             <div className="hero-step hero-step-completed">
               <span className="hero-step-number">

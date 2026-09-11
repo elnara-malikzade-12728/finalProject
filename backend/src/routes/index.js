@@ -22,6 +22,10 @@ const companyRoutes = require("./companies");
 const lessonResourceRoutes = require("./lessonResources");
 const router = express.Router();
 
+// Accept browser-generated violation reports without echoing or persisting
+// untrusted report content.
+router.post("/security/csp-report", (req, res) => res.sendStatus(204));
+
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/careers", careerRoutes);

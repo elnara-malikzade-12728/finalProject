@@ -52,6 +52,13 @@ app.use(
 // Bu, express.json()-dan ƏVVƏL olmalıdır ki, həmin bir route üçün
 // body JSON-a çevrilməsin.
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+app.use(
+  "/api/security/csp-report",
+  express.json({
+    limit: "10kb",
+    type: ["application/csp-report", "application/reports+json", "application/json"],
+  }),
+);
 app.use(express.json({ limit: "10kb" }));
 app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store");

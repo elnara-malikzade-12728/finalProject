@@ -7,7 +7,19 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https:; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; frame-src 'self' https://iframe.mediadelivery.net https://*.bunny.net; connect-src 'self' https: wss:; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https:; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; frame-src 'self' https://iframe.mediadelivery.net https://*.bunny.net; connect-src 'self' https: wss:; report-uri https://karyerayol-api.vercel.app/api/security/csp-report; report-to csp-endpoint; upgrade-insecure-requests"
+        },
+        {
+          "key": "Reporting-Endpoints",
+          "value": "csp-endpoint=\"https://karyerayol-api.vercel.app/api/security/csp-report\""
+        },
+        {
+          "key": "Report-To",
+          "value": "{\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{\"url\":\"https://karyerayol-api.vercel.app/api/security/csp-report\"}]}"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://karyerayol.vercel.app"
         },
         {
           "key": "X-Frame-Options",
