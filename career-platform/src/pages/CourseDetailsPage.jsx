@@ -101,53 +101,62 @@ function CourseDetailsPage() {
     let pendingCompletionData = null;
     let isPlaying = false;
     let playerDurationSeconds = 0;
-    const persistPosition = async (seconds, { force = false } = {}) => {
+    let queuedProgress = null;
+    let progressRequestPromise = null;
+    const persistPosition = (seconds, { force = false } = {}) => {
       const safeSecond = Math.max(0, Math.floor(Number(seconds) || 0));
-      if (!active || (!force && safeSecond <= lastReportedSecondRef.current)) return null;
-      try {
-        const progress = await updateLessonProgress(selectedLesson.id, 0, safeSecond);
-        if (!active) return progress;
-        lastReportedSecondRef.current = progress.lastPositionSeconds;
-        setLearningState((current) => {
-          const displayed = current.lessonProgress?.[selectedLesson.id] || {};
-          return {
-            ...current,
-            lessonProgress: {
-              ...current.lessonProgress,
-              [selectedLesson.id]: {
-                ...progress,
-                watchedPercentage: Math.max(
-                  Number(displayed.watchedPercentage || 0),
-                  Number(progress.watchedPercentage || 0),
-                ),
-                lastPositionSeconds: Math.max(
-                  Number(displayed.lastPositionSeconds || 0),
-                  Number(progress.lastPositionSeconds || 0),
-                ),
+      if (!active || (!force && safeSecond <= lastReportedSecondRef.current)) return Promise.resolve(null);
+      queuedProgress = {
+        seconds: Math.max(safeSecond, queuedProgress?.seconds || 0),
+        force: force || Boolean(queuedProgress?.force),
+      };
+      if (progressRequestPromise) return progressRequestPromise;
+
+      // A slow production request must not let the 5-second sampler create a
+      // backlog. Keep one request in flight and collapse samples to the newest.
+      progressRequestPromise = (async () => {
+        let latestProgress = null;
+        while (active && queuedProgress) {
+          const nextProgress = queuedProgress;
+          queuedProgress = null;
+          if (!nextProgress.force && nextProgress.seconds <= lastReportedSecondRef.current) continue;
+          latestProgress = await updateLessonProgress(selectedLesson.id, 0, nextProgress.seconds);
+          if (!active) return latestProgress;
+          lastReportedSecondRef.current = latestProgress.lastPositionSeconds;
+          setLearningState((current) => {
+            const displayed = current.lessonProgress?.[selectedLesson.id] || {};
+            return {
+              ...current,
+              lessonProgress: {
+                ...current.lessonProgress,
+                [selectedLesson.id]: {
+                  ...latestProgress,
+                  watchedPercentage: Math.max(Number(displayed.watchedPercentage || 0), Number(latestProgress.watchedPercentage || 0)),
+                  lastPositionSeconds: Math.max(Number(displayed.lastPositionSeconds || 0), Number(latestProgress.lastPositionSeconds || 0)),
+                },
               },
-            },
-          };
-        });
-        return progress;
-      } catch (requestError) {
+            };
+          });
+        }
+        return latestProgress;
+      })().catch(async (requestError) => {
+        queuedProgress = null;
         if (requestError instanceof ApiError && requestError.status === 401) {
-          // apiRequest has removed the rejected token. Stop the sampler before
-          // synchronizing AuthContext so an expired session cannot flood the API.
           completionConfirmed = true;
           isPlaying = false;
           await refreshUser();
           if (active) navigate("/login", {
             replace: true,
-            state: {
-              from: `/courses/${courseId}`,
-              message: "Sessiyanın vaxtı bitib. Davam etmək üçün yenidən daxil olun.",
-            },
+            state: { from: `/courses/${courseId}`, message: "Sessiyanın vaxtı bitib. Davam etmək üçün yenidən daxil olun." },
           });
         } else if (active) {
           setNotification({ type: "error", message: getApiErrorMessage(requestError) });
         }
         throw requestError;
-      }
+      }).finally(() => {
+        progressRequestPromise = null;
+      });
+      return progressRequestPromise;
     };
     const handleEnded = async (data = {}) => {
       if (!active || completionConfirmed) return;
@@ -166,6 +175,7 @@ function CourseDetailsPage() {
           || Number(video.durationSeconds)
           || Number(selectedLesson.durationSeconds)
           || maxWatchedSecondsRef.current;
+        await persistPosition(finalSecond, { force: true });
         const progress = await completeLessonVideo(selectedLesson.id, Math.max(0, Math.floor(finalSecond)));
         if (!active) return;
         lastReportedSecondRef.current = Number(progress?.lastPositionSeconds || finalSecond);

@@ -2,7 +2,6 @@ require("dotenv").config();
 const { PrismaClient } = require("@prisma/client");
 
 const disconnectedErrors = new Set(["P1017"]);
-const exhaustedPoolErrors = new Set(["P2024"]);
 
 let activePrisma = new PrismaClient();
 let reconnectPromise = null;
@@ -51,12 +50,11 @@ function getModelProxy(modelName) {
                   ...args,
                 );
               } catch (error) {
-                if (exhaustedPoolErrors.has(error?.code)) {
+                if (error?.code === "P2024") {
                   console.warn(
-                    `Database connection ${error.code}; retrying once on the existing pool.`,
+                    `Database connection ${error.code}; returning the pool timeout without a second blocking retry.`,
                   );
-                  await new Promise((resolve) => setTimeout(resolve, 150));
-                  return requestClient[modelName][operation](...args);
+                  throw error;
                 }
 
                 if (!disconnectedErrors.has(error?.code)) {
