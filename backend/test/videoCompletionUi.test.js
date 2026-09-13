@@ -39,3 +39,11 @@ test("expired authentication stops completion retries and returns to login", () 
   assert.match(courseDetailsSource, /completionConfirmed = true;[\s\S]*isPlaying = false;[\s\S]*await refreshUser\(\)/);
   assert.match(courseDetailsSource, /navigate\("\/login", \{[\s\S]*replace: true/);
 });
+
+test("slow progress heartbeats are coalesced and drained before completion", () => {
+  assert.match(courseDetailsSource, /let queuedProgress = null/);
+  assert.match(courseDetailsSource, /let progressRequestPromise = null/);
+  assert.match(courseDetailsSource, /if \(progressRequestPromise\) return progressRequestPromise/);
+  assert.match(courseDetailsSource, /while \(active && queuedProgress\)/);
+  assert.match(courseDetailsSource, /await persistPosition\(finalSecond, \{ force: true \}\)[\s\S]*completeLessonVideo/);
+});
