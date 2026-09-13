@@ -16,3 +16,8 @@ export const updateLessonProgress = (lessonId, watchedPercentage, lastPositionSe
   apiRequest(`/courses/lessons/${lessonId}/progress`, {
     method: 'PUT', authenticated: true, signal, body: { watchedPercentage, lastPositionSeconds },
   });
+
+export const completeLessonVideo = (lessonId, lastPositionSeconds, { signal } = {}) =>
+  apiRequest(`/courses/lessons/${lessonId}/complete`, {
+    method: 'POST', authenticated: true, signal, body: { lastPositionSeconds },
+  });

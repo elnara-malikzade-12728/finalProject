@@ -14,6 +14,14 @@ function isPlaybackComplete(positionSeconds, durationSeconds) {
   return position >= duration - endToleranceSeconds;
 }
 
+function isCompletionAdvanceAllowed(previousPosition, nextPosition, elapsedSeconds) {
+  const previous = Number(previousPosition);
+  const next = Number(nextPosition);
+  const elapsed = Math.max(0, Number(elapsedSeconds) || 0);
+  if (!Number.isFinite(previous) || !Number.isFinite(next) || next < previous) return false;
+  return next - previous <= Math.max(3, Math.ceil(elapsed) + 3);
+}
+
 const structureInclude = {
   category: { include: { parent: true } },
   modules: {
@@ -342,6 +350,86 @@ async function updateLessonProgress(req, res) {
   }
 }
 
+async function completeLessonVideo(req, res) {
+  try {
+    if (req.user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Administrator üçün dərs irəliləyişi saxlanılmır.' });
+    }
+    const lessonId = id(req.params.id);
+    const lastPositionSeconds = Number(req.body.lastPositionSeconds);
+    if (!lessonId || !Number.isInteger(lastPositionSeconds) || lastPositionSeconds < 0) {
+      return res.status(400).json({ error: 'Dərs ID-si və video mövqeyi düzgün olmalıdır.' });
+    }
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, published: true, module: { course: { published: true } } },
+      select: { id: true, durationSeconds: true, videoProviderId: true, module: { select: { courseId: true } } },
+    });
+    if (!lesson) return res.status(404).json({ error: 'Dərs tapılmadı.' });
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId: req.user.id, courseId: lesson.module.courseId } },
+    });
+    if (!enrollment) {
+      return res.status(403).json({ error: 'Dərsi tamamlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
+    }
+    const freePreview = await isFreePreviewLesson(lesson.module.courseId, lessonId);
+    if (!freePreview && !(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+      return res.status(403).json({ error: 'Aktiv abunəliyiniz və ya bu kurs üçün etibarlı alışınız yoxdur.' });
+    }
+    if (!(await isLessonUnlockedForUser(req.user.id, lesson.module.courseId, lessonId))) {
+      return res.status(403).json({ error: 'Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.' });
+    }
+
+    let durationSeconds = lesson.durationSeconds;
+    if ((!Number.isInteger(durationSeconds) || durationSeconds < 1) && lesson.videoProviderId) {
+      try {
+        const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
+        const refreshedDuration = Math.round(Number(bunnyVideo?.length));
+        if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
+          durationSeconds = refreshedDuration;
+          await prisma.lesson.update({ where: { id: lessonId }, data: { durationSeconds } });
+        }
+      } catch (durationError) {
+        logger.warn('Bunny video müddəti tamamlama üçün yenilənə bilmədi', durationError);
+      }
+    }
+    if (!Number.isInteger(durationSeconds) || durationSeconds < 1) {
+      return res.status(409).json({ error: 'Video müddəti müəyyən edilmədiyi üçün dərs tamamlana bilməz.' });
+    }
+    if (lastPositionSeconds > durationSeconds + 2) {
+      return res.status(400).json({ error: 'Video mövqeyi müddətdən böyük ola bilməz.' });
+    }
+
+    const existing = await prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+    });
+    if (existing?.completed) return res.json(existing);
+    if (!existing?.lastHeartbeatAt) {
+      return res.status(409).json({ error: 'Video izləmə ardıcıllığı təsdiqlənmədi.' });
+    }
+
+    const now = new Date();
+    const elapsedSeconds = Math.max(0, (now.getTime() - new Date(existing.lastHeartbeatAt).getTime()) / 1000);
+    if (!isCompletionAdvanceAllowed(existing.lastPositionSeconds, lastPositionSeconds, elapsedSeconds)) {
+      return res.status(409).json({ error: 'Videonu irəli ötürməklə tamamlamaq olmaz.' });
+    }
+    const safePosition = Math.min(lastPositionSeconds, durationSeconds);
+    if (!isPlaybackComplete(safePosition, durationSeconds)) {
+      return res.status(409).json({ error: 'Video hələ sona çatmayıb.' });
+    }
+
+    const progress = await prisma.lessonProgress.update({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+      data: { watchedPercentage: 100, lastPositionSeconds: safePosition, completed: true, lastHeartbeatAt: now },
+    });
+    return res.json(progress);
+  } catch (error) {
+    logger.error('Video tamamlanması təsdiqlənərkən xəta', error);
+    return res.status(500).json({ error: 'Video tamamlanmasını təsdiqləmək mümkün olmadı.' });
+  }
+}
+
 async function createCategory(req, res) {
   try {
     const name = requiredText(req.body.name, 100);
@@ -556,11 +644,13 @@ async function deleteLesson(req, res) {
 
 module.exports = {
   isPlaybackComplete,
+  isCompletionAdvanceAllowed,
   listPublishedCourses,
   getPublishedCourse,
   enrollInCourse,
   getMyCourseState,
   updateLessonProgress,
+  completeLessonVideo,
   listCourseStructure,
   createCategory,
   updateCategory,
