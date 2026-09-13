@@ -38,7 +38,7 @@ router.get('/:id', controller.getPublishedCourse);
  *   put:
  *     tags: [Learning]
  *     summary: Dərsin izləmə irəliləyişini yadda saxla
- *     description: Server ardıcıl vaxt siqnallarını video müddəti ilə yoxlayır; video sona çatdıqda dərs avtomatik tamamlanır. İrəli keçid və saxta 100% sorğusu qəbul edilmir.
+ *     description: Client eyni anda yalnız bir heartbeat göndərməli və gecikmə zamanı son mövqeləri birləşdirməlidir. Server ardıcıl vaxt siqnallarını video müddəti ilə yoxlayır; video sona çatdıqda dərs avtomatik tamamlanır. İrəli keçid və saxta 100% sorğusu qəbul edilmir.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { in: path, name: id, required: true, schema: { type: integer } }
@@ -54,8 +54,12 @@ router.get('/:id', controller.getPublishedCourse);
  *               lastPositionSeconds: { type: integer, minimum: 0, example: 135 }
  *     responses:
  *       200: { description: Dərs irəliləyişi saxlanıldı }
+ *       400: { description: Dərs ID-si və ya video mövqeyi düzgün deyil }
+ *       401: { description: Token yoxdur, yanlışdır, vaxtı bitib və ya sessiya ləğv edilib }
  *       403: { description: Kurs qeydiyyatı, aktiv abunəlik/kurs alışı tələb olunur və ya dərs hələ kilidlidir }
  *       404: { description: Dərs tapılmadı }
+ *       409: { description: Video müddəti və ya ardıcıl izləmə təsdiqlənmədi }
+ *       503: { description: Autentifikasiya verilənlər bazası müvəqqəti əlçatan deyil; valid sessiya ləğv edilmir }
  * /api/courses/lessons/{id}/complete:
  *   post:
  *     tags: [Learning]
@@ -80,6 +84,7 @@ router.get('/:id', controller.getPublishedCourse);
  *       403: { description: Kurs və ya dərs icazəsi yoxdur }
  *       404: { description: Yayımlanmış dərs tapılmadı }
  *       409: { description: Ardıcıl izləmə sübutu və ya sona yaxın mövqe yoxdur }
+ *       503: { description: Autentifikasiya verilənlər bazası müvəqqəti əlçatan deyil; valid sessiya ləğv edilmir }
  */
 router.post('/:id/enroll', auth, controller.enrollInCourse);
 router.get('/:id/me', auth, controller.getMyCourseState);
