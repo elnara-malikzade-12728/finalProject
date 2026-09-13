@@ -23,6 +23,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - JWT authentication
 - Password hashing with bcrypt
 - Email verification and single-use password recovery links delivered through SMTP
+- Password reset invalidates previous sessions, clears the stale browser token, and returns the user to login with the new password
 - User profile endpoints
 - Career and roadmap endpoints
 - Job listing endpoint
@@ -40,6 +41,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Timed lesson and final assessments with automatic submission
 - Sequential lesson locking: video completion enables the lesson test, and a passing lesson test unlocks the next lesson
 - Server-validated video completion at the natural end of both short and long videos, with immediate lesson-test availability and no page refresh required
+- Coalesced video-progress heartbeats that keep at most one request in flight and prevent backlogs during temporary production latency
 - Inline lesson-test cards beneath videos and administrator-managed audio explanations that unlock after test submission
 - Downloadable PDF certificates with embedded QR verification links
 - CV upload and lifecycle management
@@ -415,7 +417,7 @@ Swagger UI loads without a database connection, but executing database-backed re
 | `/register` | Public | User registration |
 | `/verify-email` | Public | Verify a new account or resend its verification email |
 | `/forgot-password` | Public | Request a password-reset email |
-| `/reset-password` | Public | Set a new password using a single-use reset token |
+| `/reset-password` | Public | Set a new password using a single-use token, invalidate old sessions, and return to login |
 | `/careers` | Public | Career catalogue |
 | `/careers/:careerId` | Public | Career details |
 | `/courses` | Public | Published course catalogue |
@@ -489,6 +491,7 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Careers, roadmap steps, and jobs load from the API.
 - Profile updates persist in the database.
 - Progress updates persist after refresh.
+- Temporary authentication database failures return `503` without deleting an otherwise valid browser session; invalid, expired, and revoked tokens continue to return `401`.
 - Regular users cannot access administrator operations.
 - Administrators can upload MP4, WebM, and MOV videos up to 500 MB.
 - Enrolled learners see persisted per-lesson status, overall course completion, and a continue-learning action; lessons are completed only after the server validates natural playback completion.
@@ -498,6 +501,7 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Users can enroll in published courses and open their available lesson videos.
 - The first two published lessons of each course are free previews; lesson three and later require a valid subscription or course purchase.
 - Lesson watch percentage, last position, completion, and course progress persist after refresh and login.
+- Video heartbeat samples are coalesced while a request is in flight so slow database responses cannot create a parallel request backlog.
 - At the natural end of both short and long videos, **Tamamlandı** and **Dərs testi** appear without a refresh and remain available after refresh.
 - Opening **Dərs testi** displays the test-start page immediately without a blank navigation state.
 - Anonymous, unenrolled, unauthorized, out-of-sequence, implausibly advanced, and direct client-completion requests are rejected by the video-completion endpoint.

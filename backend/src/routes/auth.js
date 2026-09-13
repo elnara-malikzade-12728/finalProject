@@ -227,7 +227,7 @@ router.post("/login", loginLimiter, login);
  *               token: { type: string }
  *               password: { type: string, format: password, minLength: 8, maxLength: 72 }
  *     responses:
- *       200: { description: Şifrə yeniləndi və əvvəlki sessiyalar ləğv edildi }
+ *       200: { description: Şifrə yeniləndi və əvvəlki sessiyalar ləğv edildi; client köhnə tokeni silib istifadəçini yeni şifrə ilə girişə yönləndirməlidir }
  *       400: { description: Token və ya şifrə yanlışdır, yaxud yeni şifrə əvvəlki ilə eynidir }
  */
 router.post("/verify-email", accountRecoveryLimiter, verifyEmail);
