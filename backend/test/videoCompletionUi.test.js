@@ -27,3 +27,15 @@ test("frontend and server use the same bounded Bunny end tolerance", () => {
   assert.match(courseDetailsSource, /Math\.max\(1, Math\.min\(15, Math\.ceil\(duration \* 0\.02\)\)\)/);
   assert.match(courseDetailsSource, /duration - seconds <= getPlaybackEndTolerance\(duration\)/);
 });
+
+test("Bunny completion sampler falls back to stored video duration", () => {
+  assert.match(courseDetailsSource, /const eventDuration = Number\(data\.duration\) \|\| 0/);
+  assert.match(courseDetailsSource, /eventDuration[\s\S]*playerDurationSeconds[\s\S]*Number\(video\.durationSeconds\)[\s\S]*Number\(selectedLesson\.durationSeconds\)/);
+  assert.match(courseDetailsSource, /handleEnded\(\{ seconds, duration \}\)/);
+});
+
+test("expired authentication stops completion retries and returns to login", () => {
+  assert.match(courseDetailsSource, /requestError instanceof ApiError && requestError\.status === 401/);
+  assert.match(courseDetailsSource, /completionConfirmed = true;[\s\S]*isPlaying = false;[\s\S]*await refreshUser\(\)/);
+  assert.match(courseDetailsSource, /navigate\("\/login", \{[\s\S]*replace: true/);
+});
