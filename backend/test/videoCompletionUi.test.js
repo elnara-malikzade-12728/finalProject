@@ -14,3 +14,10 @@ test("Bunny ended event is queued while a completion request is in flight", () =
   assert.match(courseDetailsSource, /!completionConfirmed && pendingCompletionData/);
   assert.match(courseDetailsSource, /player\.getCurrentTime[\s\S]*player\.getDuration[\s\S]*handleEnded/);
 });
+
+test("leaving a Bunny lesson cannot fail while detaching player events", () => {
+  assert.match(courseDetailsSource, /const safelyDetachPlayerEvent =/);
+  assert.match(courseDetailsSource, /if \(player\.elem\?\.contentWindow\) player\.off/);
+  assert.match(courseDetailsSource, /catch \{[\s\S]*late player callbacks harmless/);
+  assert.match(courseDetailsSource, /safelyDetachPlayerEvent\("ended", handleEnded\)/);
+});
