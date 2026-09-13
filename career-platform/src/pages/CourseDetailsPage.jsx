@@ -262,13 +262,23 @@ function CourseDetailsPage() {
         });
       });
     }, 5000);
+    const safelyDetachPlayerEvent = (eventName, handler) => {
+      // player.js posts a removeEventListener message through the iframe.
+      // During route navigation React may already have detached that iframe,
+      // so cleanup must never be allowed to abort the next page render.
+      try {
+        if (player.elem?.contentWindow) player.off(eventName, handler);
+      } catch {
+        // `active = false` already makes any late player callbacks harmless.
+      }
+    };
     return () => {
       active = false;
       window.clearInterval(progressSampler);
-      player.off("play", handlePlay);
-      player.off("pause", handlePause);
-      player.off("timeupdate", handleTimeUpdate);
-      player.off("ended", handleEnded);
+      safelyDetachPlayerEvent("play", handlePlay);
+      safelyDetachPlayerEvent("pause", handlePause);
+      safelyDetachPlayerEvent("timeupdate", handleTimeUpdate);
+      safelyDetachPlayerEvent("ended", handleEnded);
     };
   }, [courseId, learningState.enrolled, selectedLesson, user?.role, video]);
 
