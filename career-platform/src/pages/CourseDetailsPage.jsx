@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, CheckCircle2, Clock3, FileText, Layers3, ListChecks, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
 import playerjs from "player.js";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getApiErrorMessage } from "../api/client.js";
+import { ApiError, getApiErrorMessage } from "../api/client.js";
 import { completeLessonVideo, enrollInCourse, getMyCourseState, getPublishedCourse, updateLessonProgress } from "../api/coursesApi.js";
 import { getLessonVideoUrl } from "../api/videoApi.js";
 import { getMyAttempts } from "../api/testsApi.js";
@@ -24,7 +24,7 @@ function getPlaybackEndTolerance(durationSeconds) {
 function CourseDetailsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated, isInitializing } = useAuth();
+  const { user, isAuthenticated, isInitializing, refreshUser } = useAuth();
   const [course, setCourse] = useState(null);
   const [learningState, setLearningState] = useState(emptyLearningState);
   const [selectedLesson, setSelectedLesson] = useState(null);
@@ -130,7 +130,22 @@ function CourseDetailsPage() {
         });
         return progress;
       } catch (requestError) {
-        if (active) setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+        if (requestError instanceof ApiError && requestError.status === 401) {
+          // apiRequest has removed the rejected token. Stop the sampler before
+          // synchronizing AuthContext so an expired session cannot flood the API.
+          completionConfirmed = true;
+          isPlaying = false;
+          await refreshUser();
+          if (active) navigate("/login", {
+            replace: true,
+            state: {
+              from: `/courses/${courseId}`,
+              message: "Sessiyanın vaxtı bitib. Davam etmək üçün yenidən daxil olun.",
+            },
+          });
+        } else if (active) {
+          setNotification({ type: "error", message: getApiErrorMessage(requestError) });
+        }
         throw requestError;
       }
     };
@@ -209,9 +224,18 @@ function CourseDetailsPage() {
         return;
       }
       maxWatchedSecondsRef.current = Math.max(maxWatchedSecondsRef.current, seconds);
-      const duration = Number(data.duration) || 0;
+      const eventDuration = Number(data.duration) || 0;
+      if (eventDuration > 0) playerDurationSeconds = eventDuration;
+      // Bunny's iframe can keep emitting current time while omitting duration
+      // and, on some playback paths, never forward `ended`. The API metadata
+      // duration lets the sampler recognize the natural end; the backend still
+      // validates heartbeats and the authoritative stored Bunny duration.
+      const duration = eventDuration
+        || playerDurationSeconds
+        || Number(video.durationSeconds)
+        || Number(selectedLesson.durationSeconds)
+        || 0;
       if (duration > 0) {
-        playerDurationSeconds = duration;
         // Only a server-confirmed completion may display 100% and unlock the test.
         const watchedPercentage = Math.min(99, Math.floor((seconds / duration) * 100));
         setLearningState((current) => {
@@ -290,7 +314,7 @@ function CourseDetailsPage() {
       safelyDetachPlayerEvent("timeupdate", handleTimeUpdate);
       safelyDetachPlayerEvent("ended", handleEnded);
     };
-  }, [courseId, learningState.enrolled, selectedLesson, user?.role, video]);
+  }, [courseId, learningState.enrolled, navigate, refreshUser, selectedLesson, user?.role, video]);
 
   const completedLessonIds = useMemo(
     () => new Set(learningState.completedLessonIds || []),
