@@ -39,6 +39,7 @@ The deployed application now includes the core learner, administrator, assessmen
 - Mock API fallback for frontend-only demonstrations
 - Timed lesson and final assessments with automatic submission
 - Sequential lesson locking: video completion enables the lesson test, and a passing lesson test unlocks the next lesson
+- Server-validated video completion at the natural end of both short and long videos, with immediate lesson-test availability and no page refresh required
 - Inline lesson-test cards beneath videos and administrator-managed audio explanations that unlock after test submission
 - Downloadable PDF certificates with embedded QR verification links
 - CV upload and lifecycle management
@@ -339,7 +340,8 @@ The frontend normally runs at `http://localhost:5173/`.
 | `GET` | `/api/courses/:id` | No | Get published course modules and lessons |
 | `POST` | `/api/courses/:id/enroll` | User | Enroll in a published course |
 | `GET` | `/api/courses/:id/me` | Yes | Get enrollment and lesson progress |
-| `PUT` | `/api/courses/lessons/:id/progress` | User | Mark a lesson complete or incomplete |
+| `PUT` | `/api/courses/lessons/:id/progress` | User | Save server-validated playback heartbeat progress |
+| `POST` | `/api/courses/lessons/:id/complete` | User | Validate natural video completion from prior playback heartbeats |
 | `POST` | `/api/lessons/:lessonId/video/upload-url` | Admin | Create signed video-upload credentials |
 | `POST` | `/api/lessons/:lessonId/video/complete` | Admin | Verify the upload and save lesson metadata |
 | `GET` | `/api/lessons/:lessonId/video` | Yes | Get a temporary signed playback URL |
@@ -392,7 +394,7 @@ The raw OpenAPI 3.0 specification is available at:
 http://localhost:4000/api/docs.json
 ```
 
-The specification covers authentication, profiles, careers, courses, jobs, applications, progress, videos, assessments, certificates, CVs, plans, payments, subscriptions, articles, and corporate inquiries.
+The specification covers authentication, profiles, careers, courses, playback heartbeats and secure video completion, jobs, applications, progress, videos, assessments, certificates, CVs, plans, payments, subscriptions, articles, and corporate inquiries.
 
 To test a protected endpoint:
 
@@ -489,13 +491,16 @@ Feature branches are merged into their relevant integration branch. Tested front
 - Progress updates persist after refresh.
 - Regular users cannot access administrator operations.
 - Administrators can upload MP4, WebM, and MOV videos up to 500 MB.
-- Enrolled learners see persisted per-lesson status, overall course completion, and a continue-learning action; lessons are completed automatically after 90% playback.
+- Enrolled learners see persisted per-lesson status, overall course completion, and a continue-learning action; lessons are completed only after the server validates natural playback completion.
 - Invalid lesson identifiers and unsupported files are rejected.
 - Uploaded videos remain available after refresh and a new login.
 - Private videos play through expiring signed URLs.
 - Users can enroll in published courses and open their available lesson videos.
 - The first two published lessons of each course are free previews; lesson three and later require a valid subscription or course purchase.
 - Lesson watch percentage, last position, completion, and course progress persist after refresh and login.
+- At the natural end of both short and long videos, **Tamamlandı** and **Dərs testi** appear without a refresh and remain available after refresh.
+- Opening **Dərs testi** displays the test-start page immediately without a blank navigation state.
+- Anonymous, unenrolled, unauthorized, out-of-sequence, implausibly advanced, and direct client-completion requests are rejected by the video-completion endpoint.
 - Free-preview lessons open without enrollment; protected lessons reject unenrolled users.
 - Bunny playback uses expiring tokens and the configured library rejects non-whitelisted referrers.
 - Unenrolled users cannot access private lesson videos.
@@ -559,6 +564,8 @@ Configure the deployed backend with the database, JWT, Supabase/video, Stripe, a
 ### Sprint 5 completion controls
 
 - Video progress is calculated by the backend from monotonic playback heartbeats; forward seeking and client-supplied completion percentages are not trusted.
+- Natural video completion is finalized through authenticated `POST /api/courses/lessons/:lessonId/complete`. The server verifies enrollment, entitlement, lesson order, prior playback heartbeats, plausible elapsed-time advancement, reported position, and the stored Bunny duration.
+- A successful completion immediately changes the lesson to **Tamamlandı** and reveals **Dərs testi** without requiring a refresh. Completion is idempotent and persists across refresh and login.
 - The first two published lessons remain free. Signed-in learners may enroll and retain progress without purchasing; later lessons still require a valid subscription or course purchase.
 - Administrators can manage HTTPS-only PDFs, assignments, archives, and reading links under **Dərs materialları**. Learner access is checked on every resource request.
 - Users may explicitly opt in from **Şəxsi kabinet** to forward their stored CV to course-linked vacancies after passing the final exam. Duplicate applications are prevented.

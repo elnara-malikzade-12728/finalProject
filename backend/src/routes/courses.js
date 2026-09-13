@@ -75,7 +75,10 @@ router.get('/:id', controller.getPublishedCourse);
  *               lastPositionSeconds: { type: integer, minimum: 0, example: 887 }
  *     responses:
  *       200: { description: Video tamamlanması server tərəfindən təsdiqləndi }
+ *       400: { description: Dərs ID-si və ya video mövqeyi düzgün deyil }
+ *       401: { description: Autentifikasiya tələb olunur }
  *       403: { description: Kurs və ya dərs icazəsi yoxdur }
+ *       404: { description: Yayımlanmış dərs tapılmadı }
  *       409: { description: Ardıcıl izləmə sübutu və ya sona yaxın mövqe yoxdur }
  */
 router.post('/:id/enroll', auth, controller.enrollInCourse);
