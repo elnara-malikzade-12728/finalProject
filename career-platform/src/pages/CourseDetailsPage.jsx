@@ -92,6 +92,7 @@ function CourseDetailsPage() {
     let active = true;
     let completionRequested = false;
     let completionConfirmed = false;
+    let pendingCompletionData = null;
     let isPlaying = false;
     let playerDurationSeconds = 0;
     const persistPosition = async (seconds, { force = false } = {}) => {
@@ -128,7 +129,13 @@ function CourseDetailsPage() {
       }
     };
     const handleEnded = async (data = {}) => {
-      if (!active || completionRequested || completionConfirmed) return;
+      if (!active || completionConfirmed) return;
+      if (completionRequested) {
+        // Bunny can emit `ended` while the final timeupdate request is still
+        // running. Keep that authoritative event so it is not lost.
+        pendingCompletionData = data;
+        return;
+      }
       completionRequested = true;
       setUpdatingLessonId(selectedLesson.id);
       try {
@@ -172,6 +179,19 @@ function CourseDetailsPage() {
       } finally {
         completionRequested = false;
         if (active) setUpdatingLessonId(null);
+        if (active && !completionConfirmed && pendingCompletionData) {
+          const retryData = pendingCompletionData;
+          pendingCompletionData = null;
+          player.getCurrentTime((seconds) => {
+            if (!active) return;
+            player.getDuration((duration) => {
+              if (active) handleEnded({
+                seconds: Math.max(Number(retryData.seconds) || 0, Number(seconds) || 0),
+                duration: Number(duration) || Number(retryData.duration) || 0,
+              });
+            });
+          });
+        }
       }
     };
     const handleTimeUpdate = (data = {}, { allowPaused = false, persistImmediately = false } = {}) => {
