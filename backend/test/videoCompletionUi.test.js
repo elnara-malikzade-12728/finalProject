@@ -21,3 +21,9 @@ test("leaving a Bunny lesson cannot fail while detaching player events", () => {
   assert.match(courseDetailsSource, /catch \{[\s\S]*late player callbacks harmless/);
   assert.match(courseDetailsSource, /safelyDetachPlayerEvent\("ended", handleEnded\)/);
 });
+
+test("frontend and server use the same bounded Bunny end tolerance", () => {
+  assert.match(courseDetailsSource, /function getPlaybackEndTolerance/);
+  assert.match(courseDetailsSource, /Math\.max\(1, Math\.min\(15, Math\.ceil\(duration \* 0\.02\)\)\)/);
+  assert.match(courseDetailsSource, /duration - seconds <= getPlaybackEndTolerance\(duration\)/);
+});

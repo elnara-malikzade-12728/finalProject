@@ -3,7 +3,7 @@ import { ArrowLeft, BookOpen, CheckCircle2, Clock3, FileText, Layers3, ListCheck
 import playerjs from "player.js";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client.js";
-import { enrollInCourse, getMyCourseState, getPublishedCourse, updateLessonProgress } from "../api/coursesApi.js";
+import { completeLessonVideo, enrollInCourse, getMyCourseState, getPublishedCourse, updateLessonProgress } from "../api/coursesApi.js";
 import { getLessonVideoUrl } from "../api/videoApi.js";
 import { getMyAttempts } from "../api/testsApi.js";
 import ErrorState from "../components/common/ErrorState.jsx";
@@ -14,6 +14,12 @@ import TestAudioExplanation from "../components/tests/TestAudioExplanation.jsx";
 import { getLessonResources } from "../api/lessonResourcesApi.js";
 
 const emptyLearningState = { enrolled: false, hasAccess: false, completedLessonIds: [], lockedLessonIds: [], lessonProgress: {}, completedLessons: 0, totalLessons: 0, progressPercentage: 0 };
+
+function getPlaybackEndTolerance(durationSeconds) {
+  const duration = Number(durationSeconds);
+  if (!Number.isFinite(duration) || duration <= 0) return 1;
+  return Math.max(1, Math.min(15, Math.ceil(duration * 0.02)));
+}
 
 function CourseDetailsPage() {
   const { courseId } = useParams();
@@ -145,8 +151,9 @@ function CourseDetailsPage() {
           || Number(video.durationSeconds)
           || Number(selectedLesson.durationSeconds)
           || maxWatchedSecondsRef.current;
-        const progress = await persistPosition(finalSecond, { force: true });
+        const progress = await completeLessonVideo(selectedLesson.id, Math.max(0, Math.floor(finalSecond)));
         if (!active) return;
+        lastReportedSecondRef.current = Number(progress?.lastPositionSeconds || finalSecond);
         if (active && progress?.completed) {
           completionConfirmed = true;
           setLearningState((current) => {
@@ -223,10 +230,10 @@ function CourseDetailsPage() {
           };
         });
       }
-      // Do not request completion at a percentage threshold. On longer videos,
-      // 98% can still be many seconds before the server's completion window.
-      // That early request can overlap the real `ended` event and suppress it.
-      if (duration > 0 && duration - seconds <= 2) {
+      // Bunny's API duration and iframe timeline can differ slightly. Use the
+      // same bounded tolerance as the server; the server still rejects seeking
+      // through its heartbeat/maximum-advance checks.
+      if (duration > 0 && duration - seconds <= getPlaybackEndTolerance(duration)) {
         handleEnded({ seconds, duration });
       } else if (persistImmediately || seconds - lastReportedSecondRef.current >= 10) {
         persistPosition(seconds, { force: persistImmediately }).catch(() => {});
@@ -235,6 +242,9 @@ function CourseDetailsPage() {
 
     const handlePlay = () => {
       isPlaying = true;
+      // Establish a server heartbeat immediately. The completion endpoint
+      // requires prior sequential progress and never trusts `ended` alone.
+      persistPosition(maxWatchedSecondsRef.current, { force: true }).catch(() => {});
     };
     const handlePause = () => {
       isPlaying = false;

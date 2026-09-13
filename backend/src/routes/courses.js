@@ -56,10 +56,32 @@ router.get('/:id', controller.getPublishedCourse);
  *       200: { description: Dərs irəliləyişi saxlanıldı }
  *       403: { description: Kurs qeydiyyatı, aktiv abunəlik/kurs alışı tələb olunur və ya dərs hələ kilidlidir }
  *       404: { description: Dərs tapılmadı }
+ * /api/courses/lessons/{id}/complete:
+ *   post:
+ *     tags: [Learning]
+ *     summary: Video bitdikdə dərsi tamamla
+ *     description: Client completed bayrağı qəbul edilmir. Server əvvəlki heartbeat-ləri, ardıcıl mövqe artımını, giriş icazəsini və Bunny müddətinə yaxınlığı yoxlayır.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [lastPositionSeconds]
+ *             properties:
+ *               lastPositionSeconds: { type: integer, minimum: 0, example: 887 }
+ *     responses:
+ *       200: { description: Video tamamlanması server tərəfindən təsdiqləndi }
+ *       403: { description: Kurs və ya dərs icazəsi yoxdur }
+ *       409: { description: Ardıcıl izləmə sübutu və ya sona yaxın mövqe yoxdur }
  */
 router.post('/:id/enroll', auth, controller.enrollInCourse);
 router.get('/:id/me', auth, controller.getMyCourseState);
 router.put('/lessons/:id/progress', auth, controller.updateLessonProgress);
+router.post('/lessons/:id/complete', auth, controller.completeLessonVideo);
 
 router.use(auth, requireAdmin);
 
