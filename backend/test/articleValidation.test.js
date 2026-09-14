@@ -80,3 +80,12 @@ test("article payload uses a custom slug when supplied", () => {
   assert.equal(result.error, undefined);
   assert.equal(result.data.slug, "custom-slug");
 });
+
+test("article payload rejects HTML markup", () => {
+  const result = validateArticlePayload({
+    title: "Safe title",
+    content: '<img src=x onerror="alert(1)">',
+  });
+
+  assert.match(result.error, /HTML/);
+});

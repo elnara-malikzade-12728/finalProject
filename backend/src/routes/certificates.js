@@ -54,8 +54,7 @@ router.get("/:code/verify", verifyCertificate);
  *         content:
  *           application/pdf:
  *             schema: { type: string, format: binary }
- *       403: { description: Bu sertifikatə baxma icazəniz yoxdur }
- *       404: { description: Sertifikat tapılmadı }
+ *       404: { description: Sertifikat tapılmadı və ya istifadəçiyə aid deyil }
  */
 router.get("/:id/download", auth, downloadCertificate);
 
