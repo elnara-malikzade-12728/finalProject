@@ -1,4 +1,5 @@
 const prisma = require("../lib/prisma");
+const { containsHtmlMarkup } = require("../utils/plainText");
 
 function createHttpError(statusCode, message) {
     const error = new Error(message);
@@ -104,8 +105,17 @@ function buildQuestionPayload(payload) {
         throw createHttpError(400, "questionText is required.");
     }
 
+    if (containsHtmlMarkup(questionText)) {
+        throw createHttpError(400, "questionText HTML məzmunu ehtiva edə bilməz.");
+    }
+
     if (!Array.isArray(payload.options) || payload.options.length < 2) {
         throw createHttpError(400, "options must be an array with at least 2 entries.");
+    }
+
+    const options = payload.options.map((item) => String(item).trim());
+    if (options.some((item) => !item || containsHtmlMarkup(item))) {
+        throw createHttpError(400, "options boş və ya HTML məzmunlu ola bilməz.");
     }
 
     const validCorrectValue =
@@ -117,6 +127,10 @@ function buildQuestionPayload(payload) {
         throw createHttpError(400, "correctValue is invalid.");
     }
 
+    if (containsHtmlMarkup(payload.correctValue)) {
+        throw createHttpError(400, "correctValue HTML məzmunu ehtiva edə bilməz.");
+    }
+
     const orderValue = Number(payload.order);
 
     if (!Number.isInteger(orderValue) || orderValue < 1) {
@@ -125,7 +139,7 @@ function buildQuestionPayload(payload) {
 
     return {
         questionText,
-        options: payload.options.map((item) => String(item)),
+        options,
         correctValue: payload.correctValue,
         order: orderValue,
     };

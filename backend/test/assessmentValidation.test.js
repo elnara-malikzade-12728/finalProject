@@ -43,6 +43,17 @@ test("buildQuestionPayload validates and normalizes question fields", () => {
     assert.throws(() => buildQuestionPayload({ questionText: "Q", options: ["A"] }), /at least 2/);
 });
 
+test("buildQuestionPayload rejects HTML markup in learner-visible fields", () => {
+    assert.throws(
+        () => buildQuestionPayload({ questionText: '<img src=x onerror="alert(1)">', options: ["A", "B"], correctValue: "A", order: 1 }),
+        /HTML/,
+    );
+    assert.throws(
+        () => buildQuestionPayload({ questionText: "Question", options: ["A", "<script>alert(1)</script>"], correctValue: "A", order: 1 }),
+        /HTML/,
+    );
+});
+
 test("assessment rules enforce specification scores and timers", () => {
     assert.deepEqual(getAssessmentRules("LESSON"), { passScorePercent: 60, timeLimitMinutes: 1 });
     assert.deepEqual(getAssessmentRules("LESSON", { questionCount: 3 }), { passScorePercent: 60, timeLimitMinutes: 3 });

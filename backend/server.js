@@ -140,6 +140,10 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_API_DOCS === "tr
   });
 }
 
+app.use("/api", (req, res) => {
+  return res.status(404).json({ error: "API endpoint tapılmadı." });
+});
+
 app.use((error, req, res, next) => {
   if (res.headersSent) {
     return next(error);

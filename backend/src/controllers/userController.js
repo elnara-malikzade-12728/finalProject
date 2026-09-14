@@ -202,6 +202,12 @@ async function updateProfile(req, res) {
         });
       }
 
+      if (await bcrypt.compare(password, existingUser.password)) {
+        return res.status(400).json({
+          error: "Yeni şifrə əvvəlki şifrədən fərqli olmalıdır.",
+        });
+      }
+
       updates.password = await bcrypt.hash(
         password,
         10,

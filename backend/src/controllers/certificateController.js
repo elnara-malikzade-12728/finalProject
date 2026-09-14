@@ -44,11 +44,14 @@ async function downloadCertificate(req, res, next) {
         const certificateId = Number(req.params.id);
 
         if (!Number.isInteger(certificateId) || certificateId <= 0) {
-            throw createHttpError(400, "Sertifikat ID-si düzgün deyil.");
+            throw createHttpError(404, "Sertifikat tapılmadı.");
         }
 
-        const certificate = await prisma.certificate.findUnique({
-            where: { id: certificateId },
+        const certificate = await prisma.certificate.findFirst({
+            where: {
+                id: certificateId,
+                ...(req.user.role === "ADMIN" ? {} : { userId: req.user.id }),
+            },
             include: {
                 user: { select: { id: true, name: true } },
                 course: { select: { id: true, title: true } },
@@ -57,10 +60,6 @@ async function downloadCertificate(req, res, next) {
 
         if (!certificate) {
             throw createHttpError(404, "Sertifikat tapılmadı.");
-        }
-
-        if (req.user.role !== "ADMIN" && certificate.userId !== req.user.id) {
-            throw createHttpError(403, "Bu sertifikatə baxma icazəniz yoxdur.");
         }
 
         const pdf = await createCertificatePdf(certificate, process.env.FRONTEND_URL);

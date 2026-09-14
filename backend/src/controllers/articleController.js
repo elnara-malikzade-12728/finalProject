@@ -1,5 +1,6 @@
 const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
+const { containsHtmlMarkup } = require("../utils/plainText");
 
 function parsePositiveInteger(value) {
   const parsed = Number.parseInt(value, 10);
@@ -30,19 +31,20 @@ function validateArticlePayload(body = {}, { partial = false } = {}) {
   if (!partial || hasField("title")) {
     const title = typeof body.title === "string" ? body.title.trim() : "";
     if (!title) return { error: "Məqalə başlığı daxil edilməlidir." };
+    if (containsHtmlMarkup(title)) return { error: "Məqalə başlığında HTML istifadə edilə bilməz." };
     data.title = title;
   }
 
   if (hasField("summary")) {
-    data.summary =
-      typeof body.summary === "string" && body.summary.trim()
-        ? body.summary.trim()
-        : null;
+    const summary = typeof body.summary === "string" ? body.summary.trim() : "";
+    if (containsHtmlMarkup(summary)) return { error: "Qısa təsvirdə HTML istifadə edilə bilməz." };
+    data.summary = summary || null;
   }
 
   if (!partial || hasField("content")) {
     const content = typeof body.content === "string" ? body.content.trim() : "";
     if (!content) return { error: "Məqalə mətni daxil edilməlidir." };
+    if (containsHtmlMarkup(content)) return { error: "Məqalə mətnində HTML istifadə edilə bilməz." };
     data.content = content;
   }
 
