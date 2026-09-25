@@ -1,0 +1,309 @@
+const express = require('express');
+const auth = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
+const controller = require('../controllers/courseController');
+
+const router = express.Router();
+
+router.get('/', controller.listPublishedCourses);
+router.get('/admin', auth, requireAdmin, controller.listCourseStructure);
+router.get('/:id', controller.getPublishedCourse);
+
+/**
+ * @openapi
+ * /api/courses/{id}/enroll:
+ *   post:
+ *     tags: [Learning]
+ *     summary: Yayımlanmış kursa qeydiyyatdan keç
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       201: { description: Kurs qeydiyyatı yaradıldı }
+ *       200: { description: İstifadəçi artıq kursa qeydiyyatdan keçib }
+ *       403: { description: Administrator qeydiyyatı qadağandır }
+ *       404: { description: Kurs tapılmadı }
+ * /api/courses/{id}/me:
+ *   get:
+ *     tags: [Learning]
+ *     summary: Kurs qeydiyyatını və dərs irəliləyişini əldə et
+ *     description: Tamamlanmış dərslərlə yanaşı, əvvəlki dərs və test nəticəsinə əsasən kilidli dərslərin ID-lərini qaytarır.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Qeydiyyat, irəliləyiş və kilidli dərslər }
+ *       404: { description: Kurs tapılmadı }
+ * /api/courses/lessons/{id}/progress:
+ *   put:
+ *     tags: [Learning]
+ *     summary: Dərsin izləmə irəliləyişini yadda saxla
+ *     description: Client eyni anda yalnız bir heartbeat göndərməli və gecikmə zamanı son mövqeləri birləşdirməlidir. Server ardıcıl vaxt siqnallarını video müddəti ilə yoxlayır; video sona çatdıqda dərs avtomatik tamamlanır. İrəli keçid və saxta 100% sorğusu qəbul edilmir.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [lastPositionSeconds]
+ *             properties:
+ *               watchedPercentage: { type: integer, minimum: 0, maximum: 100, example: 45 }
+ *               lastPositionSeconds: { type: integer, minimum: 0, example: 135 }
+ *     responses:
+ *       200: { description: Dərs irəliləyişi saxlanıldı }
+ *       400: { description: Dərs ID-si və ya video mövqeyi düzgün deyil }
+ *       401: { description: Token yoxdur, yanlışdır, vaxtı bitib və ya sessiya ləğv edilib }
+ *       403: { description: Kurs qeydiyyatı, aktiv abunəlik/kurs alışı tələb olunur və ya dərs hələ kilidlidir }
+ *       404: { description: Dərs tapılmadı }
+ *       409: { description: Video müddəti və ya ardıcıl izləmə təsdiqlənmədi }
+ *       503: { description: Autentifikasiya verilənlər bazası müvəqqəti əlçatan deyil; valid sessiya ləğv edilmir }
+ * /api/courses/lessons/{id}/complete:
+ *   post:
+ *     tags: [Learning]
+ *     summary: Video bitdikdə dərsi tamamla
+ *     description: Client completed bayrağı qəbul edilmir. Server əvvəlki heartbeat-ləri, ardıcıl mövqe artımını, giriş icazəsini və Bunny müddətinə yaxınlığı yoxlayır.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [lastPositionSeconds]
+ *             properties:
+ *               lastPositionSeconds: { type: integer, minimum: 0, example: 887 }
+ *     responses:
+ *       200: { description: Video tamamlanması server tərəfindən təsdiqləndi }
+ *       400: { description: Dərs ID-si və ya video mövqeyi düzgün deyil }
+ *       401: { description: Autentifikasiya tələb olunur }
+ *       403: { description: Kurs və ya dərs icazəsi yoxdur }
+ *       404: { description: Yayımlanmış dərs tapılmadı }
+ *       409: { description: Ardıcıl izləmə sübutu və ya sona yaxın mövqe yoxdur }
+ *       503: { description: Autentifikasiya verilənlər bazası müvəqqəti əlçatan deyil; valid sessiya ləğv edilmir }
+ */
+router.post('/:id/enroll', auth, controller.enrollInCourse);
+router.get('/:id/me', auth, controller.getMyCourseState);
+router.put('/lessons/:id/progress', auth, controller.updateLessonProgress);
+router.post('/lessons/:id/complete', auth, controller.completeLessonVideo);
+
+router.use(auth, requireAdmin);
+
+/**
+ * @openapi
+ * /api/courses:
+ *   get:
+ *     tags: [Course Management]
+ *     summary: Yayımlanmış kursları əldə et
+ *     description: İctimai kataloq üçün yalnız yayımlanmış kursları qaytarır.
+ *     responses:
+ *       200:
+ *         description: Yayımlanmış kurslar
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items: { $ref: '#/components/schemas/ManagedCourse' }
+ *   post:
+ *     tags: [Course Management]
+ *     summary: Yeni kurs yarat
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title: { type: string, example: Introduction to Ethical Hacking }
+ *               description: { type: string, nullable: true }
+ *               categoryId: { type: integer, nullable: true }
+ *               published: { type: boolean, default: false }
+ *     responses:
+ *       201: { description: Kurs yaradıldı }
+ *       400: { description: Məlumatlar yanlışdır }
+ *       403: { description: Administrator icazəsi tələb olunur }
+ * /api/courses/{id}:
+ *   get:
+ *     tags: [Course Management]
+ *     summary: Yayımlanmış kursun proqramını əldə et
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Kursun modulları və yayımlanmış dərsləri }
+ *       404: { description: Kurs tapılmadı və ya yayımlanmayıb }
+ *   patch:
+ *     tags: [Course Management]
+ *     summary: Kursu yenilə və ya yayım vəziyyətini dəyiş
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, properties: { title: { type: string }, description: { type: string, nullable: true }, categoryId: { type: integer, nullable: true }, published: { type: boolean } } }
+ *     responses:
+ *       200: { description: Kurs yeniləndi }
+ *       404: { description: Kurs tapılmadı }
+ *   delete:
+ *     tags: [Course Management]
+ *     summary: Kursu modulları və dərsləri ilə birlikdə sil
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       204: { description: Kurs silindi }
+ *       404: { description: Kurs tapılmadı }
+ * /api/courses/admin:
+ *   get:
+ *     tags: [Course Management]
+ *     summary: Tam kurs strukturunu idarəetmə üçün əldə et
+ *     description: Qaralamalar daxil olmaqla kateqoriya, kurs, modul və dərsləri qaytarır.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Tam kurs strukturu }
+ *       401: { description: Autentifikasiya tələb olunur }
+ *       403: { description: Administrator icazəsi tələb olunur }
+ */
+router.post('/', controller.createCourse);
+
+/**
+ * @openapi
+ * /api/courses/categories:
+ *   post:
+ *     tags: [Course Management]
+ *     summary: Kurs kateqoriyası yarat
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [name], properties: { name: { type: string, example: Cybersecurity }, description: { type: string }, order: { type: integer, minimum: 0 } } }
+ *     responses:
+ *       201: { description: Kateqoriya yaradıldı }
+ *       409: { description: Kateqoriya artıq mövcuddur }
+ * /api/courses/categories/{id}:
+ *   patch:
+ *     tags: [Course Management]
+ *     summary: Kurs kateqoriyasını yenilə
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, properties: { name: { type: string }, description: { type: string, nullable: true }, order: { type: integer } } }
+ *     responses:
+ *       200: { description: Kateqoriya yeniləndi }
+ *       404: { description: Kateqoriya tapılmadı }
+ *   delete:
+ *     tags: [Course Management]
+ *     summary: Kurs kateqoriyasını sil
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       204: { description: Kateqoriya silindi }
+ */
+router.post('/categories', controller.createCategory);
+router.patch('/categories/:id', controller.updateCategory);
+router.delete('/categories/:id', controller.deleteCategory);
+
+/**
+ * @openapi
+ * /api/courses/{courseId}/modules:
+ *   post:
+ *     tags: [Course Management]
+ *     summary: Kursa modul əlavə et
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: courseId, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [title, order], properties: { title: { type: string }, description: { type: string }, order: { type: integer, minimum: 0 } } }
+ *     responses:
+ *       201: { description: Modul yaradıldı }
+ *       409: { description: Sıra nömrəsi artıq istifadə olunur }
+ * /api/courses/modules/{id}:
+ *   patch:
+ *     tags: [Course Management]
+ *     summary: Modulu yenilə
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, properties: { title: { type: string }, description: { type: string }, order: { type: integer } } }
+ *     responses:
+ *       200: { description: Modul yeniləndi }
+ *   delete:
+ *     tags: [Course Management]
+ *     summary: Modulu dərsləri ilə birlikdə sil
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       204: { description: Modul silindi }
+ */
+router.post('/:courseId/modules', controller.createModule);
+router.patch('/modules/:id', controller.updateModule);
+router.delete('/modules/:id', controller.deleteModule);
+
+/**
+ * @openapi
+ * /api/courses/modules/{moduleId}/lessons:
+ *   post:
+ *     tags: [Course Management]
+ *     summary: Modula dərs əlavə et
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: moduleId, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [title, order], properties: { title: { type: string }, description: { type: string }, order: { type: integer }, published: { type: boolean } } }
+ *     responses:
+ *       201: { description: Dərs yaradıldı }
+ *       409: { description: Sıra nömrəsi artıq istifadə olunur }
+ * /api/courses/lessons/{id}:
+ *   patch:
+ *     tags: [Course Management]
+ *     summary: Dərsi yenilə
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, properties: { title: { type: string }, description: { type: string }, order: { type: integer }, published: { type: boolean } } }
+ *     responses:
+ *       200: { description: Dərs yeniləndi }
+ *   delete:
+ *     tags: [Course Management]
+ *     summary: Dərsi sil
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       204: { description: Dərs silindi }
+ */
+router.post('/modules/:moduleId/lessons', controller.createLesson);
+router.patch('/lessons/:id', controller.updateLesson);
+router.delete('/lessons/:id', controller.deleteLesson);
+router.patch('/:id', controller.updateCourse);
+router.delete('/:id', controller.deleteCourse);
+
+module.exports = router;

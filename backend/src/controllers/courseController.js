@@ -1,0 +1,667 @@
+const prisma = require('../lib/prisma');
+const logger = require('../utils/logger');
+const { getCourseLessonUnlockState, isLessonUnlockedForUser } = require('../services/lessonUnlockService');
+const { canAccessCourse, getFreePreviewLessonIds, isFreePreviewLesson } = require('../services/courseAccessService');
+const bunny = require('../lib/bunnyStream');
+
+function isPlaybackComplete(positionSeconds, durationSeconds) {
+  const duration = Number(durationSeconds);
+  const position = Number(positionSeconds);
+  if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(position)) return false;
+  // Bunny's encoded duration can differ slightly from the player timeline.
+  // Completion still requires at least 98% playback and never forgives >15s.
+  const endToleranceSeconds = Math.max(1, Math.min(15, Math.ceil(duration * 0.02)));
+  return position >= duration - endToleranceSeconds;
+}
+
+function isCompletionAdvanceAllowed(previousPosition, nextPosition, elapsedSeconds) {
+  const previous = Number(previousPosition);
+  const next = Number(nextPosition);
+  const elapsed = Math.max(0, Number(elapsedSeconds) || 0);
+  if (!Number.isFinite(previous) || !Number.isFinite(next) || next < previous) return false;
+  return next - previous <= Math.max(3, Math.ceil(elapsed) + 3);
+}
+
+const structureInclude = {
+  category: { include: { parent: true } },
+  modules: {
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
+    include: { lessons: { orderBy: [{ order: 'asc' }, { id: 'asc' }] } },
+  },
+};
+
+function withAutomaticFreePreviews(course) {
+  const freePreviewLessonIds = new Set(getFreePreviewLessonIds(course.modules));
+  return {
+    ...course,
+    modules: course.modules.map((module) => ({
+      ...module,
+      lessons: module.lessons.map((lesson) => ({
+        ...lesson,
+        isFreePreview: freePreviewLessonIds.has(lesson.id),
+      })),
+    })),
+  };
+}
+
+function id(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function requiredText(value, max = 150) {
+  const result = typeof value === 'string' ? value.trim() : '';
+  return result && result.length <= max ? result : null;
+}
+
+function optionalText(value) {
+  if (value === undefined) return undefined;
+  const result = typeof value === 'string' ? value.trim() : '';
+  return result || null;
+}
+
+function sortOrder(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+async function listCourseStructure(_req, res) {
+  try {
+    const [categories, courses] = await Promise.all([
+      prisma.courseCategory.findMany({
+        include: { parent: true, children: { orderBy: [{ order: 'asc' }, { name: 'asc' }] } },
+        orderBy: [{ parentId: 'asc' }, { order: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.course.findMany({ include: structureInclude, orderBy: { createdAt: 'desc' } }),
+    ]);
+    return res.json({ categories, courses: courses.map(withAutomaticFreePreviews) });
+  } catch (error) {
+    logger.error('Kurs strukturu alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kurs strukturunu yükləmək mümkün olmadı.' });
+  }
+}
+
+async function listPublishedCourses(_req, res) {
+  try {
+    const courses = await prisma.course.findMany({
+      where: { published: true },
+      include: {
+        category: { select: { id: true, name: true, parent: { select: { id: true, name: true } } } },
+        modules: {
+          select: {
+            id: true,
+            lessons: { where: { published: true }, select: { id: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json(courses.map((course) => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      moduleCount: course.modules.length,
+      lessonCount: course.modules.reduce((total, module) => total + module.lessons.length, 0),
+    })));
+  } catch (error) {
+    logger.error('Yayımlanmış kurslar alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kursları yükləmək mümkün olmadı.' });
+  }
+}
+
+async function getPublishedCourse(req, res) {
+  try {
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, published: true },
+      include: {
+        category: true,
+        modules: {
+          orderBy: [{ order: 'asc' }, { id: 'asc' }],
+          include: {
+            lessons: {
+              where: { published: true },
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
+              select: {
+                id: true, title: true, description: true, order: true, durationSeconds: true,
+                videoPath: true, videoProviderId: true,
+                tests: {
+                  where: { published: true, type: 'LESSON' },
+                  select: {
+                    id: true,
+                    title: true,
+                    passScorePercent: true,
+                    timeLimitMinutes: true,
+                    audioExplanationUrl: true,
+                    _count: { select: { questions: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    const freePreviewLessonIds = new Set(getFreePreviewLessonIds(course.modules));
+
+    return res.json({
+      ...course,
+      modules: course.modules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map(({ videoPath, videoProviderId, ...lesson }) => ({
+          ...lesson,
+          tests: lesson.tests.map(({ audioExplanationUrl, ...test }) => ({
+            ...test,
+            hasAudioExplanation: Boolean(audioExplanationUrl),
+          })),
+          isFreePreview: freePreviewLessonIds.has(lesson.id),
+          hasVideo: Boolean(videoPath || videoProviderId),
+        })),
+      })),
+    });
+  } catch (error) {
+    logger.error('Yayımlanmış kurs alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kursu yükləmək mümkün olmadı.' });
+  }
+}
+
+async function enrollInCourse(req, res) {
+  try {
+    if (req.user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Administrator kursa qeydiyyatdan keçə bilməz.' });
+    }
+
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, published: true },
+      select: { id: true },
+    });
+    if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+
+    const existing = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId: req.user.id, courseId } },
+    });
+    if (existing) return res.status(200).json(existing);
+
+    const enrollment = await prisma.enrollment.create({
+      data: { userId: req.user.id, courseId },
+    });
+    return res.status(201).json(enrollment);
+  } catch (error) {
+    logger.error('Kursa qeydiyyat zamanı xəta', error);
+    return res.status(500).json({ error: 'Kursa qeydiyyatdan keçmək mümkün olmadı.' });
+  }
+}
+
+async function getMyCourseState(req, res) {
+  try {
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, published: true },
+      select: {
+        id: true,
+        modules: {
+          select: {
+            lessons: { where: { published: true }, select: { id: true } },
+          },
+        },
+      },
+    });
+    if (!course) return res.status(404).json({ error: 'Kurs tapılmadı.' });
+
+    const lessonIds = course.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id));
+    const enrollment = req.user.role === 'ADMIN'
+      ? null
+      : await prisma.enrollment.findUnique({
+          where: { userId_courseId: { userId: req.user.id, courseId } },
+        });
+    const hasAccess = req.user.role === 'ADMIN' || await canAccessCourse(req.user.id, courseId);
+    const enrolled = req.user.role === 'ADMIN' || Boolean(enrollment);
+    const progress = enrolled && lessonIds.length
+      ? await prisma.lessonProgress.findMany({
+          where: { userId: req.user.id, lessonId: { in: lessonIds } },
+          select: { lessonId: true, completed: true, watchedPercentage: true, lastPositionSeconds: true },
+        })
+      : [];
+    const completedLessonIds = progress.filter((item) => item.completed).map((item) => item.lessonId);
+    const lessonProgress = Object.fromEntries(progress.map((item) => [item.lessonId, { watchedPercentage: item.watchedPercentage, lastPositionSeconds: item.lastPositionSeconds }]));
+    const { lockedLessonIds } = enrolled && req.user.role !== 'ADMIN'
+      ? await getCourseLessonUnlockState(req.user.id, courseId)
+      : { lockedLessonIds: [] };
+
+    return res.json({
+      enrolled,
+      hasAccess,
+      completedLessonIds,
+      lockedLessonIds,
+      lessonProgress,
+      completedLessons: completedLessonIds.length,
+      totalLessons: lessonIds.length,
+      progressPercentage: lessonIds.length
+        ? Math.round((completedLessonIds.length / lessonIds.length) * 100)
+        : 0,
+    });
+  } catch (error) {
+    logger.error('Kurs irəliləyişi alınarkən xəta', error);
+    return res.status(500).json({ error: 'Kurs irəliləyişini yükləmək mümkün olmadı.' });
+  }
+}
+
+async function updateLessonProgress(req, res) {
+  try {
+    if (req.user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Administrator üçün dərs irəliləyişi saxlanılmır.' });
+    }
+    const lessonId = id(req.params.id);
+    const lastPositionSeconds = Number(req.body.lastPositionSeconds);
+    if (!lessonId || !Number.isInteger(lastPositionSeconds) || lastPositionSeconds < 0) {
+      return res.status(400).json({ error: 'Dərs ID-si və video mövqeyi düzgün olmalıdır.' });
+    }
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, published: true, module: { course: { published: true } } },
+      select: { id: true, durationSeconds: true, videoProviderId: true, module: { select: { courseId: true } } },
+    });
+    if (!lesson) return res.status(404).json({ error: 'Dərs tapılmadı.' });
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId: req.user.id, courseId: lesson.module.courseId },
+      },
+    });
+    if (!enrollment) {
+      return res.status(403).json({ error: 'İrəliləyişi saxlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
+    }
+
+    const freePreview = await isFreePreviewLesson(lesson.module.courseId, lessonId);
+    if (!freePreview && !(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+      return res.status(403).json({ error: 'Aktiv abunəliyiniz və ya bu kurs üçün etibarlı alışınız yoxdur.' });
+    }
+
+    if (!(await isLessonUnlockedForUser(req.user.id, lesson.module.courseId, lessonId))) {
+      return res.status(403).json({ error: 'Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.' });
+    }
+
+    let durationSeconds = lesson.durationSeconds;
+    if ((!Number.isInteger(durationSeconds) || durationSeconds < 1) && lesson.videoProviderId) {
+      try {
+        const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
+        const refreshedDuration = Math.round(Number(bunnyVideo?.length));
+        if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
+          durationSeconds = refreshedDuration;
+          await prisma.lesson.update({ where: { id: lessonId }, data: { durationSeconds } });
+        }
+      } catch (durationError) {
+        logger.warn('Bunny video müddəti irəliləyiş üçün yenilənə bilmədi', durationError);
+      }
+    }
+    if (!Number.isInteger(durationSeconds) || durationSeconds < 1) {
+      return res.status(409).json({ error: 'Video müddəti müəyyən edilmədiyi üçün irəliləyiş saxlanıla bilməz.' });
+    }
+    if (lastPositionSeconds > durationSeconds + 2) {
+      return res.status(400).json({ error: 'Video mövqeyi müddətdən böyük ola bilməz.' });
+    }
+
+    let existing = await prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+    });
+    if (existing && existing.lastPositionSeconds > durationSeconds + 2) {
+      await prisma.lessonProgress.delete({
+        where: { userId_lessonId: { userId: req.user.id, lessonId } },
+      });
+      existing = null;
+    }
+    const previousPosition = existing?.lastPositionSeconds || 0;
+    if (lastPositionSeconds < previousPosition) return res.json(existing);
+
+    const now = new Date();
+    const elapsedSeconds = existing?.lastHeartbeatAt
+      ? Math.max(0, (now.getTime() - new Date(existing.lastHeartbeatAt).getTime()) / 1000)
+      : 0;
+    const maximumAdvance = existing ? Math.max(12, Math.ceil(elapsedSeconds) + 8) : 15;
+    if (lastPositionSeconds - previousPosition > maximumAdvance) {
+      return res.status(409).json({ error: 'Videonu irəli ötürmək olmaz. Son izlənilən mövqedən davam edin.' });
+    }
+
+    const safePosition = Math.min(lastPositionSeconds, durationSeconds);
+    const completed = isPlaybackComplete(safePosition, durationSeconds);
+    const watchedPercentage = completed
+      ? 100
+      : Math.min(99, Math.floor((safePosition / durationSeconds) * 100));
+    const progress = await prisma.lessonProgress.upsert({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+      update: { watchedPercentage, lastPositionSeconds: safePosition, completed, lastHeartbeatAt: now },
+      create: { userId: req.user.id, lessonId, watchedPercentage, lastPositionSeconds: safePosition, completed, lastHeartbeatAt: now },
+    });
+    return res.json(progress);
+  } catch (error) {
+    logger.error('Dərs irəliləyişi yenilənərkən xəta', error);
+    return res.status(500).json({ error: 'Dərs irəliləyişini saxlamaq mümkün olmadı.' });
+  }
+}
+
+async function completeLessonVideo(req, res) {
+  try {
+    if (req.user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Administrator üçün dərs irəliləyişi saxlanılmır.' });
+    }
+    const lessonId = id(req.params.id);
+    const lastPositionSeconds = Number(req.body.lastPositionSeconds);
+    if (!lessonId || !Number.isInteger(lastPositionSeconds) || lastPositionSeconds < 0) {
+      return res.status(400).json({ error: 'Dərs ID-si və video mövqeyi düzgün olmalıdır.' });
+    }
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, published: true, module: { course: { published: true } } },
+      select: { id: true, durationSeconds: true, videoProviderId: true, module: { select: { courseId: true } } },
+    });
+    if (!lesson) return res.status(404).json({ error: 'Dərs tapılmadı.' });
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId: req.user.id, courseId: lesson.module.courseId } },
+    });
+    if (!enrollment) {
+      return res.status(403).json({ error: 'Dərsi tamamlamaq üçün kursa qeydiyyatdan keçməlisiniz.' });
+    }
+    const freePreview = await isFreePreviewLesson(lesson.module.courseId, lessonId);
+    if (!freePreview && !(await canAccessCourse(req.user.id, lesson.module.courseId))) {
+      return res.status(403).json({ error: 'Aktiv abunəliyiniz və ya bu kurs üçün etibarlı alışınız yoxdur.' });
+    }
+    if (!(await isLessonUnlockedForUser(req.user.id, lesson.module.courseId, lessonId))) {
+      return res.status(403).json({ error: 'Əvvəlki dərsi tamamlayın və tələb olunan dərs testindən keçin.' });
+    }
+
+    let durationSeconds = lesson.durationSeconds;
+    if ((!Number.isInteger(durationSeconds) || durationSeconds < 1) && lesson.videoProviderId) {
+      try {
+        const bunnyVideo = await bunny.getVideo(lesson.videoProviderId);
+        const refreshedDuration = Math.round(Number(bunnyVideo?.length));
+        if (Number.isInteger(refreshedDuration) && refreshedDuration > 0) {
+          durationSeconds = refreshedDuration;
+          await prisma.lesson.update({ where: { id: lessonId }, data: { durationSeconds } });
+        }
+      } catch (durationError) {
+        logger.warn('Bunny video müddəti tamamlama üçün yenilənə bilmədi', durationError);
+      }
+    }
+    if (!Number.isInteger(durationSeconds) || durationSeconds < 1) {
+      return res.status(409).json({ error: 'Video müddəti müəyyən edilmədiyi üçün dərs tamamlana bilməz.' });
+    }
+    if (lastPositionSeconds > durationSeconds + 2) {
+      return res.status(400).json({ error: 'Video mövqeyi müddətdən böyük ola bilməz.' });
+    }
+
+    const existing = await prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+    });
+    if (existing?.completed) return res.json(existing);
+    if (!existing?.lastHeartbeatAt) {
+      return res.status(409).json({ error: 'Video izləmə ardıcıllığı təsdiqlənmədi.' });
+    }
+
+    const now = new Date();
+    const elapsedSeconds = Math.max(0, (now.getTime() - new Date(existing.lastHeartbeatAt).getTime()) / 1000);
+    if (!isCompletionAdvanceAllowed(existing.lastPositionSeconds, lastPositionSeconds, elapsedSeconds)) {
+      return res.status(409).json({ error: 'Videonu irəli ötürməklə tamamlamaq olmaz.' });
+    }
+    const safePosition = Math.min(lastPositionSeconds, durationSeconds);
+    if (!isPlaybackComplete(safePosition, durationSeconds)) {
+      return res.status(409).json({ error: 'Video hələ sona çatmayıb.' });
+    }
+
+    const progress = await prisma.lessonProgress.update({
+      where: { userId_lessonId: { userId: req.user.id, lessonId } },
+      data: { watchedPercentage: 100, lastPositionSeconds: safePosition, completed: true, lastHeartbeatAt: now },
+    });
+    return res.json(progress);
+  } catch (error) {
+    logger.error('Video tamamlanması təsdiqlənərkən xəta', error);
+    return res.status(500).json({ error: 'Video tamamlanmasını təsdiqləmək mümkün olmadı.' });
+  }
+}
+
+async function createCategory(req, res) {
+  try {
+    const name = requiredText(req.body.name, 100);
+    if (!name) return res.status(400).json({ error: 'Kateqoriya adı 1–100 simvol olmalıdır.' });
+    const parentId = req.body.parentId ? id(req.body.parentId) : null;
+    if (req.body.parentId && !parentId) return res.status(400).json({ error: 'Ana kateqoriya ID-si yanlışdır.' });
+    const result = await prisma.courseCategory.create({
+      data: { name, description: optionalText(req.body.description), order: sortOrder(req.body.order), parentId },
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Bu kateqoriya artıq mövcuddur.' });
+    logger.error('Kurs kateqoriyası yaradılarkən xəta', error);
+    return res.status(500).json({ error: 'Kateqoriya yaratmaq mümkün olmadı.' });
+  }
+}
+
+async function updateCategory(req, res) {
+  try {
+    const categoryId = id(req.params.id);
+    if (!categoryId) return res.status(400).json({ error: 'Kateqoriya ID-si yanlışdır.' });
+    const data = {};
+    if ('name' in req.body) {
+      data.name = requiredText(req.body.name, 100);
+      if (!data.name) return res.status(400).json({ error: 'Kateqoriya adı 1–100 simvol olmalıdır.' });
+    }
+    if ('description' in req.body) data.description = optionalText(req.body.description);
+    if ('order' in req.body) data.order = sortOrder(req.body.order);
+    if ('parentId' in req.body) {
+      data.parentId = req.body.parentId ? id(req.body.parentId) : null;
+      if (req.body.parentId && !data.parentId) return res.status(400).json({ error: 'Ana kateqoriya ID-si yanlışdır.' });
+      if (data.parentId === categoryId) return res.status(400).json({ error: 'Kateqoriya öz ana kateqoriyası ola bilməz.' });
+    }
+    return res.json(await prisma.courseCategory.update({ where: { id: categoryId }, data }));
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Kateqoriya tapılmadı.' });
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Bu kateqoriya artıq mövcuddur.' });
+    logger.error('Kurs kateqoriyası yenilənərkən xəta', error);
+    return res.status(500).json({ error: 'Kateqoriyanı yeniləmək mümkün olmadı.' });
+  }
+}
+
+async function deleteCategory(req, res) {
+  try {
+    const categoryId = id(req.params.id);
+    if (!categoryId) return res.status(400).json({ error: 'Kateqoriya ID-si yanlışdır.' });
+    await prisma.courseCategory.delete({ where: { id: categoryId } });
+    return res.status(204).send();
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Kateqoriya tapılmadı.' });
+    logger.error('Kurs kateqoriyası silinərkən xəta', error);
+    return res.status(500).json({ error: 'Kateqoriyanı silmək mümkün olmadı.' });
+  }
+}
+
+async function createCourse(req, res) {
+  try {
+    const title = requiredText(req.body.title);
+    const categoryId = req.body.categoryId ? id(req.body.categoryId) : null;
+    if (!title) return res.status(400).json({ error: 'Kurs adı 1–150 simvol olmalıdır.' });
+    if (req.body.categoryId && !categoryId) return res.status(400).json({ error: 'Kateqoriya ID-si yanlışdır.' });
+    const result = await prisma.course.create({
+      data: { title, description: optionalText(req.body.description), published: req.body.published === true, categoryId },
+      include: structureInclude,
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    if (error.code === 'P2003') return res.status(404).json({ error: 'Kateqoriya tapılmadı.' });
+    logger.error('Kurs yaradılarkən xəta', error);
+    return res.status(500).json({ error: 'Kurs yaratmaq mümkün olmadı.' });
+  }
+}
+
+async function updateCourse(req, res) {
+  try {
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+    const data = {};
+    if ('title' in req.body) {
+      data.title = requiredText(req.body.title);
+      if (!data.title) return res.status(400).json({ error: 'Kurs adı 1–150 simvol olmalıdır.' });
+    }
+    if ('description' in req.body) data.description = optionalText(req.body.description);
+    if ('published' in req.body) data.published = req.body.published === true;
+    if ('categoryId' in req.body) {
+      data.categoryId = req.body.categoryId ? id(req.body.categoryId) : null;
+      if (req.body.categoryId && !data.categoryId) return res.status(400).json({ error: 'Kateqoriya ID-si yanlışdır.' });
+    }
+    return res.json(await prisma.course.update({ where: { id: courseId }, data, include: structureInclude }));
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    if (error.code === 'P2003') return res.status(404).json({ error: 'Kateqoriya tapılmadı.' });
+    logger.error('Kurs yenilənərkən xəta', error);
+    return res.status(500).json({ error: 'Kursu yeniləmək mümkün olmadı.' });
+  }
+}
+
+async function deleteCourse(req, res) {
+  try {
+    const courseId = id(req.params.id);
+    if (!courseId) return res.status(400).json({ error: 'Kurs ID-si yanlışdır.' });
+    await prisma.course.delete({ where: { id: courseId } });
+    return res.status(204).send();
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    logger.error('Kurs silinərkən xəta', error);
+    return res.status(500).json({ error: 'Kursu silmək mümkün olmadı.' });
+  }
+}
+
+async function createModule(req, res) {
+  try {
+    const courseId = id(req.params.courseId);
+    const title = requiredText(req.body.title);
+    if (!courseId || !title) return res.status(400).json({ error: 'Kurs və modul məlumatları yanlışdır.' });
+    const result = await prisma.courseModule.create({
+      data: { courseId, title, description: optionalText(req.body.description), order: sortOrder(req.body.order) },
+      include: { lessons: true },
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Bu sıra nömrəli modul artıq mövcuddur.' });
+    if (error.code === 'P2003') return res.status(404).json({ error: 'Kurs tapılmadı.' });
+    logger.error('Kurs modulu yaradılarkən xəta', error);
+    return res.status(500).json({ error: 'Modul yaratmaq mümkün olmadı.' });
+  }
+}
+
+async function updateModule(req, res) {
+  try {
+    const moduleId = id(req.params.id);
+    if (!moduleId) return res.status(400).json({ error: 'Modul ID-si yanlışdır.' });
+    const data = {};
+    if ('title' in req.body) {
+      data.title = requiredText(req.body.title);
+      if (!data.title) return res.status(400).json({ error: 'Modul adı daxil edilməlidir.' });
+    }
+    if ('description' in req.body) data.description = optionalText(req.body.description);
+    if ('order' in req.body) data.order = sortOrder(req.body.order);
+    return res.json(await prisma.courseModule.update({ where: { id: moduleId }, data }));
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Modul tapılmadı.' });
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Bu sıra nömrəli modul artıq mövcuddur.' });
+    logger.error('Kurs modulu yenilənərkən xəta', error);
+    return res.status(500).json({ error: 'Modulu yeniləmək mümkün olmadı.' });
+  }
+}
+
+async function deleteModule(req, res) {
+  try {
+    const moduleId = id(req.params.id);
+    if (!moduleId) return res.status(400).json({ error: 'Modul ID-si yanlışdır.' });
+    await prisma.courseModule.delete({ where: { id: moduleId } });
+    return res.status(204).send();
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Modul tapılmadı.' });
+    logger.error('Kurs modulu silinərkən xəta', error);
+    return res.status(500).json({ error: 'Modulu silmək mümkün olmadı.' });
+  }
+}
+
+async function createLesson(req, res) {
+  try {
+    const moduleId = id(req.params.moduleId);
+    const title = requiredText(req.body.title);
+    if (!moduleId || !title) return res.status(400).json({ error: 'Modul və dərs məlumatları yanlışdır.' });
+    const result = await prisma.lesson.create({
+      data: { moduleId, title, description: optionalText(req.body.description), order: sortOrder(req.body.order), published: req.body.published === true },
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Bu sıra nömrəli dərs artıq mövcuddur.' });
+    if (error.code === 'P2003') return res.status(404).json({ error: 'Modul tapılmadı.' });
+    logger.error('Dərs yaradılarkən xəta', error);
+    return res.status(500).json({ error: 'Dərs yaratmaq mümkün olmadı.' });
+  }
+}
+
+async function updateLesson(req, res) {
+  try {
+    const lessonId = id(req.params.id);
+    if (!lessonId) return res.status(400).json({ error: 'Dərs ID-si yanlışdır.' });
+    const data = {};
+    if ('title' in req.body) {
+      data.title = requiredText(req.body.title);
+      if (!data.title) return res.status(400).json({ error: 'Dərs adı daxil edilməlidir.' });
+    }
+    if ('description' in req.body) data.description = optionalText(req.body.description);
+    if ('order' in req.body) data.order = sortOrder(req.body.order);
+    if ('published' in req.body) data.published = req.body.published === true;
+    return res.json(await prisma.lesson.update({ where: { id: lessonId }, data }));
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Dərs tapılmadı.' });
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Bu sıra nömrəli dərs artıq mövcuddur.' });
+    logger.error('Dərs yenilənərkən xəta', error);
+    return res.status(500).json({ error: 'Dərsi yeniləmək mümkün olmadı.' });
+  }
+}
+
+async function deleteLesson(req, res) {
+  try {
+    const lessonId = id(req.params.id);
+    if (!lessonId) return res.status(400).json({ error: 'Dərs ID-si yanlışdır.' });
+    await prisma.lesson.delete({ where: { id: lessonId } });
+    return res.status(204).send();
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Dərs tapılmadı.' });
+    logger.error('Dərs silinərkən xəta', error);
+    return res.status(500).json({ error: 'Dərsi silmək mümkün olmadı.' });
+  }
+}
+
+module.exports = {
+  isPlaybackComplete,
+  isCompletionAdvanceAllowed,
+  listPublishedCourses,
+  getPublishedCourse,
+  enrollInCourse,
+  getMyCourseState,
+  updateLessonProgress,
+  completeLessonVideo,
+  listCourseStructure,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  createModule,
+  updateModule,
+  deleteModule,
+  createLesson,
+  updateLesson,
+  deleteLesson,
+};

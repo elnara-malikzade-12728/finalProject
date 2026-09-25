@@ -1,0 +1,491 @@
+const prisma = require("../lib/prisma");
+const { containsHtmlMarkup } = require("../utils/plainText");
+
+function createHttpError(statusCode, message) {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    return error;
+}
+
+function normalizePositiveInt(value, fieldName = "id") {
+    const parsed = Number(value);
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw createHttpError(400, `${fieldName} must be a positive integer.`);
+    }
+
+    return parsed;
+}
+
+function normalizePercent(value) {
+    const parsed = Number(value);
+
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
+        throw createHttpError(400, "passScorePercent must be an integer between 0 and 100.");
+    }
+
+    return parsed;
+}
+
+function validateTestType(type) {
+    const allowed = ["LESSON", "FINAL"];
+    const safeType = typeof type === "string" ? type.toUpperCase() : type;
+
+    if (!allowed.includes(safeType)) {
+        throw createHttpError(400, "type must be either LESSON or FINAL.");
+    }
+
+    return safeType;
+}
+
+function getAssessmentRules(type, { passScorePercent, timeLimitMinutes, questionCount } = {}) {
+    const safeType = validateTestType(type);
+    const requiredPassScore = safeType === "FINAL" ? 70 : 60;
+
+    if (passScorePercent != null && normalizePercent(passScorePercent) !== requiredPassScore) {
+        throw createHttpError(400, `${safeType} testi üçün keçid balı ${requiredPassScore}% olmalıdır.`);
+    }
+
+    if (safeType === "FINAL") {
+        const finalTime = timeLimitMinutes == null
+            ? 30
+            : normalizePositiveInt(timeLimitMinutes, "timeLimitMinutes");
+
+        if (finalTime < 30 || finalTime > 45) {
+            throw createHttpError(400, "Yekun testin vaxt limiti 30–45 dəqiqə olmalıdır.");
+        }
+
+        return { passScorePercent: requiredPassScore, timeLimitMinutes: finalTime };
+    }
+
+    const lessonTime = Number.isInteger(questionCount) && questionCount > 0
+        ? questionCount
+        : 1;
+    return { passScorePercent: requiredPassScore, timeLimitMinutes: lessonTime };
+}
+
+function normalizeOptionalAudioUrl(value) {
+    if (value === undefined) return undefined;
+    if (value === null || (typeof value === "string" && !value.trim())) return null;
+    if (typeof value !== "string" || value.length > 2048) {
+        throw createHttpError(400, "Audio izah keçidi düzgün deyil.");
+    }
+
+    let parsed;
+    try {
+        parsed = new URL(value.trim());
+    } catch {
+        throw createHttpError(400, "Audio izah üçün düzgün HTTPS keçidi daxil edin.");
+    }
+    if (parsed.protocol !== "https:") {
+        throw createHttpError(400, "Audio izah keçidi HTTPS olmalıdır.");
+    }
+    return parsed.toString();
+}
+
+function normalizeOptionalAudioTitle(value) {
+    if (value === undefined) return undefined;
+    if (value === null || (typeof value === "string" && !value.trim())) return null;
+    if (typeof value !== "string" || value.trim().length > 120) {
+        throw createHttpError(400, "Audio izahın adı maksimum 120 simvol ola bilər.");
+    }
+    return value.trim();
+}
+
+function buildQuestionPayload(payload) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        throw createHttpError(400, "Question payload must be an object.");
+    }
+
+    const questionText = typeof payload.questionText === "string"
+        ? payload.questionText.trim()
+        : "";
+
+    if (!questionText) {
+        throw createHttpError(400, "questionText is required.");
+    }
+
+    if (containsHtmlMarkup(questionText)) {
+        throw createHttpError(400, "questionText HTML məzmunu ehtiva edə bilməz.");
+    }
+
+    if (!Array.isArray(payload.options) || payload.options.length < 2) {
+        throw createHttpError(400, "options must be an array with at least 2 entries.");
+    }
+
+    const options = payload.options.map((item) => String(item).trim());
+    if (options.some((item) => !item || containsHtmlMarkup(item))) {
+        throw createHttpError(400, "options boş və ya HTML məzmunlu ola bilməz.");
+    }
+
+    const validCorrectValue =
+        typeof payload.correctValue === "string" ||
+        typeof payload.correctValue === "number" ||
+        typeof payload.correctValue === "boolean";
+
+    if (!validCorrectValue) {
+        throw createHttpError(400, "correctValue is invalid.");
+    }
+
+    if (containsHtmlMarkup(payload.correctValue)) {
+        throw createHttpError(400, "correctValue HTML məzmunu ehtiva edə bilməz.");
+    }
+
+    const orderValue = Number(payload.order);
+
+    if (!Number.isInteger(orderValue) || orderValue < 1) {
+        throw createHttpError(400, "order must be a positive integer.");
+    }
+
+    return {
+        questionText,
+        options,
+        correctValue: payload.correctValue,
+        order: orderValue,
+    };
+}
+
+async function ensureTestExists(id) {
+    const test = await prisma.test.findUnique({
+        where: { id },
+        include: {
+            questions: { orderBy: { order: "asc" } },
+        },
+    });
+
+    if (!test) {
+        throw createHttpError(404, "Test tapılmadı.");
+    }
+
+    return test;
+}
+
+async function ensureCourseOrLessonExists(courseId, lessonId) {
+    if (courseId !== null && courseId !== undefined) {
+        const course = await prisma.course.findUnique({ where: { id: courseId } });
+        if (!course) {
+            throw createHttpError(404, "Course tapılmadı.");
+        }
+    }
+
+    if (lessonId !== null && lessonId !== undefined) {
+        const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+        if (!lesson) {
+            throw createHttpError(404, "Lesson tapılmadı.");
+        }
+    }
+}
+
+async function createTest(req, res, next) {
+    try {
+        const body = req.body || {};
+
+        if (typeof body.title !== "string" || !body.title.trim()) {
+            throw createHttpError(400, "title is required.");
+        }
+
+        const type = validateTestType(body.type ?? "LESSON");
+
+        if (body.lessonId !== undefined && body.courseId !== undefined) {
+            throw createHttpError(400, "Test həm lesson, həm də course-a aid ola bilməz.");
+        }
+
+        const lessonId = body.lessonId == null ? null : normalizePositiveInt(body.lessonId, "lessonId");
+        const courseId = body.courseId == null ? null : normalizePositiveInt(body.courseId, "courseId");
+
+        if (lessonId === null && courseId === null) {
+            throw createHttpError(400, "Either lessonId or courseId is required.");
+        }
+
+        await ensureCourseOrLessonExists(courseId, lessonId);
+
+        const rules = getAssessmentRules(type, body);
+
+        const test = await prisma.test.create({
+            data: {
+                title: body.title.trim(),
+                type,
+                lessonId,
+                courseId,
+                passScorePercent: rules.passScorePercent,
+                timeLimitMinutes: rules.timeLimitMinutes,
+                audioExplanationUrl: normalizeOptionalAudioUrl(body.audioExplanationUrl),
+                audioExplanationTitle: normalizeOptionalAudioTitle(body.audioExplanationTitle),
+                published: Boolean(body.published),
+            },
+        });
+
+        return res.status(201).json(test);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function listTests(req, res, next) {
+    try {
+        const tests = await prisma.test.findMany({
+            orderBy: { updatedAt: "desc" },
+            include: {
+                course: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true, module: { select: { course: { select: { id: true, title: true } } } } } },
+                _count: { select: { questions: true, attempts: true } },
+            },
+        });
+
+        return res.status(200).json(tests.map(({ audioExplanationUrl, ...test }) => ({
+            ...test,
+            hasAudioExplanation: Boolean(audioExplanationUrl),
+        })));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function listPublishedTests(req, res, next) {
+    try {
+        const tests = await prisma.test.findMany({
+            where: { published: true },
+            orderBy: { updatedAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                type: true,
+                passScorePercent: true,
+                timeLimitMinutes: true,
+                audioExplanationUrl: true,
+                audioExplanationTitle: true,
+                course: { select: { id: true, title: true } },
+                lesson: { select: { id: true, title: true, module: { select: { course: { select: { id: true, title: true } } } } } },
+                _count: { select: { questions: true } },
+            },
+        });
+        return res.status(200).json(tests.map(({ audioExplanationUrl, ...test }) => ({
+            ...test,
+            hasAudioExplanation: Boolean(audioExplanationUrl),
+        })));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function getTest(req, res, next) {
+    try {
+        const id = normalizePositiveInt(req.params.id, "id");
+
+        const test = await prisma.test.findUnique({
+            where: { id },
+            include: {
+                lesson: { select: { id: true, title: true, module: { select: { course: { select: { id: true, title: true } } } } } },
+                course: { select: { id: true, title: true } },
+                questions: {
+                    orderBy: { order: "asc" },
+                },
+            },
+        });
+
+        if (!test) {
+            throw createHttpError(404, "Test tapılmadı.");
+        }
+
+        if (!req.user || req.user.role !== "ADMIN") {
+            if (!test.published) {
+                throw createHttpError(403, "Bu test yayımlanmayıb.");
+            }
+
+            return res.status(200).json({
+                ...test,
+                audioExplanationUrl: undefined,
+                hasAudioExplanation: Boolean(test.audioExplanationUrl),
+                correctValueHidden: true,
+                questions: test.questions.map((question) => ({
+                    id: question.id,
+                    questionText: question.questionText,
+                    options: question.options,
+                    order: question.order,
+                })),
+            });
+        }
+
+        return res.status(200).json(test);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function updateTest(req, res, next) {
+    try {
+        const id = normalizePositiveInt(req.params.id, "id");
+        const existing = await ensureTestExists(id);
+        const updates = {};
+        const body = req.body || {};
+
+        if (body.title !== undefined) {
+            if (typeof body.title !== "string" || !body.title.trim()) {
+                throw createHttpError(400, "title must be a non-empty string.");
+            }
+            updates.title = body.title.trim();
+        }
+
+        const effectiveType = body.type !== undefined ? validateTestType(body.type) : existing.type;
+        if (body.type !== undefined) updates.type = effectiveType;
+        const rules = getAssessmentRules(effectiveType, {
+            passScorePercent: body.passScorePercent,
+            timeLimitMinutes: body.timeLimitMinutes !== undefined
+                ? body.timeLimitMinutes
+                : effectiveType === existing.type ? existing.timeLimitMinutes : undefined,
+            questionCount: effectiveType === "LESSON" ? existing.questions.length : undefined,
+        });
+        updates.passScorePercent = rules.passScorePercent;
+        updates.timeLimitMinutes = rules.timeLimitMinutes;
+
+        if (body.lessonId !== undefined && body.courseId !== undefined) {
+            throw createHttpError(400, "Test həm lesson, həm də course-a aid ola bilməz.");
+        }
+
+        if (body.lessonId !== undefined) {
+            updates.lessonId = normalizePositiveInt(body.lessonId, "lessonId");
+            updates.courseId = null;
+            await ensureCourseOrLessonExists(null, updates.lessonId);
+        }
+
+        if (body.courseId !== undefined) {
+            updates.courseId = normalizePositiveInt(body.courseId, "courseId");
+            updates.lessonId = null;
+            await ensureCourseOrLessonExists(updates.courseId, null);
+        }
+
+        if (body.published !== undefined) {
+            if (typeof body.published !== "boolean") {
+                throw createHttpError(400, "published must be a boolean.");
+            }
+            updates.published = body.published;
+        }
+
+        if (body.audioExplanationUrl !== undefined) {
+            updates.audioExplanationUrl = normalizeOptionalAudioUrl(body.audioExplanationUrl);
+        }
+        if (body.audioExplanationTitle !== undefined) {
+            updates.audioExplanationTitle = normalizeOptionalAudioTitle(body.audioExplanationTitle);
+        }
+
+        const updated = await prisma.test.update({
+            where: { id },
+            data: updates,
+            include: { questions: { orderBy: { order: "asc" } } },
+        });
+
+        return res.status(200).json(updated);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function getTestAudioExplanation(req, res, next) {
+    try {
+        const id = normalizePositiveInt(req.params.id, "id");
+        const test = await prisma.test.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                title: true,
+                published: true,
+                audioExplanationUrl: true,
+                audioExplanationTitle: true,
+            },
+        });
+
+        if (!test) throw createHttpError(404, "Test tapılmadı.");
+        if (!test.published && req.user.role !== "ADMIN") {
+            throw createHttpError(403, "Bu test yayımlanmayıb.");
+        }
+        if (!test.audioExplanationUrl) {
+            throw createHttpError(404, "Bu test üçün səsli izah əlavə edilməyib.");
+        }
+
+        if (req.user.role !== "ADMIN") {
+            const submittedAttempt = await prisma.testAttempt.findFirst({
+                where: { userId: req.user.id, testId: id, status: "SUBMITTED" },
+                select: { id: true },
+            });
+            if (!submittedAttempt) {
+                throw createHttpError(403, "Səsli izah test göndərildikdən sonra açılır.");
+            }
+        }
+
+        return res.status(200).json({
+            url: test.audioExplanationUrl,
+            title: test.audioExplanationTitle || `${test.title} — səsli izah`,
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function deleteTest(req, res, next) {
+    try {
+        const id = normalizePositiveInt(req.params.id, "id");
+        await ensureTestExists(id);
+
+        await prisma.test.delete({ where: { id } });
+        return res.status(204).send();
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function publishTest(req, res, next) {
+    try {
+        const id = normalizePositiveInt(req.params.id, "id");
+        const test = await ensureTestExists(id);
+
+        const publishedValue = req.body && typeof req.body.published === "boolean"
+            ? req.body.published
+            : true;
+
+        if (publishedValue) {
+            const minimumQuestions = test.type === "FINAL" ? 20 : 3;
+            const maximumQuestions = test.type === "FINAL" ? 30 : 5;
+            const questionCount = test.questions.length;
+
+            if (questionCount < minimumQuestions || questionCount > maximumQuestions) {
+                throw createHttpError(
+                    400,
+                    `${test.type === "FINAL" ? "Yekun testini" : "Dərs testini"} yayımlamaq üçün ${minimumQuestions}–${maximumQuestions} sual olmalıdır.`,
+                );
+            }
+        }
+
+        const ruleUpdates = publishedValue
+            ? test.type === "LESSON"
+                ? getAssessmentRules("LESSON", { questionCount: test.questions.length })
+                : { passScorePercent: 70, timeLimitMinutes: getAssessmentRules("FINAL", { timeLimitMinutes: test.timeLimitMinutes }).timeLimitMinutes }
+            : {};
+
+        const updated = await prisma.test.update({
+            where: { id },
+            data: { published: publishedValue, ...ruleUpdates },
+        });
+
+        return res.status(200).json(updated);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = {
+    normalizePositiveInt,
+    normalizePercent,
+    validateTestType,
+    getAssessmentRules,
+    normalizeOptionalAudioUrl,
+    normalizeOptionalAudioTitle,
+    buildQuestionPayload,
+    listTests,
+    listPublishedTests,
+    createTest,
+    getTest,
+    updateTest,
+    deleteTest,
+    publishTest,
+    getTestAudioExplanation,
+};

@@ -1,0 +1,226 @@
+import { USE_MOCK_API } from "../config/env.js";
+import {
+  apiRequest,
+  removeToken,
+  setToken,
+} from "./client.js";
+
+const CURRENT_USER_KEY = "career_platform_current_user";
+const USERS_KEY = "career_platform_users";
+const MOCK_TOKEN = "mock-authentication-token";
+const VERIFICATION_STATUS_TOKEN_KEY = "career_platform_verification_status_token";
+
+export function getVerificationStatusToken() {
+  return sessionStorage.getItem(VERIFICATION_STATUS_TOKEN_KEY) || "";
+}
+
+export function clearVerificationStatusToken() {
+  sessionStorage.removeItem(VERIFICATION_STATUS_TOKEN_KEY);
+}
+
+function readStorage(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function createUserId() {
+  if (
+    typeof crypto !== "undefined" &&
+    crypto.randomUUID
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `user-${Date.now()}`;
+}
+
+function createSafeUser(user) {
+  const { password: _password, ...safeUser } = user;
+
+  return safeUser;
+}
+
+function saveCurrentUser(user) {
+  const safeUser = createSafeUser(user);
+
+  localStorage.setItem(
+    CURRENT_USER_KEY,
+    JSON.stringify(safeUser),
+  );
+
+  return safeUser;
+}
+
+function mockRegister(userData) {
+  const users = readStorage(USERS_KEY, []);
+  const normalizedEmail = userData.email
+    .trim()
+    .toLowerCase();
+
+  const userExists = users.some(
+    (user) =>
+      user.email.toLowerCase() === normalizedEmail,
+  );
+
+  if (userExists) {
+    throw new Error(
+      "Bu e-poçt ünvanı ilə artıq hesab yaradılıb.",
+    );
+  }
+
+  const newUser = {
+    id: createUserId(),
+    name: userData.name.trim(),
+    email: normalizedEmail,
+    password: userData.password,
+    education: "",
+    location: "",
+    interests: [],
+    skills: [],
+    bio: "",
+  };
+
+  localStorage.setItem(
+    USERS_KEY,
+    JSON.stringify([...users, newUser]),
+  );
+
+  const safeUser = saveCurrentUser(newUser);
+  setToken(MOCK_TOKEN);
+
+  return {
+    token: MOCK_TOKEN,
+    user: safeUser,
+  };
+}
+
+function mockLogin(credentials) {
+  const users = readStorage(USERS_KEY, []);
+  const normalizedEmail = credentials.email
+    .trim()
+    .toLowerCase();
+
+  const matchingUser = users.find(
+    (user) =>
+      user.email.toLowerCase() === normalizedEmail &&
+      user.password === credentials.password,
+  );
+
+  if (!matchingUser) {
+    throw new Error(
+      "E-poçt ünvanı və ya şifrə yanlışdır.",
+    );
+  }
+
+  const safeUser = saveCurrentUser(matchingUser);
+  setToken(MOCK_TOKEN);
+
+  return {
+    token: MOCK_TOKEN,
+    user: safeUser,
+  };
+}
+
+export async function registerUser(userData) {
+  if (USE_MOCK_API) {
+    return mockRegister(userData);
+  }
+
+  const data = await apiRequest("/auth/register", {
+    method: "POST",
+    authenticated: false,
+    body: {
+      name: userData.name.trim(),
+      email: userData.email.trim().toLowerCase(),
+      password: userData.password,
+    },
+  });
+
+  if (data?.verificationStatusToken) {
+    sessionStorage.setItem(VERIFICATION_STATUS_TOKEN_KEY, data.verificationStatusToken);
+  }
+
+  return data;
+}
+
+export async function verifyEmailToken(token) {
+  const data = await apiRequest("/auth/verify-email", { method: "POST", authenticated: false, body: { token } });
+  if (!data?.token) throw new Error("E-poçt təsdiqləndi, amma giriş tokeni qaytarılmadı.");
+  setToken(data.token);
+  return data;
+}
+
+export async function checkEmailVerificationStatus(statusToken, { signal } = {}) {
+  const data = await apiRequest("/auth/verification-status", {
+    method: "POST",
+    authenticated: false,
+    body: { statusToken },
+    signal,
+  });
+  if (data?.verified && data.token) {
+    setToken(data.token);
+    clearVerificationStatusToken();
+  }
+  return data;
+}
+
+export const resendVerificationEmail = (email) => apiRequest("/auth/resend-verification", { method: "POST", authenticated: false, body: { email } });
+export const requestPasswordReset = (email) => apiRequest("/auth/forgot-password", { method: "POST", authenticated: false, body: { email } });
+export const resetPasswordWithToken = (token, password) => apiRequest("/auth/reset-password", { method: "POST", authenticated: false, body: { token, password } });
+
+export async function loginUser(credentials) {
+  if (USE_MOCK_API) {
+    return mockLogin(credentials);
+  }
+
+  const data = await apiRequest("/auth/login", {
+    method: "POST",
+    authenticated: false,
+    body: {
+      email: credentials.email.trim().toLowerCase(),
+      password: credentials.password,
+    },
+  });
+
+  if (!data?.token) {
+    throw new Error(
+      "Server authentication token qaytarmadı.",
+    );
+  }
+
+  setToken(data.token);
+
+  return data;
+}
+
+export async function getCurrentUser({ signal } = {}) {
+  if (USE_MOCK_API) {
+    return readStorage(CURRENT_USER_KEY, null);
+  }
+
+  return apiRequest("/users/me", {
+    signal,
+  });
+}
+
+export async function logoutUser() {
+  if (!USE_MOCK_API) {
+    try {
+      await apiRequest("/auth/logout", {
+        method: "POST",
+      });
+    } catch {
+      // Local logout must still complete if the token is already invalid.
+    }
+  }
+
+  removeToken();
+
+  if (USE_MOCK_API) {
+    localStorage.removeItem(CURRENT_USER_KEY);
+  }
+}

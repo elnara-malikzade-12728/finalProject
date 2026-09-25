@@ -1,0 +1,50 @@
+const express = require("express");
+
+const authRoutes = require("./auth");
+const careerRoutes = require("./careers");
+const jobRoutes = require("./jobs");
+const applicationRoutes = require("./applications");
+const progressRoutes = require("./progress");
+const userRoutes = require("./users");
+const videoRoutes = require("./videos");
+const courseRoutes = require("./courses");
+const testRoutes = require("./tests");
+const questionRoutes = require("./questions");
+const attemptsRoutes = require("./attempts");
+const certificatesRoutes = require("./certificates");
+const userCvRoutes = require("./usersCv");
+const planRoutes = require("./plans");
+const articleRoutes = require("./articles");
+const paymentRoutes = require("./payments");
+const subscriptionRoutes = require("./subscriptions");
+const corporateInquiryRoutes = require("./corporateInquiries");
+const companyRoutes = require("./companies");
+const lessonResourceRoutes = require("./lessonResources");
+const router = express.Router();
+
+// Accept browser-generated violation reports without echoing or persisting
+// untrusted report content.
+router.post("/security/csp-report", (req, res) => res.sendStatus(204));
+
+router.use("/auth", authRoutes);
+router.use("/users", userRoutes);
+router.use("/careers", careerRoutes);
+router.use("/jobs", jobRoutes);
+router.use("/applications", applicationRoutes);
+router.use("/progress", progressRoutes);
+router.use("/lessons", videoRoutes);
+router.use("/courses", courseRoutes);
+router.use("/tests", testRoutes);
+router.use("/questions", questionRoutes);
+router.use("/", attemptsRoutes);
+router.use("/certificates", certificatesRoutes);
+router.use("/users", userCvRoutes);
+router.use("/plans", planRoutes);
+router.use("/articles", articleRoutes);
+router.use("/payments", paymentRoutes);
+router.use("/", subscriptionRoutes);
+router.use("/corporate-inquiries", corporateInquiryRoutes);
+router.use("/companies", companyRoutes);
+router.use("/", lessonResourceRoutes);
+
+module.exports = router;
