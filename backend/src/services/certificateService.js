@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const prisma = require("../lib/prisma");
 const { autoForwardCvForCourseCompletion } = require("./careerApplicationService");
+const { ensureFinalAssessmentAccess } = require("./finalAssessmentAccessService");
 
 function createHttpError(statusCode, message) {
     const error = new Error(message);
@@ -13,6 +14,8 @@ function generateCertificateCode() {
 }
 
 async function ensureCourseFinalPassed(userId, courseId, db = prisma) {
+    await ensureFinalAssessmentAccess(userId, courseId, db);
+
     const course = await db.course.findUnique({
         where: { id: courseId },
         include: {

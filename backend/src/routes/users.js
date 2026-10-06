@@ -71,6 +71,7 @@ router.get("/me", auth, getProfile);
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: Yeni ünvan cari şifrə ilə yenidən autentifikasiya tələb edir və mövcud sessiyaları ləğv edir.
  *                 example: demo@example.com
  *               password:
  *                 type: string
@@ -81,7 +82,7 @@ router.get("/me", auth, getProfile);
  *               currentPassword:
  *                 type: string
  *                 format: password
- *                 description: Şifrə dəyişdirilərkən cari şifrə mütləq təqdim edilməlidir.
+ *                 description: Şifrə və ya e-poçt ünvanı dəyişdirilərkən cari şifrə mütləq təqdim edilməlidir.
  *                 example: Demo1234
  *               education:
  *                 type: string

@@ -20,6 +20,9 @@ test("a concurrent certificate creation does not trigger automatic applications 
   let certificateLookups = 0;
   let forwardCalls = 0;
   const db = {
+    enrollment: { findUnique: async () => ({ id: 1 }) },
+    subscription: { findFirst: async () => ({ id: 1 }) },
+    coursePurchase: { findFirst: async () => null },
     certificate: {
       findFirst: async () => (++certificateLookups === 1 ? null : winner),
       create: async () => { throw Object.assign(new Error("duplicate"), { code: "P2002" }); },
