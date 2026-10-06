@@ -95,6 +95,21 @@ async function updateProfile(req, res) {
     } = req.body;
 
     const updates = {};
+    let existingUserWithPassword = null;
+
+    async function currentPasswordIsValid() {
+      if (typeof currentPassword !== "string" || !currentPassword) return false;
+      if (!existingUserWithPassword) {
+        existingUserWithPassword = await prisma.user.findUnique({
+          where: { id: req.user.id },
+          select: { password: true, email: true },
+        });
+      }
+      return Boolean(existingUserWithPassword && await bcrypt.compare(
+        currentPassword,
+        existingUserWithPassword.password,
+      ));
+    }
 
     if (typeof name === "string" && name.trim()) {
       if (name.trim().length > 100) {
@@ -159,7 +174,22 @@ async function updateProfile(req, res) {
         });
       }
 
-      updates.email = normalizedEmail;
+      if (!existingUserWithPassword) {
+        existingUserWithPassword = await prisma.user.findUnique({
+          where: { id: req.user.id },
+          select: { password: true, email: true },
+        });
+      }
+
+      if (normalizedEmail !== existingUserWithPassword?.email) {
+        if (!await currentPasswordIsValid()) {
+          return res.status(401).json({
+            error: "E-poçt ünvanını dəyişmək üçün cari şifrəni düzgün daxil edin.",
+          });
+        }
+        updates.email = normalizedEmail;
+        updates.tokenVersion = { increment: 1 };
+      }
     }
 
     if (
@@ -185,24 +215,13 @@ async function updateProfile(req, res) {
         });
       }
 
-      const existingUser = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { password: true },
-      });
-
-      if (
-        !existingUser ||
-        !(await bcrypt.compare(
-          currentPassword,
-          existingUser.password,
-        ))
-      ) {
+      if (!await currentPasswordIsValid()) {
         return res.status(401).json({
           error: "Cari şifrə yanlışdır.",
         });
       }
 
-      if (await bcrypt.compare(password, existingUser.password)) {
+      if (await bcrypt.compare(password, existingUserWithPassword.password)) {
         return res.status(400).json({
           error: "Yeni şifrə əvvəlki şifrədən fərqli olmalıdır.",
         });

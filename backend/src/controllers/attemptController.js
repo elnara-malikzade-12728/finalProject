@@ -2,6 +2,7 @@ const prisma = require("../lib/prisma");
 const logger = require("../utils/logger");
 const { createCertificateForUser } = require("../services/certificateService");
 const { canAccessCourse, isFreePreviewLesson } = require("../services/courseAccessService");
+const { ensureFinalAssessmentAccess } = require("../services/finalAssessmentAccessService");
 
 function createHttpError(statusCode, message) {
     const error = new Error(message);
@@ -77,6 +78,13 @@ async function startTestAttempt(req, res, next) {
         }
 
         const test = await ensureTestIsAvailable(testId);
+
+        if (test.type === "FINAL") {
+            if (!test.courseId) {
+                throw createHttpError(400, "Yekun test kursa aid edilməyib.");
+            }
+            await ensureFinalAssessmentAccess(req.user.id, test.courseId);
+        }
 
         if (test.type === "LESSON" && test.lessonId) {
             const lesson = await prisma.lesson.findUnique({
@@ -219,6 +227,10 @@ async function getAttempt(req, res, next) {
             throw createHttpError(403, "Bu cəhdə daxil olmaq icazəniz yoxdur.");
         }
 
+        if (req.user.role !== "ADMIN" && attempt.test.type === "FINAL") {
+            await ensureFinalAssessmentAccess(req.user.id, attempt.test.course?.id);
+        }
+
         const questions = await prisma.question.findMany({
             where: { testId: attempt.testId },
             orderBy: { order: "asc" },
@@ -270,8 +282,12 @@ async function submitAttempt(req, res, next) {
             throw createHttpError(404, "Cəhd tapılmadı.");
         }
 
-        if (req.user.role !== "ADMIN" && attempt.userId !== req.user.id) {
+        if (attempt.userId !== req.user.id) {
             throw createHttpError(403, "Bu cəhdə daxil olmaq icazəniz yoxdur.");
+        }
+
+        if (attempt.test.type === "FINAL") {
+            await ensureFinalAssessmentAccess(req.user.id, attempt.test.courseId);
         }
 
         if (attempt.status === "SUBMITTED") {

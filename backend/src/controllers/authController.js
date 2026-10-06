@@ -21,6 +21,12 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
   "DummyPassword1",
   10,
 );
+const REGISTRATION_RESPONSE_FLOOR_MS = 750;
+
+async function waitForRegistrationResponseFloor(startedAt) {
+  const remaining = REGISTRATION_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+  if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+}
 
 function createAuthenticationResponse(user) {
   const expiresIn = process.env.JWT_EXPIRES_IN || "1h";
@@ -55,6 +61,7 @@ function createAuthenticationResponse(user) {
 }
 
 async function register(req, res) {
+  const startedAt = Date.now();
   try {
     const name = req.body.name?.trim();
     const email = normalizeEmail(req.body.email);
@@ -94,8 +101,11 @@ async function register(req, res) {
     );
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
+    const passwordBelongsToExistingUser = await bcrypt.compare(
+      password,
+      existingUser?.password || DUMMY_PASSWORD_HASH,
+    );
     if (existingUser) {
-      const passwordBelongsToExistingUser = await bcrypt.compare(password, existingUser.password);
       const { token: verificationStatusToken, hash: verificationStatusTokenHash } = createOneTimeToken();
       if (!existingUser.emailVerifiedAt) {
         const { token, hash } = createOneTimeToken();
@@ -116,6 +126,7 @@ async function register(req, res) {
           ),
         );
       }
+      await waitForRegistrationResponseFloor(startedAt);
       return res.status(202).json({
         message: GENERIC_REGISTRATION_MESSAGE,
         verificationStatusToken,
@@ -143,6 +154,7 @@ async function register(req, res) {
       ),
     );
 
+    await waitForRegistrationResponseFloor(startedAt);
     return res.status(202).json({
       message: GENERIC_REGISTRATION_MESSAGE,
       verificationStatusToken,
@@ -369,4 +381,6 @@ module.exports = {
   resendVerification,
   forgotPassword,
   resetPassword,
+  waitForRegistrationResponseFloor,
+  REGISTRATION_RESPONSE_FLOOR_MS,
 };

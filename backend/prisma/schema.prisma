@@ -506,6 +506,15 @@ model CorporateInquiry {
   createdAt     DateTime      @default(now())
 }
 
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
 model Article {
   id          Int       @id @default(autoincrement())
   title       String

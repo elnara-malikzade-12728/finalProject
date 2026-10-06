@@ -1,4 +1,5 @@
 const { ipKeyGenerator, rateLimit } = require("express-rate-limit");
+const { PrismaRateLimitStore } = require("./prismaRateLimitStore");
 
 function firstHeaderValue(value) {
   return String(value || "").split(",")[0].trim();
@@ -30,12 +31,18 @@ const commonOptions = {
   },
 };
 
+function distributedStore(prefix) {
+  if (process.env.VERCEL !== "1" && process.env.RATE_LIMIT_STORE !== "prisma") return undefined;
+  return new PrismaRateLimitStore(prefix);
+}
+
 const apiLimiter = rateLimit({
   ...commonOptions,
   windowMs: 15 * 60 * 1000,
   limit: 300,
   skip: (req) => req.method === "OPTIONS",
   keyGenerator: ipLimitKey,
+  store: distributedStore("api"),
 });
 
 const loginLimiter = rateLimit({
@@ -44,6 +51,7 @@ const loginLimiter = rateLimit({
   limit: 5,
   skipSuccessfulRequests: true,
   keyGenerator: accountLimitKey,
+  store: distributedStore("login"),
 });
 
 const registerLimiter = rateLimit({
@@ -51,6 +59,7 @@ const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 10,
   keyGenerator: ipLimitKey,
+  store: distributedStore("register"),
 });
 
 const corporateInquiryLimiter = rateLimit({
@@ -58,6 +67,7 @@ const corporateInquiryLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
   keyGenerator: ipLimitKey,
+  store: distributedStore("corporate-inquiry"),
 });
 
 const accountRecoveryLimiter = rateLimit({
@@ -65,6 +75,7 @@ const accountRecoveryLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
   keyGenerator: accountLimitKey,
+  store: distributedStore("account-recovery"),
 });
 
 const accountDeletionLimiter = rateLimit({
@@ -73,6 +84,7 @@ const accountDeletionLimiter = rateLimit({
   limit: 5,
   skipSuccessfulRequests: true,
   keyGenerator: (req) => `account-delete:${req.user.id}`,
+  store: distributedStore("account-deletion"),
 });
 
 module.exports = {
@@ -85,4 +97,5 @@ module.exports = {
   corporateInquiryLimiter,
   accountRecoveryLimiter,
   accountDeletionLimiter,
+  distributedStore,
 };
