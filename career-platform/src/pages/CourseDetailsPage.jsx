@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, CheckCircle2, Clock3, FileText, Layers3, ListChecks, LoaderCircle, LockKeyhole, PlayCircle } from "lucide-react";
 import playerjs from "player.js";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, getApiErrorMessage } from "../api/client.js";
 import { completeLessonVideo, enrollInCourse, getMyCourseState, getPublishedCourse, updateLessonProgress } from "../api/coursesApi.js";
 import { getLessonVideoUrl } from "../api/videoApi.js";
@@ -24,6 +24,7 @@ function getPlaybackEndTolerance(durationSeconds) {
 function CourseDetailsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, isInitializing, refreshUser } = useAuth();
   const [course, setCourse] = useState(null);
   const [learningState, setLearningState] = useState(emptyLearningState);
@@ -42,6 +43,13 @@ function CourseDetailsPage() {
   const bunnyIframeRef = useRef(null);
   const maxWatchedSecondsRef = useRef(0);
   const lastReportedSecondRef = useRef(0);
+
+  useEffect(() => {
+    const accessError = location.state?.accessError;
+    if (!accessError) return;
+    setNotification({ type: "error", message: accessError });
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
     const controller = new AbortController();
