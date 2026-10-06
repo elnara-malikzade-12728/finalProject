@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock3, LoaderCircle, PlayCircle, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getApiErrorMessage, getTokenRemainingSeconds } from "../api/client.js";
+import { ApiError, getApiErrorMessage, getTokenRemainingSeconds } from "../api/client.js";
 import { startTestAttempt, getTestById } from "../api/testsApi.js";
 import ErrorState from "../components/common/ErrorState.jsx";
 import Notification from "../components/common/Notification.jsx";
@@ -77,9 +77,17 @@ function TestPage() {
             const attempt = await startTestAttempt(testId);
             navigate(`/attempts/${attempt.id}`);
         } catch (requestError) {
+            const message = getApiErrorMessage(requestError);
+            if (requestError instanceof ApiError && requestError.status === 403 && test?.type === "FINAL") {
+                navigate(courseId ? `/courses/${courseId}` : "/courses", {
+                    replace: true,
+                    state: { accessError: message },
+                });
+                return;
+            }
             setNotification({
                 type: "error",
-                message: getApiErrorMessage(requestError),
+                message,
             });
         } finally {
             setIsStarting(false);
