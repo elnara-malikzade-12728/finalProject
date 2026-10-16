@@ -120,6 +120,17 @@ async function getPublishedCourse(req, res) {
       where: { id: courseId, published: true },
       include: {
         category: true,
+        tests: {
+          where: { published: true, type: 'FINAL' },
+          orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+          select: {
+            id: true,
+            title: true,
+            passScorePercent: true,
+            timeLimitMinutes: true,
+            _count: { select: { questions: true } },
+          },
+        },
         modules: {
           orderBy: [{ order: 'asc' }, { id: 'asc' }],
           include: {

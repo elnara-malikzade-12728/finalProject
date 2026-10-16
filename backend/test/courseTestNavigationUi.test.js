@@ -30,3 +30,9 @@ test("individual tests remain reachable from their course lessons", () => {
   assert.match(courseSource, /to=\{`\/tests\/\$\{selectedLessonTest\.id\}`\}/);
   assert.match(appSource, /path="tests\/:testId"[\s\S]*element=\{<TestPage \/>\}/);
 });
+
+test("the final exam appears inside the course and is prerequisite-gated", () => {
+  assert.match(courseSource, /aria-label="Yekun imtahan"/);
+  assert.match(courseSource, /allLessonsCompleted[\s\S]*allLessonTestsPassed/);
+  assert.match(courseSource, /to=\{`\/tests\/\$\{finalTest\.id\}`\}/);
+});

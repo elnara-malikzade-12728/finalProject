@@ -37,6 +37,7 @@ function CourseDetailsPage() {
   const [error, setError] = useState("");
   const [notification, setNotification] = useState(null);
   const [submittedTestIds, setSubmittedTestIds] = useState(new Set());
+  const [passedTestIds, setPassedTestIds] = useState(new Set());
   const [lessonResources, setLessonResources] = useState([]);
   const notificationRef = useRef(null);
   const videoPlayerRef = useRef(null);
@@ -79,14 +80,19 @@ function CourseDetailsPage() {
 
   useEffect(() => {
     if (isInitializing || !isAuthenticated || user?.role === "ADMIN") {
-      if (!isInitializing) setSubmittedTestIds(new Set());
+      if (!isInitializing) {
+        setSubmittedTestIds(new Set());
+        setPassedTestIds(new Set());
+      }
       return undefined;
     }
     const controller = new AbortController();
     getMyAttempts({ signal: controller.signal })
-      .then((attempts) => setSubmittedTestIds(new Set(
-        (attempts || []).filter((attempt) => attempt.status === "SUBMITTED").map((attempt) => attempt.testId),
-      )))
+      .then((attempts) => {
+        const submitted = (attempts || []).filter((attempt) => attempt.status === "SUBMITTED");
+        setSubmittedTestIds(new Set(submitted.map((attempt) => attempt.testId)));
+        setPassedTestIds(new Set(submitted.filter((attempt) => attempt.passed).map((attempt) => attempt.testId)));
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [isAuthenticated, isInitializing, user?.role]);
@@ -460,6 +466,11 @@ function CourseDetailsPage() {
     || orderedLessons.find((lesson) => !completedLessonIds.has(lesson.id) && !lockedLessonIds.has(lesson.id))
     || orderedLessons.find((lesson) => !lockedLessonIds.has(lesson.id));
   const selectedLessonTest = selectedLesson?.tests?.[0] || null;
+  const finalTest = course.tests?.[0] || null;
+  const requiredLessonTestIds = orderedLessons.flatMap((lesson) => (lesson.tests || []).map((test) => test.id));
+  const allLessonsCompleted = orderedLessons.length > 0 && completedLessonIds.size === orderedLessons.length;
+  const allLessonTestsPassed = requiredLessonTestIds.every((testId) => passedTestIds.has(testId));
+  const finalExamUnlocked = learningState.enrolled && allLessonsCompleted && allLessonTestsPassed;
 
   return (
     <>
@@ -584,6 +595,18 @@ function CourseDetailsPage() {
               })}</ul>
             </article>
           ))}
+          {finalTest && learningState.enrolled && !isAdmin && (
+            <section className="lesson-test-inline" aria-label="Yekun imtahan">
+              <div><ListChecks size={23} /><span>Yekun imtahan</span></div>
+              <h3>{finalTest.title}</h3>
+              <p>{finalTest._count?.questions || 0} sual · {finalTest.timeLimitMinutes} dəqiqə · minimum {finalTest.passScorePercent}%</p>
+              {finalExamUnlocked ? (
+                <Link className="button button-primary" to={`/tests/${finalTest.id}`}>Yekun imtahana başla</Link>
+              ) : (
+                <p className="test-audio-locked"><LockKeyhole size={16} /> Bütün video dərsləri tamamlayın və dərs testlərindən keçin.</p>
+              )}
+            </section>
+          )}
         </div>
       </section>
     </>

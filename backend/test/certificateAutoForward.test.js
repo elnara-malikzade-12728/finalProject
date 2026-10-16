@@ -28,12 +28,16 @@ test("a concurrent certificate creation does not trigger automatic applications 
       create: async () => { throw Object.assign(new Error("duplicate"), { code: "P2002" }); },
     },
     course: {
-      findUnique: async ({ include }) => include
-        ? { id: 2, tests: [{ id: 20, passScorePercent: 60 }] }
-        : { id: 2, title: "Course" },
+      findUnique: async ({ include, select }) => {
+        if (include) return { id: 2, tests: [{ id: 20, passScorePercent: 70 }] };
+        if (select?.modules) return { modules: [{ lessons: [{ id: 10, tests: [{ id: 100 }] }] }] };
+        return { id: 2, title: "Course" };
+      },
     },
+    lessonProgress: { count: async () => 1 },
     testAttempt: {
       findFirst: async () => ({ id: 30, score: 90, passed: true }),
+      findMany: async () => [{ testId: 100 }],
     },
     user: {
       findUnique: async () => ({ id: 1, name: "User" }),
