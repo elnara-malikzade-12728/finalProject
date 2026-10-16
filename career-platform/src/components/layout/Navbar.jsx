@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BriefcaseBusiness,
   Building2,
@@ -23,6 +23,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,7 +33,35 @@ function Navbar() {
 
   function closeMenu() {
     setIsMenuOpen(false);
+    if (moreMenuRef.current) moreMenuRef.current.open = false;
   }
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+    if (moreMenuRef.current) moreMenuRef.current.open = false;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function handleOutsidePointer(event) {
+      if (moreMenuRef.current?.open && !moreMenuRef.current.contains(event.target)) {
+        moreMenuRef.current.open = false;
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape" && moreMenuRef.current?.open) {
+        moreMenuRef.current.open = false;
+        moreMenuRef.current.querySelector("summary")?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", handleOutsidePointer);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointer);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   function handleLogout() {
     logout();
@@ -124,7 +153,7 @@ function Navbar() {
                 </>
               )}
 
-              <details className="nav-more-menu">
+              <details ref={moreMenuRef} className="nav-more-menu">
                 <summary className="nav-link">
                   Daha çox
                   <ChevronDown size={16} />
