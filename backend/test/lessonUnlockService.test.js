@@ -22,3 +22,13 @@ test("a published lesson test requires a passing attempt instead of video comple
   assert.deepEqual(computeLessonUnlockState(lessons, [10]).lockedLessonIds, [20]);
   assert.deepEqual(computeLessonUnlockState(lessons, [10], [10]).lockedLessonIds, []);
 });
+
+test("a certified course stays fully unlocked even if its tests later change", () => {
+  const lessons = [
+    { id: 1, hasPublishedTest: true },
+    { id: 2, hasPublishedTest: true },
+    { id: 3, hasPublishedTest: false },
+  ];
+
+  assert.deepEqual(computeLessonUnlockState(lessons, [], [], true), { lockedLessonIds: [] });
+});

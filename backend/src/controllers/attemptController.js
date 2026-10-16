@@ -23,6 +23,15 @@ function getMaxAttempts(testType) {
     return testType === "FINAL" ? 3 : 5;
 }
 
+function isAttemptExpired(attempt, now = Date.now()) {
+    const timeLimitMinutes = Number(attempt?.test?.timeLimitMinutes);
+    const startedAt = new Date(attempt?.startedAt).getTime();
+    if (!Number.isInteger(timeLimitMinutes) || timeLimitMinutes <= 0 || !Number.isFinite(startedAt)) {
+        return false;
+    }
+    return now >= startedAt + timeLimitMinutes * 60000;
+}
+
 function dedupeSubmittedAnswers(answers) {
     const seenQuestionIds = new Set();
     const dedupedAnswers = [];
@@ -135,7 +144,17 @@ async function startTestAttempt(req, res, next) {
             },
         });
 
-        if (activeAttempt) {
+        if (activeAttempt && isAttemptExpired(activeAttempt)) {
+            await prisma.testAttempt.updateMany({
+                where: { id: activeAttempt.id, status: "IN_PROGRESS" },
+                data: {
+                    status: "EXPIRED",
+                    passed: false,
+                    score: 0,
+                    submittedAt: new Date(),
+                },
+            });
+        } else if (activeAttempt) {
             return res.status(200).json({
                 ...activeAttempt,
                 test: hideAudioExplanationUrl(activeAttempt.test),
@@ -423,4 +442,5 @@ module.exports = {
     listMyAttempts,
     getMaxAttempts,
     dedupeSubmittedAnswers,
+    isAttemptExpired,
 };

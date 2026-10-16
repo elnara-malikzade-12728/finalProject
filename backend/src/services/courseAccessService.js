@@ -45,6 +45,15 @@ async function hasValidCoursePurchase(userId, courseId) {
   return Boolean(purchase);
 }
 
+async function hasCourseCertificate(userId, courseId) {
+  const certificate = await prisma.certificate.findFirst({
+    where: { userId, courseId },
+    select: { id: true },
+  });
+
+  return Boolean(certificate);
+}
+
 /**
  * İstifadəçinin verilmiş kursa girişi var mı?
  */
@@ -54,6 +63,9 @@ async function canAccessCourse(userId, courseId) {
   if (await isAdmin(userId)) return true;
   if (await hasActiveSubscription(userId)) return true;
   if (await hasValidCoursePurchase(userId, courseId)) return true;
+  // A certificate is permanent, server-verified proof that this user
+  // completed this exact course. Preserve review access after payment expiry.
+  if (await hasCourseCertificate(userId, courseId)) return true;
 
   return false;
 }
@@ -115,4 +127,5 @@ module.exports = {
   canAccessLesson,
   getFreePreviewLessonIds,
   isFreePreviewLesson,
+  hasCourseCertificate,
 };
