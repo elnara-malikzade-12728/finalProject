@@ -1,6 +1,8 @@
 const prisma = require("../lib/prisma");
 
-function computeLessonUnlockState(lessons, completedLessonIds = [], passedTestLessonIds = []) {
+function computeLessonUnlockState(lessons, completedLessonIds = [], passedTestLessonIds = [], courseCompleted = false) {
+  if (courseCompleted) return { lockedLessonIds: [] };
+
   const completed = new Set(completedLessonIds);
   const passedTests = new Set(passedTestLessonIds);
   const lockedLessonIds = [];
@@ -20,6 +22,12 @@ function computeLessonUnlockState(lessons, completedLessonIds = [], passedTestLe
 }
 
 async function getCourseLessonUnlockState(userId, courseId) {
+  const certificate = await prisma.certificate.findFirst({
+    where: { userId, courseId },
+    select: { id: true },
+  });
+  if (certificate) return { lockedLessonIds: [] };
+
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     select: {
