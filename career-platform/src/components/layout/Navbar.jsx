@@ -11,7 +11,6 @@ import {
   Menu,
   Newspaper,
   UserRound,
-  ListChecks,
   X,
 } from "lucide-react";
 import {
@@ -117,19 +116,6 @@ function Navbar() {
                 <Map size={18} />
                 Kurslar
               </NavLink>
-
-              {isAuthenticated && user?.role !== "ADMIN" && (
-                <>
-                  <NavLink
-                    to="/tests"
-                    className={getNavLinkClass}
-                    onClick={closeMenu}
-                  >
-                    <ListChecks size={18} />
-                    Testlər
-                  </NavLink>
-                </>
-              )}
 
               <NavLink
                 to="/jobs"

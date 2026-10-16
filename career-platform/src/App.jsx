@@ -110,9 +110,6 @@ const AdminVideoPage = lazy(
 const AdminCoursesPage = lazy(
   () => import("./pages/AdminCoursesPage.jsx"),
 );
-const TestsPage = lazy(
-  () => import("./pages/TestsPage.jsx"),
-);
 const AdminTestsPage = lazy(
   () => import("./pages/AdminTestsPage.jsx"),
 );
@@ -231,7 +228,7 @@ function App() {
 
             <Route
               path="tests"
-              element={<TestsPage />}
+              element={<Navigate to="/courses" replace />}
             />
 
             <Route
